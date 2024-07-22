@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["apply_operation_twice","write_to_file","write_to_file_actually_safe","write_to_file_safe","write_to_hw3"]};
