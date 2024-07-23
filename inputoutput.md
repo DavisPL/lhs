@@ -11,16 +11,16 @@ use std::io::{self, ErrorKind};
 
 1. This function does contain an input (`filename: /proc/self/mem`) such that a safety property (write to /proc/self/mem) is violated.
 ```Rust
-pub fn write_to_file(contents: &str, filename: &str) -> Result<(), Error> {
+pub fn write_to_file(contents: &str, filename: &str) -> io::Result<()> {
     fs::write(contents, filename)?;
     Ok(())
 }
 ```
 2. This function also contains an input (filename: `/proc/../proc/self/mem`) such that a safety property (write to /proc/self/mem) is violated.
 ```Rust
-pub fn write_to_file_safe(contents: &str, filename: &str) -> Result<(), Error> {
+pub fn write_to_file_safe(contents: &str, filename: &str) -> io::Result<()> {
     if filename == "/proc/self/mem" {
-        Err(ErrorKind::Other, "Unsafe write!")
+        return Err(io::Error::new(ErrorKind::Other, "Unsafe write!"));
     }
     fs::write(contents, filename)?;
     Ok(())
@@ -31,7 +31,7 @@ pub fn write_to_file_safe(contents: &str, filename: &str) -> Result<(), Error> {
 ```Rust
 pub fn write_to_file_actually_safe(contents: &str, filename: &str) -> io::Result<()> {
     let filename_realpath: PathBuf = fs::canonicalize(filename)?;
-    let unsafe_path: PathBuf = fs::canonicalize("proc/self/mem")?;
+    let unsafe_path: PathBuf = fs::canonicalize("/proc/self/mem")?;
     if filename_realpath == unsafe_path {
         return Err(io::Error::new(ErrorKind::Other, "Unsafe write!"));
     }
