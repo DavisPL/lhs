@@ -1,6 +1,8 @@
+pub mod symbolic;
+
 use std::fs;
-use std::path::PathBuf;
 use std::io::{self, ErrorKind};
+use std::path::PathBuf;
 
 fn main() {
     println!("Hello, world!");
@@ -38,6 +40,6 @@ pub fn apply_operation_twice(num: i32, operation: impl Fn(i32) -> i32) -> i32 {
 }
 
 /// This function contains no input such that a write to /proc/self/mem occurs.
-pub fn write_to_hw3(contents: &str)-> io::Result<()> {
-    Ok(fs::write("~/caleb/hw3/src/main.rs", contents)?)
+pub fn write_to_hw3(contents: &str) -> io::Result<()> {
+    fs::write("~/caleb/hw3/src/main.rs", contents)
 }
