@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-use std::env::var;
 use z3::{self, ast::Ast};
 use z3::ast::Regexp;
 
