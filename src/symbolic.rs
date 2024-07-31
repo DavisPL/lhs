@@ -1,5 +1,7 @@
 use std::collections::HashMap;
+use std::env::var;
 use z3::{self, ast::Ast};
+use z3::ast::Regexp;
 
 pub struct Environment<'ctx> {
     context: z3::Context,
@@ -49,14 +51,56 @@ impl<'ctx> Environment<'ctx> {
         variable_name: &str,
         other_name: &str,
     ) -> Result<(), &str> {
-        todo!();
+        self.string_variables.insert(
+            variable_name.to_string(),
+            z3::ast::String::new_const(&self.context, variable_name),
+        );
+        let variable = self
+        .string_variables
+        .get(variable_name)
+        .expect("Variable should be present in hashmap");
+        let other_variable = match self.string_variables.get(other_name) {
+            Some(x) => x,
+            None => return Err("other_name is not present in the environment.")
+        };
+        self.constraints.push(variable._eq(other_variable));
         Ok(())
     }
     /// Checks if there is an assignment to symbolic variables in the Environment such that write_arg_name matches /proc/self/mem.
     /// This function can be used to check that a write such as `fs::write(filename, contents)` does not write to the directory
     /// /proc/self/mem. The argument write_arg_name must already be present in the environment. If it is not, an Error is returned.
+    /// Additionally, an error is returned if z3 cannot determine if there is or is not an assignment to symbolic variables such that 
+    /// write_arg_name matches /proc/self/mem.
     pub fn write_safety(&'ctx mut self, write_arg_name: &str) -> Result<bool, &str> {
-        todo!()
+        let variable = match self.string_variables.get(write_arg_name) {
+            Some(x) => x,
+            None => return Err("write_arg_name is not present in the environment.")
+        };
+        let solver = z3::Solver::new(&self.context);
+        for constraint in &self.constraints {
+            solver.assert(constraint);
+        }
+        let slash = Regexp::literal(&self.context, "/");
+        let dot_slash = Regexp::literal(&self.context, "./");
+
+        let regex_parts = &[
+            &slash,
+            &Regexp::union(&self.context, &[&slash, &dot_slash]).star(),
+            &Regexp::literal(&self.context, "self"),
+            &slash,
+            &Regexp::union(&self.context, &[&slash, &dot_slash]).star(),
+            &Regexp::literal(&self.context, "proc"),
+            &slash,
+            &Regexp::union(&self.context, &[&slash, &dot_slash]).star(),
+            &Regexp::literal(&self.context, "mem"),
+        ];
+        let unsafe_regex = Regexp::concat(&self.context, regex_parts);
+        solver.assert(&variable.regex_matches(&unsafe_regex));
+        match solver.check() {
+            z3::SatResult::Sat => Ok(true),
+            z3::SatResult::Unsat => Ok(false),
+            z3::SatResult::Unknown => Err("z3 returned Unknown."),
+        }
     }
 }
 
