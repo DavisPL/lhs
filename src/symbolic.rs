@@ -1,6 +1,6 @@
 use std::collections::HashMap;
-use z3::ast::Regexp;
-use z3::{self, ast::Ast};
+use z3;
+use z3::ast::{Ast, Regexp};
 
 pub struct Environment<'ctx> {
     context: &'ctx z3::Context,
@@ -9,7 +9,7 @@ pub struct Environment<'ctx> {
 }
 
 impl<'ctx> Environment<'ctx> {
-    /// Creates an empty Environment.
+    /// Creates an empty Environment with a supplied Z3 context.
     pub fn new(context: &'ctx z3::Context) -> Self {
         Environment {
             context,
@@ -35,9 +35,9 @@ impl<'ctx> Environment<'ctx> {
         let variable = self
             .string_variables
             .get(variable_name)
-            .expect("Variable should be present in hashmap");
+            .expect("Variable should be present in hashmap.");
         let const_z3_value = z3::ast::String::from_str(self.context, value)
-            .expect("Value should not contain NUL bytes");
+            .expect("Value should not contain NUL bytes.");
         self.constraints.push(variable._eq(&const_z3_value))
     }
     /// Creates a string assigned to another string with the given variable name and adds it to the Environment. This function
@@ -55,7 +55,7 @@ impl<'ctx> Environment<'ctx> {
         let variable = self
             .string_variables
             .get(variable_name)
-            .expect("Variable should be present in hashmap");
+            .expect("Variable should be present in hashmap.");
         let other_variable = match self.string_variables.get(other_name) {
             Some(x) => x,
             None => return Err("other_name is not present in the environment."),
@@ -64,11 +64,10 @@ impl<'ctx> Environment<'ctx> {
         Ok(())
     }
     /// Checks if there is an assignment to symbolic variables in the Environment such that write_arg_name matches /proc/self/mem.
-    /// This function can be used to check that a write such as `fs::write(filename, contents)` does not write to the directory
-    /// /proc/self/mem. The argument write_arg_name must already be present in the environment. If it is not, an Error is returned.
-    /// Additionally, an error is returned if z3 cannot determine if there is or is not an assignment to symbolic variables such that
-    /// write_arg_name matches /proc/self/mem.
-    pub fn write_safety(&mut self, write_arg_name: &str) -> Result<bool, &str> {
+    /// If there is such an assignment, return false. Otherwise, return true. This function can be used to check that a write such as 
+    /// `fs::write(filename, contents)` does not write to the directory /proc/self/mem. The argument write_arg_name must already be present
+    /// in the environment. If it is not, an Error is returned. Additionally, an error is returned if z3 returns Unknown.
+    pub fn is_write_safe(&mut self, write_arg_name: &str) -> Result<bool, &str> {
         let variable = match self.string_variables.get(write_arg_name) {
             Some(x) => x,
             None => return Err("write_arg_name is not present in the environment."),
@@ -79,7 +78,6 @@ impl<'ctx> Environment<'ctx> {
         }
         let slash = Regexp::literal(self.context, "/");
         let dot_slash = Regexp::literal(self.context, "./");
-
         let regex_parts = &[
             &slash,
             &Regexp::union(self.context, &[&slash, &dot_slash]).star(),
@@ -94,9 +92,20 @@ impl<'ctx> Environment<'ctx> {
         let unsafe_regex = Regexp::concat(self.context, regex_parts);
         solver.assert(&variable.regex_matches(&unsafe_regex));
         match solver.check() {
-            z3::SatResult::Sat => Ok(true),
-            z3::SatResult::Unsat => Ok(false),
+            z3::SatResult::Sat => Ok(false),
+            z3::SatResult::Unsat => Ok(true),
             z3::SatResult::Unknown => Err("z3 returned Unknown."),
         }
     }
+}
+
+#[test]
+fn test_strings() {
+    let cfg = z3::Config::new();
+    let ctx = z3::Context::new(&cfg);
+    let mut env = Environment::new(&ctx);
+    env.create_string("filename");
+    assert!(!env.is_write_safe("filename").unwrap());
+    env.create_static_string("hw", "~/hw3/src/main.rs");
+    assert!(env.is_write_safe("hw").unwrap());
 }
