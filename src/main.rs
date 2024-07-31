@@ -10,7 +10,7 @@ fn main() {
 
 /// This function does contain an input (`filename: /proc/self/mem`) such that a safety property (write to /proc/self/mem) is violated.
 pub fn write_to_file(contents: &str, filename: &str) -> io::Result<()> {
-    fs::write(contents, filename)?;
+    fs::write(filename, contents)?;
     Ok(())
 }
 
@@ -19,7 +19,7 @@ pub fn write_to_file_safe(contents: &str, filename: &str) -> io::Result<()> {
     if filename == "/proc/self/mem" {
         return Err(io::Error::new(ErrorKind::Other, "Unsafe write!"));
     }
-    fs::write(contents, filename)?;
+    fs::write(filename, contents)?;
     Ok(())
 }
 
@@ -30,7 +30,7 @@ pub fn write_to_file_actually_safe(contents: &str, filename: &str) -> io::Result
     if filename_realpath == unsafe_path {
         return Err(io::Error::new(ErrorKind::Other, "Unsafe write!"));
     }
-    fs::write(contents, filename)?;
+    fs::write(filename_realpath, contents)?;
     Ok(())
 }
 
