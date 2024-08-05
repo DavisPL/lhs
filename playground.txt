@@ -1,0 +1,72 @@
+// WARNING: This output format is intended for human consumers only
+// and is subject to change without notice. Knock yourself out.
+fn main() -> () {
+    let mut _0: ();
+    let _1: i32;
+    let _4: ();
+    let mut _5: std::fmt::Arguments<'_>;
+    let _6: &[core::fmt::rt::Argument<'_>; 3];
+    let _7: [core::fmt::rt::Argument<'_>; 3];
+    let mut _8: core::fmt::rt::Argument<'_>;
+    let _9: &i32;
+    let mut _10: core::fmt::rt::Argument<'_>;
+    let _11: &i32;
+    let mut _12: core::fmt::rt::Argument<'_>;
+    let _13: &&str;
+    scope 1 {
+        debug x => const 1_i32;
+        let _2: i32;
+        scope 2 {
+            debug y => const 2_i32;
+            let _3: &str;
+            scope 3 {
+                debug s => const "apple";
+                let mut _14: &[&str; 4];
+            }
+        }
+    }
+
+    bb0: {
+        _1 = const 1_i32;
+        _2 = const 2_i32;
+        _3 = const "apple";
+        _14 = const main::promoted[0];
+        _9 = &_1;
+        _8 = core::fmt::rt::Argument::<'_>::new_display::<i32>(_9) -> [return: bb1, unwind continue];
+    }
+
+    bb1: {
+        _11 = &_2;
+        _10 = core::fmt::rt::Argument::<'_>::new_display::<i32>(_11) -> [return: bb2, unwind continue];
+    }
+
+    bb2: {
+        _13 = &_3;
+        _12 = core::fmt::rt::Argument::<'_>::new_display::<&str>(_13) -> [return: bb3, unwind continue];
+    }
+
+    bb3: {
+        _7 = [move _8, move _10, move _12];
+        _6 = &_7;
+        _5 = Arguments::<'_>::new_v1::<4, 3>(_14, _6) -> [return: bb4, unwind continue];
+    }
+
+    bb4: {
+        _4 = _print(move _5) -> [return: bb5, unwind continue];
+    }
+
+    bb5: {
+        return;
+    }
+}
+
+const main::promoted[0]: &[&str; 4] = {
+    let mut _0: &[&str; 4];
+    let mut _1: [&str; 4];
+
+    bb0: {
+        _1 = [const "", const "", const "", const "\n"];
+        _0 = &_1;
+        return;
+    }
+}
