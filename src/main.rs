@@ -43,3 +43,12 @@ pub fn apply_operation_twice(num: i32, operation: impl Fn(i32) -> i32) -> i32 {
 pub fn write_to_hw3(contents: &str) -> io::Result<()> {
     fs::write("~/caleb/hw3/src/main.rs", contents)
 }
+
+/// alternative example with pure if/else
+pub fn write_to_file_safe2(contents: &str, filename: &str) -> io::Result<()> {
+    if filename == "/proc/self/mem" {
+        Err(io::Error::new(ErrorKind::Other, "Unsafe write!"))
+    } else {
+        fs::write(filename, contents)
+    }
+}
