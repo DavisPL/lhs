@@ -3,9 +3,9 @@ use z3;
 use z3::ast::{Ast, Regexp};
 
 pub struct Environment<'ctx> {
-    context: &'ctx z3::Context,
-    string_variables: HashMap<String, z3::ast::String<'ctx>>,
-    constraints: Vec<z3::ast::Bool<'ctx>>,
+    pub context: &'ctx z3::Context,
+    pub string_variables: HashMap<String, z3::ast::String<'ctx>>,
+    pub constraints: Vec<z3::ast::Bool<'ctx>>,
 }
 
 impl<'ctx> Environment<'ctx> {
@@ -64,7 +64,7 @@ impl<'ctx> Environment<'ctx> {
         Ok(())
     }
     /// Checks if there is an assignment to symbolic variables in the Environment such that write_arg_name matches /proc/self/mem.
-    /// If there is such an assignment, return false. Otherwise, return true. This function can be used to check that a write such as 
+    /// If there is such an assignment, return false. Otherwise, return true. This function can be used to check that a write such as
     /// `fs::write(filename, contents)` does not write to the directory /proc/self/mem. The argument write_arg_name must already be present
     /// in the environment. If it is not, an Error is returned. Additionally, an error is returned if z3 returns Unknown.
     pub fn is_write_safe(&mut self, write_arg_name: &str) -> Result<bool, &str> {
