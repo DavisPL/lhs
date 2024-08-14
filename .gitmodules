@@ -1,0 +1,3 @@
+[submodule "modeling-safety"]
+	path = modeling-safety
+	url = git@github.com:DavisPL/modeling-safety.git
