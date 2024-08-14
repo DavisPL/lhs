@@ -1,16 +1,18 @@
-
-
-extern crate rustc_middle;
 extern crate rustc_data_structures;
+extern crate rustc_middle;
 
-use rustc_middle::mir::Body;
-use rustc_middle::mir::{Local, BasicBlock};
-use rustc_middle::mir::{StatementKind, TerminatorKind};
-use rustc_middle::mir::{Operand, SwitchTargets};
 use rustc_data_structures::sync::{MappedReadGuard, ReadGuard, RwLock};
+use rustc_middle::mir::Body;
+use rustc_middle::mir::{BasicBlock, Local};
+use rustc_middle::mir::{Operand, SwitchTargets};
+use rustc_middle::mir::{StatementKind, TerminatorKind};
 use std::collections::HashMap;
 use std::sync::Arc;
 
+#[path = "../z3/src/symbolic.rs"]
+mod symbolic;
+
+/*
 pub struct Environment {
     type_map: HashMap<Local, u32>,
     pc: Vec<String>,
@@ -30,18 +32,23 @@ impl Environment {
         }
     }
 }
+*/
 
-pub struct MIRParser <'a>{
+pub struct MIRParser<'a, 'ctx> {
     mir_body: MappedReadGuard<'a, Body<'a>>,
-    curr: Environment,
-    stack: Vec<(Environment, BasicBlock)>,
+    curr: symbolic::Environment<'ctx>,
+    stack: Vec<(symbolic::Environment<'ctx>, BasicBlock)>,
 }
 
-impl<'a> MIRParser<'a>{
+impl<'a, 'ctx> MIRParser<'a, 'ctx> {
     pub fn from(mir_body: MappedReadGuard<'a, Body<'a>>) -> Self {
+        let cfg = z3::Config::new();
+        let ctx = z3::Context::new(&cfg);
+        let z3 = symbolic::Environment::new(&ctx);
+
         MIRParser {
-            mir_body: mir_body,
-            curr: Environment::new(),
+            mir_body,
+            curr: z3,
             stack: Vec::new(),
         }
     }
@@ -63,12 +70,14 @@ impl<'a> MIRParser<'a>{
                 }
                 // Terminator
                 match &bb_data.terminator().kind {
-                    TerminatorKind::Goto{target} => self.parse_bb(*target),
-                    TerminatorKind::SwitchInt{discr, targets} => self.parse_switch_int(discr.clone(), targets.clone()),
+                    TerminatorKind::Goto { target } => self.parse_bb(*target),
+                    TerminatorKind::SwitchInt { discr, targets } => {
+                        self.parse_switch_int(discr.clone(), targets.clone())
+                    }
                     TerminatorKind::Return => self.parse_return(),
                     _ => println!("unknown terminator"),
                 }
-            },
+            }
             // ERROR: Couldn't find the bb we were supposed to process
             None => eprintln!("I couldn't find the bb :("),
         }
@@ -80,7 +89,7 @@ impl<'a> MIRParser<'a>{
         match discr {
             Operand::Copy(place) => local = place.local,
             Operand::Move(place) => local = place.local,
-            Operand::Constant(_) => return // don't know when constant is used yet? if (true)?
+            Operand::Constant(_) => return, // don't know when constant is used yet? if (true)?
         }
         // will need to make a vector here to keep track of !a && !b -> !a && !b && !c -> etc. for all targets
         let mut curr_pc: Vec<String> = Vec::new();
@@ -88,8 +97,10 @@ impl<'a> MIRParser<'a>{
             // Make a clone of curr
             let mut cloned_curr = self.curr.clone();
             // Update the clone's PC
-            cloned_curr.pc.push(format!("{} = {}", local.as_usize(), value)); // this is temp wrong and definitely not general
-            // Append to Negation PC vector for the otherwise branch
+            cloned_curr
+                .pc
+                .push(format!("{} = {}", local.as_usize(), value)); // this is temp wrong and definitely not general
+                                                                    // Append to Negation PC vector for the otherwise branch
             curr_pc.push(format!("{} != {}", local.as_usize(), value));
             // Push updated clone to parser's stack
             self.stack.push((cloned_curr, target));
