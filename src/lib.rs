@@ -1,7 +1,6 @@
 #![feature(rustc_private)]
 #![allow(unused_variables)]
 #![allow(unused_imports)]
-
 #![feature(mapped_lock_guards)]
 
 use std::fs;
@@ -11,9 +10,9 @@ use std::path::PathBuf;
 // use std::env;
 use clap::Parser;
 
-use std::io::ErrorKind;
 use std::fs::File;
 use std::fs::FileType;
+use std::io::ErrorKind;
 
 #[derive(Parser, Debug)]
 #[command(name = "mir_analyzer")]
@@ -25,9 +24,8 @@ pub struct Args {
     pub source: String,
 
     // Parsing variable options?
-
     /// Toggle matching with numeric variables
-    #[arg(long)] 
+    #[arg(long)]
     pub numeric: bool,
 }
 
@@ -47,9 +45,8 @@ extern crate rustc_interface;
 extern crate rustc_session;
 extern crate rustc_span;
 
-extern crate rustc_middle;
 extern crate rustc_data_structures;
-
+extern crate rustc_middle;
 
 use std::{path, process, str, sync::Arc};
 
@@ -78,12 +75,12 @@ pub fn get_mir_body(path: PathBuf) {
             ..config::Options::default()
         },
         // cfg! configuration in addition to the default ones
-        crate_cfg: Vec::new(),       // FxHashSet<(String, Option<String>)>
-        crate_check_cfg: Vec::new(), // CheckCfg
+        crate_cfg: Vec::new(),            // FxHashSet<(String, Option<String>)>
+        crate_check_cfg: Vec::new(),      // CheckCfg
         input: config::Input::File(path), // enum with either File(PathBuf) or Str(FileName, String) -- have CLI for 1st!
-        output_dir: None,  // Option<PathBuf>
-        output_file: None, // Option<PathBuf>
-        file_loader: None, // Option<Box<dyn FileLoader + Send + Sync>>
+        output_dir: None,                 // Option<PathBuf>
+        output_file: None,                // Option<PathBuf>
+        file_loader: None,                // Option<Box<dyn FileLoader + Send + Sync>>
         locale_resources: rustc_driver::DEFAULT_LOCALE_RESOURCES,
         lint_caps: FxHashMap::default(), // FxHashMap<lint::LintId, lint::Level>
         // This is a callback from the driver that is called when [`ParseSess`] is created.
@@ -109,11 +106,12 @@ pub fn get_mir_body(path: PathBuf) {
     };
 
     rustc_interface::run_compiler(config, |compiler| {
-        compiler.enter(|queries| { // F: for<'tcx> FnOnce(&'tcx Queries<'tcx>) -> T
+        compiler.enter(|queries| {
+            // F: for<'tcx> FnOnce(&'tcx Queries<'tcx>) -> T
             // Parse the program and print the syntax tree.
             let parse = queries.parse().unwrap().get_mut().clone();
             // println!("{parse:?}");
-            
+
             // Analyze the program and inspect the types of definitions.
             queries.global_ctxt().unwrap().enter(|tcx| {
                 // for id in tcx.hir().items() {
@@ -150,6 +148,11 @@ use crate::parser::MIRParser;
 
 pub fn analyze_mir_body<'a>(mir_body: MappedReadGuard<'a, Body<'a>>) {
     dbg!("{}", &mir_body);
-    let mut mir_parser = MIRParser::from(mir_body);
+    let cfg = z3::Config::new();
+    let ctx = z3::Context::new(&cfg);
+    let z3 = parser::symbolic::Environment::new(&ctx);
+
+    let mut mir_parser = MIRParser::new(mir_body, z3);
     mir_parser.parse();
 }
+

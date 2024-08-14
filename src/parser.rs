@@ -10,7 +10,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 #[path = "../z3/src/symbolic.rs"]
-mod symbolic;
+pub mod symbolic;
 
 /*
 pub struct Environment {
@@ -41,11 +41,7 @@ pub struct MIRParser<'a, 'ctx> {
 }
 
 impl<'a, 'ctx> MIRParser<'a, 'ctx> {
-    pub fn from(mir_body: MappedReadGuard<'a, Body<'a>>) -> Self {
-        let cfg = z3::Config::new();
-        let ctx = z3::Context::new(&cfg);
-        let z3 = symbolic::Environment::new(&ctx);
-
+    pub fn new(mir_body: MappedReadGuard<'a, Body<'a>>, z3: symbolic::Environment<'ctx>) -> Self {
         MIRParser {
             mir_body,
             curr: z3,
