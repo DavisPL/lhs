@@ -9,6 +9,7 @@ use std::path::PathBuf;
 
 // use std::env;
 use clap::Parser;
+use parser::symexec;
 
 use std::fs::File;
 use std::fs::FileType;
@@ -150,9 +151,8 @@ pub fn analyze_mir_body<'a>(mir_body: MappedReadGuard<'a, Body<'a>>) {
     dbg!("{}", &mir_body);
     let cfg = z3::Config::new();
     let ctx = z3::Context::new(&cfg);
-    let z3 = parser::symbolic::Environment::new(&ctx);
+    let env = symexec::SymExec::new(&ctx);
 
-    let mut mir_parser = MIRParser::new(mir_body, z3);
+    let mut mir_parser = MIRParser::new(mir_body, env);
     mir_parser.parse();
 }
-

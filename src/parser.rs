@@ -9,8 +9,8 @@ use rustc_middle::mir::{StatementKind, TerminatorKind};
 use std::collections::HashMap;
 use std::sync::Arc;
 
-#[path = "../z3/src/symbolic.rs"]
-pub mod symbolic;
+#[path = "../z3/src/symexec.rs"]
+pub mod symexec;
 
 /*
 pub struct Environment {
@@ -36,12 +36,12 @@ impl Environment {
 
 pub struct MIRParser<'a, 'ctx> {
     mir_body: MappedReadGuard<'a, Body<'a>>,
-    curr: symbolic::Environment<'ctx>,
-    stack: Vec<(symbolic::Environment<'ctx>, BasicBlock)>,
+    curr: symexec::SymExec<'ctx>,
+    stack: Vec<(symexec::SymExec<'ctx>, BasicBlock)>,
 }
 
 impl<'a, 'ctx> MIRParser<'a, 'ctx> {
-    pub fn new(mir_body: MappedReadGuard<'a, Body<'a>>, z3: symbolic::Environment<'ctx>) -> Self {
+    pub fn new(mir_body: MappedReadGuard<'a, Body<'a>>, z3: symexec::SymExec<'ctx>) -> Self {
         MIRParser {
             mir_body,
             curr: z3,
