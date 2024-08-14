@@ -4,11 +4,11 @@ use z3::ast::{Ast, Regexp};
 
 #[derive(Debug, Clone)]
 pub struct SymExec<'ctx> {
-    context: &'ctx z3::Context,
-    string_variables: HashMap<String, z3::ast::String<'ctx>>,
-    int_variables: HashMap<String, z3::ast::Int<'ctx>>,
-    bool_variables: HashMap<String, z3::ast::Bool<'ctx>>,
-    constraints: Vec<z3::ast::Bool<'ctx>>,
+    pub context: &'ctx z3::Context,
+    pub string_variables: HashMap<String, z3::ast::String<'ctx>>,
+    pub int_variables: HashMap<String, z3::ast::Int<'ctx>>,
+    pub bool_variables: HashMap<String, z3::ast::Bool<'ctx>>,
+    pub constraints: Vec<z3::ast::Bool<'ctx>>,
 }
 
 impl<'ctx> SymExec<'ctx> {
@@ -135,7 +135,11 @@ impl<'ctx> SymExec<'ctx> {
         z3::ast::Bool::or(self.context, &[value1, value2])
     }
     /// Create a z3 bool expression from the equality of two z3 bool expressions.
-    pub fn bool_equals(&self, value1: &z3::ast::Bool<'ctx>, value2: &z3::ast::Bool<'ctx>) -> z3::ast::Bool<'ctx>{
+    pub fn bool_equals(
+        &self,
+        value1: &z3::ast::Bool<'ctx>,
+        value2: &z3::ast::Bool<'ctx>,
+    ) -> z3::ast::Bool<'ctx> {
         value1.iff(value2)
     }
     /// Creates an uninterpreted integer with the given variable name and adds it to the executor. This function can be
