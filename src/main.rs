@@ -1,4 +1,5 @@
 pub mod symbolic;
+pub mod symexec;
 
 use std::fs;
 use std::io::{self, ErrorKind};
