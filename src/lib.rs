@@ -147,12 +147,23 @@ mod parser;
 
 use crate::parser::MIRParser;
 
+use rustc_middle::ty::TyKind;
+
 pub fn analyze_mir_body<'a>(mir_body: MappedReadGuard<'a, Body<'a>>) {
     dbg!("{}", &mir_body);
     let cfg = z3::Config::new();
     let ctx = z3::Context::new(&cfg);
-    let env = symexec::SymExec::new(&ctx);
+    let mut ev = symexec::SymExec::new(&ctx);
 
-    let mut mir_parser = MIRParser::new(mir_body, env);
+    for (local, local_decl) in mir_body.local_decls.iter_enumerated() {
+        match local_decl.ty.kind() {
+            TyKind::Int(_) => ev.create_int(local.as_usize().to_string().as_str()),
+            TyKind::Str => ev.create_uninterpreted_string(local.as_usize().to_string().as_str()),
+            TyKind::Bool => ev.create_uninterpreted_bool(local.as_usize().to_string().as_str()),
+            _ => println!("Unsupported Type: {}", local_decl.ty),
+        }
+    }
+
+    let mut mir_parser = MIRParser::new(mir_body, ev);
     mir_parser.parse();
 }
