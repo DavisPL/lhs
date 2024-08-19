@@ -1,0 +1,340 @@
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.06s
+     Running `target/debug/mir-analyzer --source match.rs`
+[src/lib.rs:152:5] "{}" = "{}"
+[src/lib.rs:152:5] &mir_body = Body {
+    basic_blocks: BasicBlocks {
+        basic_blocks: [
+            BasicBlockData {
+                statements: [
+                    StorageLive(_2),
+                    StorageLive(_3),
+                    PlaceMention(_1),
+                ],
+                terminator: Some(
+                    Terminator {
+                        source_info: SourceInfo {
+                            span: match.rs:3:5: 3:12 (#0),
+                            scope: scope[1],
+                        },
+                        kind: switchInt(_1) -> [0: bb2, 1: bb3, 2: bb4, otherwise: bb1],
+                    },
+                ),
+                is_cleanup: false,
+            },
+            BasicBlockData {
+                statements: [
+                    _2 = const 11_i32,
+                    _3 = const (),
+                ],
+                terminator: Some(
+                    Terminator {
+                        source_info: SourceInfo {
+                            span: match.rs:7:14: 7:20 (#0),
+                            scope: scope[1],
+                        },
+                        kind: goto -> bb8,
+                    },
+                ),
+                is_cleanup: false,
+            },
+            BasicBlockData {
+                statements: [],
+                terminator: Some(
+                    Terminator {
+                        source_info: SourceInfo {
+                            span: match.rs:4:9: 4:10 (#0),
+                            scope: scope[1],
+                        },
+                        kind: falseEdge -> [real: bb5, imaginary: bb3],
+                    },
+                ),
+                is_cleanup: false,
+            },
+            BasicBlockData {
+                statements: [],
+                terminator: Some(
+                    Terminator {
+                        source_info: SourceInfo {
+                            span: match.rs:5:9: 5:10 (#0),
+                            scope: scope[1],
+                        },
+                        kind: falseEdge -> [real: bb6, imaginary: bb4],
+                    },
+                ),
+                is_cleanup: false,
+            },
+            BasicBlockData {
+                statements: [],
+                terminator: Some(
+                    Terminator {
+                        source_info: SourceInfo {
+                            span: match.rs:6:9: 6:10 (#0),
+                            scope: scope[1],
+                        },
+                        kind: falseEdge -> [real: bb7, imaginary: bb1],
+                    },
+                ),
+                is_cleanup: false,
+            },
+            BasicBlockData {
+                statements: [
+                    _2 = const 1_i32,
+                    _3 = const (),
+                ],
+                terminator: Some(
+                    Terminator {
+                        source_info: SourceInfo {
+                            span: match.rs:4:14: 4:19 (#0),
+                            scope: scope[1],
+                        },
+                        kind: goto -> bb8,
+                    },
+                ),
+                is_cleanup: false,
+            },
+            BasicBlockData {
+                statements: [
+                    _2 = const 3_i32,
+                    _3 = const (),
+                ],
+                terminator: Some(
+                    Terminator {
+                        source_info: SourceInfo {
+                            span: match.rs:5:14: 5:19 (#0),
+                            scope: scope[1],
+                        },
+                        kind: goto -> bb8,
+                    },
+                ),
+                is_cleanup: false,
+            },
+            BasicBlockData {
+                statements: [
+                    _2 = const 9_i32,
+                    _3 = const (),
+                ],
+                terminator: Some(
+                    Terminator {
+                        source_info: SourceInfo {
+                            span: match.rs:6:14: 6:19 (#0),
+                            scope: scope[1],
+                        },
+                        kind: goto -> bb8,
+                    },
+                ),
+                is_cleanup: false,
+            },
+            BasicBlockData {
+                statements: [
+                    StorageDead(_3),
+                    _0 = _2,
+                    StorageDead(_2),
+                ],
+                terminator: Some(
+                    Terminator {
+                        source_info: SourceInfo {
+                            span: match.rs:10:2: 10:2 (#0),
+                            scope: scope[0],
+                        },
+                        kind: return,
+                    },
+                ),
+                is_cleanup: false,
+            },
+        ],
+        cache: Cache {
+            predecessors: OnceLock(
+                <uninit>,
+            ),
+            switch_sources: OnceLock(
+                <uninit>,
+            ),
+            is_cyclic: OnceLock(
+                <uninit>,
+            ),
+            reverse_postorder: OnceLock(
+                <uninit>,
+            ),
+            dominators: OnceLock(
+                <uninit>,
+            ),
+        },
+    },
+    phase: Built,
+    pass_count: 6,
+    source: MirSource {
+        instance: Item(
+            DefId(0:3 ~ match[8d33]::main),
+        ),
+        promoted: None,
+    },
+    source_scopes: [
+        SourceScopeData {
+            span: match.rs:1:1: 10:2 (#0),
+            parent_scope: None,
+            inlined: None,
+            inlined_parent_scope: None,
+            local_data: Set(
+                SourceScopeLocalData {
+                    lint_root: HirId(DefId(0:3 ~ match[8d33]::main).0),
+                },
+            ),
+        },
+        SourceScopeData {
+            span: match.rs:2:5: 10:2 (#0),
+            parent_scope: Some(
+                scope[0],
+            ),
+            inlined: None,
+            inlined_parent_scope: None,
+            local_data: Set(
+                SourceScopeLocalData {
+                    lint_root: HirId(DefId(0:3 ~ match[8d33]::main).0),
+                },
+            ),
+        },
+    ],
+    coroutine: None,
+    local_decls: [
+        LocalDecl {
+            mutability: Mut,
+            local_info: Set(
+                Boring,
+            ),
+            ty: i32,
+            user_ty: None,
+            source_info: SourceInfo {
+                span: match.rs:1:20: 1:23 (#0),
+                scope: scope[0],
+            },
+        },
+        LocalDecl {
+            mutability: Not,
+            local_info: Set(
+                User(
+                    Var(
+                        VarBindingForm {
+                            binding_mode: BindingMode(
+                                No,
+                                Not,
+                            ),
+                            opt_ty_info: Some(
+                                match.rs:1:12: 1:15 (#0),
+                            ),
+                            opt_match_place: Some(
+                                (
+                                    None,
+                                    match.rs:1:9: 1:10 (#0),
+                                ),
+                            ),
+                            pat_span: match.rs:1:9: 1:10 (#0),
+                        },
+                    ),
+                ),
+            ),
+            ty: i32,
+            user_ty: None,
+            source_info: SourceInfo {
+                span: match.rs:1:9: 1:10 (#0),
+                scope: scope[0],
+            },
+        },
+        LocalDecl {
+            mutability: Not,
+            local_info: Set(
+                User(
+                    Var(
+                        VarBindingForm {
+                            binding_mode: BindingMode(
+                                No,
+                                Not,
+                            ),
+                            opt_ty_info: None,
+                            opt_match_place: None,
+                            pat_span: match.rs:2:9: 2:10 (#0),
+                        },
+                    ),
+                ),
+            ),
+            ty: i32,
+            user_ty: Some(
+                UserTypeProjections {
+                    contents: [
+                        (
+                            UserTypeProjection {
+                                base: UserType(0),
+                                projs: [],
+                            },
+                            match.rs:2:12: 2:15 (#0),
+                        ),
+                    ],
+                },
+            ),
+            source_info: SourceInfo {
+                span: match.rs:2:9: 2:10 (#0),
+                scope: scope[0],
+            },
+        },
+        LocalDecl {
+            mutability: Not,
+            local_info: Set(
+                Boring,
+            ),
+            ty: (),
+            user_ty: None,
+            source_info: SourceInfo {
+                span: match.rs:3:5: 8:6 (#0),
+                scope: scope[0],
+            },
+        },
+    ],
+    user_type_annotations: [
+        CanonicalUserTypeAnnotation {
+            user_ty: Canonical {
+                value: Ty(
+                    i32,
+                ),
+                max_universe: U0,
+                defining_opaque_types: [],
+                variables: [],
+            },
+            span: match.rs:2:12: 2:15 (#0),
+            inferred_ty: i32,
+        },
+        CanonicalUserTypeAnnotation {
+            user_ty: Canonical {
+                value: Ty(
+                    i32,
+                ),
+                max_universe: U0,
+                defining_opaque_types: [],
+                variables: [],
+            },
+            span: match.rs:2:12: 2:15 (#0),
+            inferred_ty: i32,
+        },
+    ],
+    arg_count: 1,
+    spread_arg: None,
+    var_debug_info: [
+        x => _1,
+        y => _2,
+    ],
+    span: match.rs:1:1: 10:2 (#0),
+    required_consts: [],
+    mentioned_items: [],
+    is_polymorphic: false,
+    injection_phase: None,
+    tainted_by_errors: None,
+    coverage_info_hi: None,
+    function_coverage_info: None,
+}
+unknown statement...
+unknown statement...
+unknown statement...
+assignment!
+assignment!
+unknown statement...
+assignment!
+unknown statement...
+unknown terminator

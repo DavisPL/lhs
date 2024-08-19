@@ -93,17 +93,17 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
             // Make a clone of curr
             let mut cloned_curr = self.curr.clone();
             // Update the clone's PC
-            cloned_curr
-                .constraints
-                .push(format!("{} = {}", local.as_usize(), value)); // this is temp wrong and definitely not general
-                                                                    // Append to Negation PC vector for the otherwise branch
-            curr_pc.push(format!("{} != {}", local.as_usize(), value));
+            // cloned_curr
+            //     .constraints
+            //     .push(format!("{} = {}", local.as_usize(), value)); // this is temp wrong and definitely not general
+            //                                                         // Append to Negation PC vector for the otherwise branch
+            // curr_pc.push(format!("{} != {}", local.as_usize(), value));
             // Push updated clone to parser's stack
             self.stack.push((cloned_curr, target));
         }
         // -----> We take the otherwise branch (right to left DFS... for now?)
         // Update current PC
-        self.curr.constraints.append(&mut curr_pc);
+        // self.curr.constraints.append(&mut curr_pc);
         // Then move current to the next bb
         self.parse_bb(targets.otherwise());
     }

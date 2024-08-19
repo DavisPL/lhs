@@ -1,0 +1,804 @@
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.05s
+     Running `target/debug/mir-analyzer --source demo.rs`
+[src/lib.rs:152:5] "{}" = "{}"
+[src/lib.rs:152:5] &mir_body = Body {
+    basic_blocks: BasicBlocks {
+        basic_blocks: [
+            BasicBlockData {
+                statements: [
+                    StorageLive(_1),
+                    _1 = const 1_i32,
+                    FakeRead(ForLet(None), _1),
+                    StorageLive(_2),
+                    _2 = const 2_i32,
+                    FakeRead(ForLet(None), _2),
+                    StorageLive(_3),
+                    _3 = const "apple",
+                    FakeRead(ForLet(None), _3),
+                    StorageLive(_4),
+                    StorageLive(_5),
+                    StorageLive(_6),
+                    StorageLive(_7),
+                    StorageLive(_8),
+                    StorageLive(_9),
+                    _9 = [const "", const "", const "", const "\n"],
+                    _8 = &_9,
+                    _7 = &(*_8),
+                    StorageLive(_10),
+                    StorageLive(_11),
+                    StorageLive(_12),
+                    StorageLive(_13),
+                    StorageLive(_14),
+                    StorageLive(_15),
+                    _15 = &_1,
+                    _14 = &(*_15),
+                ],
+                terminator: Some(
+                    Terminator {
+                        source_info: SourceInfo {
+                            span: demo.rs:5:15: 5:17 (#5),
+                            scope: scope[3],
+                        },
+                        kind: _13 = core::fmt::rt::Argument::<'_>::new_display::<i32>(move _14) -> [return: bb1, unwind: bb6],
+                    },
+                ),
+                is_cleanup: false,
+            },
+            BasicBlockData {
+                statements: [
+                    StorageDead(_14),
+                    StorageLive(_16),
+                    StorageLive(_17),
+                    StorageLive(_18),
+                    _18 = &_2,
+                    _17 = &(*_18),
+                ],
+                terminator: Some(
+                    Terminator {
+                        source_info: SourceInfo {
+                            span: demo.rs:5:17: 5:19 (#5),
+                            scope: scope[3],
+                        },
+                        kind: _16 = core::fmt::rt::Argument::<'_>::new_display::<i32>(move _17) -> [return: bb2, unwind: bb6],
+                    },
+                ),
+                is_cleanup: false,
+            },
+            BasicBlockData {
+                statements: [
+                    StorageDead(_17),
+                    StorageLive(_19),
+                    StorageLive(_20),
+                    StorageLive(_21),
+                    _21 = &_3,
+                    _20 = &(*_21),
+                ],
+                terminator: Some(
+                    Terminator {
+                        source_info: SourceInfo {
+                            span: demo.rs:5:19: 5:21 (#5),
+                            scope: scope[3],
+                        },
+                        kind: _19 = core::fmt::rt::Argument::<'_>::new_display::<&str>(move _20) -> [return: bb3, unwind: bb6],
+                    },
+                ),
+                is_cleanup: false,
+            },
+            BasicBlockData {
+                statements: [
+                    StorageDead(_20),
+                    _12 = [move _13, move _16, move _19],
+                    StorageDead(_19),
+                    StorageDead(_16),
+                    StorageDead(_13),
+                    _11 = &_12,
+                    _10 = &(*_11),
+                ],
+                terminator: Some(
+                    Terminator {
+                        source_info: SourceInfo {
+                            span: /rustc/92c6c03805408a1a261b98013304e9bbf59ee428/library/std/src/macros.rs:143:28: 143:61 (#5),
+                            scope: scope[3],
+                        },
+                        kind: _6 = std::fmt::Arguments::<'_>::new_v1::<4, 3>(move _7, move _10) -> [return: bb4, unwind: bb6],
+                    },
+                ),
+                is_cleanup: false,
+            },
+            BasicBlockData {
+                statements: [
+                    StorageDead(_10),
+                    StorageDead(_7),
+                ],
+                terminator: Some(
+                    Terminator {
+                        source_info: SourceInfo {
+                            span: /rustc/92c6c03805408a1a261b98013304e9bbf59ee428/library/std/src/macros.rs:143:9: 143:62 (#4),
+                            scope: scope[3],
+                        },
+                        kind: _5 = std::io::_print(move _6) -> [return: bb5, unwind: bb6],
+                    },
+                ),
+                is_cleanup: false,
+            },
+            BasicBlockData {
+                statements: [
+                    StorageDead(_6),
+                    StorageDead(_21),
+                    StorageDead(_18),
+                    StorageDead(_15),
+                    StorageDead(_12),
+                    StorageDead(_11),
+                    StorageDead(_9),
+                    StorageDead(_8),
+                    StorageDead(_5),
+                    _4 = const (),
+                    StorageDead(_4),
+                    _0 = const (),
+                    StorageDead(_3),
+                    StorageDead(_2),
+                    StorageDead(_1),
+                ],
+                terminator: Some(
+                    Terminator {
+                        source_info: SourceInfo {
+                            span: demo.rs:6:2: 6:2 (#0),
+                            scope: scope[0],
+                        },
+                        kind: return,
+                    },
+                ),
+                is_cleanup: false,
+            },
+            BasicBlockData {
+                statements: [],
+                terminator: Some(
+                    Terminator {
+                        source_info: SourceInfo {
+                            span: demo.rs:1:1: 6:2 (#0),
+                            scope: scope[0],
+                        },
+                        kind: resume,
+                    },
+                ),
+                is_cleanup: true,
+            },
+        ],
+        cache: Cache {
+            predecessors: OnceLock(
+                <uninit>,
+            ),
+            switch_sources: OnceLock(
+                <uninit>,
+            ),
+            is_cyclic: OnceLock(
+                <uninit>,
+            ),
+            reverse_postorder: OnceLock(
+                <uninit>,
+            ),
+            dominators: OnceLock(
+                <uninit>,
+            ),
+        },
+    },
+    phase: Built,
+    pass_count: 6,
+    source: MirSource {
+        instance: Item(
+            DefId(0:3 ~ demo[e912]::main),
+        ),
+        promoted: None,
+    },
+    source_scopes: [
+        SourceScopeData {
+            span: demo.rs:1:1: 6:2 (#0),
+            parent_scope: None,
+            inlined: None,
+            inlined_parent_scope: None,
+            local_data: Set(
+                SourceScopeLocalData {
+                    lint_root: HirId(DefId(0:3 ~ demo[e912]::main).0),
+                },
+            ),
+        },
+        SourceScopeData {
+            span: demo.rs:2:5: 6:2 (#0),
+            parent_scope: Some(
+                scope[0],
+            ),
+            inlined: None,
+            inlined_parent_scope: None,
+            local_data: Set(
+                SourceScopeLocalData {
+                    lint_root: HirId(DefId(0:3 ~ demo[e912]::main).0),
+                },
+            ),
+        },
+        SourceScopeData {
+            span: demo.rs:3:5: 6:2 (#0),
+            parent_scope: Some(
+                scope[1],
+            ),
+            inlined: None,
+            inlined_parent_scope: None,
+            local_data: Set(
+                SourceScopeLocalData {
+                    lint_root: HirId(DefId(0:3 ~ demo[e912]::main).0),
+                },
+            ),
+        },
+        SourceScopeData {
+            span: demo.rs:4:5: 6:2 (#0),
+            parent_scope: Some(
+                scope[2],
+            ),
+            inlined: None,
+            inlined_parent_scope: None,
+            local_data: Set(
+                SourceScopeLocalData {
+                    lint_root: HirId(DefId(0:3 ~ demo[e912]::main).0),
+                },
+            ),
+        },
+    ],
+    coroutine: None,
+    local_decls: [
+        LocalDecl {
+            mutability: Mut,
+            local_info: Set(
+                Boring,
+            ),
+            ty: (),
+            user_ty: None,
+            source_info: SourceInfo {
+                span: demo.rs:1:10: 1:10 (#0),
+                scope: scope[0],
+            },
+        },
+        LocalDecl {
+            mutability: Not,
+            local_info: Set(
+                User(
+                    Var(
+                        VarBindingForm {
+                            binding_mode: BindingMode(
+                                No,
+                                Not,
+                            ),
+                            opt_ty_info: None,
+                            opt_match_place: Some(
+                                (
+                                    None,
+                                    demo.rs:2:13: 2:14 (#0),
+                                ),
+                            ),
+                            pat_span: demo.rs:2:9: 2:10 (#0),
+                        },
+                    ),
+                ),
+            ),
+            ty: i32,
+            user_ty: None,
+            source_info: SourceInfo {
+                span: demo.rs:2:9: 2:10 (#0),
+                scope: scope[0],
+            },
+        },
+        LocalDecl {
+            mutability: Not,
+            local_info: Set(
+                User(
+                    Var(
+                        VarBindingForm {
+                            binding_mode: BindingMode(
+                                No,
+                                Not,
+                            ),
+                            opt_ty_info: None,
+                            opt_match_place: Some(
+                                (
+                                    None,
+                                    demo.rs:3:13: 3:14 (#0),
+                                ),
+                            ),
+                            pat_span: demo.rs:3:9: 3:10 (#0),
+                        },
+                    ),
+                ),
+            ),
+            ty: i32,
+            user_ty: None,
+            source_info: SourceInfo {
+                span: demo.rs:3:9: 3:10 (#0),
+                scope: scope[1],
+            },
+        },
+        LocalDecl {
+            mutability: Not,
+            local_info: Set(
+                User(
+                    Var(
+                        VarBindingForm {
+                            binding_mode: BindingMode(
+                                No,
+                                Not,
+                            ),
+                            opt_ty_info: None,
+                            opt_match_place: Some(
+                                (
+                                    None,
+                                    demo.rs:4:13: 4:20 (#0),
+                                ),
+                            ),
+                            pat_span: demo.rs:4:9: 4:10 (#0),
+                        },
+                    ),
+                ),
+            ),
+            ty: &'{erased} str,
+            user_ty: None,
+            source_info: SourceInfo {
+                span: demo.rs:4:9: 4:10 (#0),
+                scope: scope[2],
+            },
+        },
+        LocalDecl {
+            mutability: Not,
+            local_info: Set(
+                Boring,
+            ),
+            ty: (),
+            user_ty: None,
+            source_info: SourceInfo {
+                span: /rustc/92c6c03805408a1a261b98013304e9bbf59ee428/library/std/src/macros.rs:142:23: 144:6 (#4),
+                scope: scope[0],
+            },
+        },
+        LocalDecl {
+            mutability: Not,
+            local_info: Set(
+                Boring,
+            ),
+            ty: (),
+            user_ty: None,
+            source_info: SourceInfo {
+                span: /rustc/92c6c03805408a1a261b98013304e9bbf59ee428/library/std/src/macros.rs:143:9: 143:62 (#4),
+                scope: scope[0],
+            },
+        },
+        LocalDecl {
+            mutability: Mut,
+            local_info: Set(
+                Boring,
+            ),
+            ty: std::fmt::Arguments<'{erased}>,
+            user_ty: None,
+            source_info: SourceInfo {
+                span: /rustc/92c6c03805408a1a261b98013304e9bbf59ee428/library/std/src/macros.rs:143:28: 143:61 (#5),
+                scope: scope[0],
+            },
+        },
+        LocalDecl {
+            mutability: Mut,
+            local_info: Set(
+                Boring,
+            ),
+            ty: &'{erased} [&'{erased} str; 4_usize],
+            user_ty: None,
+            source_info: SourceInfo {
+                span: demo.rs:5:14: 5:22 (#0),
+                scope: scope[0],
+            },
+        },
+        LocalDecl {
+            mutability: Not,
+            local_info: Set(
+                Boring,
+            ),
+            ty: &'{erased} [&'{erased} str; 4_usize],
+            user_ty: None,
+            source_info: SourceInfo {
+                span: demo.rs:5:14: 5:22 (#0),
+                scope: scope[0],
+            },
+        },
+        LocalDecl {
+            mutability: Not,
+            local_info: Set(
+                Boring,
+            ),
+            ty: [&'{erased} str; 4_usize],
+            user_ty: None,
+            source_info: SourceInfo {
+                span: demo.rs:5:14: 5:22 (#0),
+                scope: scope[0],
+            },
+        },
+        LocalDecl {
+            mutability: Mut,
+            local_info: Set(
+                Boring,
+            ),
+            ty: &'{erased} [core::fmt::rt::Argument<'{erased}>; 3_usize],
+            user_ty: None,
+            source_info: SourceInfo {
+                span: /rustc/92c6c03805408a1a261b98013304e9bbf59ee428/library/std/src/macros.rs:143:28: 143:61 (#5),
+                scope: scope[0],
+            },
+        },
+        LocalDecl {
+            mutability: Not,
+            local_info: Set(
+                Boring,
+            ),
+            ty: &'{erased} [core::fmt::rt::Argument<'{erased}>; 3_usize],
+            user_ty: None,
+            source_info: SourceInfo {
+                span: /rustc/92c6c03805408a1a261b98013304e9bbf59ee428/library/std/src/macros.rs:143:28: 143:61 (#5),
+                scope: scope[0],
+            },
+        },
+        LocalDecl {
+            mutability: Not,
+            local_info: Set(
+                Boring,
+            ),
+            ty: [core::fmt::rt::Argument<'{erased}>; 3_usize],
+            user_ty: None,
+            source_info: SourceInfo {
+                span: /rustc/92c6c03805408a1a261b98013304e9bbf59ee428/library/std/src/macros.rs:143:28: 143:61 (#5),
+                scope: scope[0],
+            },
+        },
+        LocalDecl {
+            mutability: Mut,
+            local_info: Set(
+                Boring,
+            ),
+            ty: core::fmt::rt::Argument<'{erased}>,
+            user_ty: None,
+            source_info: SourceInfo {
+                span: demo.rs:5:15: 5:17 (#5),
+                scope: scope[0],
+            },
+        },
+        LocalDecl {
+            mutability: Mut,
+            local_info: Set(
+                Boring,
+            ),
+            ty: &'{erased} i32,
+            user_ty: None,
+            source_info: SourceInfo {
+                span: demo.rs:5:24: 5:25 (#5),
+                scope: scope[0],
+            },
+        },
+        LocalDecl {
+            mutability: Not,
+            local_info: Set(
+                Boring,
+            ),
+            ty: &'{erased} i32,
+            user_ty: None,
+            source_info: SourceInfo {
+                span: demo.rs:5:24: 5:25 (#5),
+                scope: scope[0],
+            },
+        },
+        LocalDecl {
+            mutability: Mut,
+            local_info: Set(
+                Boring,
+            ),
+            ty: core::fmt::rt::Argument<'{erased}>,
+            user_ty: None,
+            source_info: SourceInfo {
+                span: demo.rs:5:17: 5:19 (#5),
+                scope: scope[0],
+            },
+        },
+        LocalDecl {
+            mutability: Mut,
+            local_info: Set(
+                Boring,
+            ),
+            ty: &'{erased} i32,
+            user_ty: None,
+            source_info: SourceInfo {
+                span: demo.rs:5:26: 5:27 (#5),
+                scope: scope[0],
+            },
+        },
+        LocalDecl {
+            mutability: Not,
+            local_info: Set(
+                Boring,
+            ),
+            ty: &'{erased} i32,
+            user_ty: None,
+            source_info: SourceInfo {
+                span: demo.rs:5:26: 5:27 (#5),
+                scope: scope[0],
+            },
+        },
+        LocalDecl {
+            mutability: Mut,
+            local_info: Set(
+                Boring,
+            ),
+            ty: core::fmt::rt::Argument<'{erased}>,
+            user_ty: None,
+            source_info: SourceInfo {
+                span: demo.rs:5:19: 5:21 (#5),
+                scope: scope[0],
+            },
+        },
+        LocalDecl {
+            mutability: Mut,
+            local_info: Set(
+                Boring,
+            ),
+            ty: &'{erased} &'{erased} str,
+            user_ty: None,
+            source_info: SourceInfo {
+                span: demo.rs:5:28: 5:29 (#5),
+                scope: scope[0],
+            },
+        },
+        LocalDecl {
+            mutability: Not,
+            local_info: Set(
+                Boring,
+            ),
+            ty: &'{erased} &'{erased} str,
+            user_ty: None,
+            source_info: SourceInfo {
+                span: demo.rs:5:28: 5:29 (#5),
+                scope: scope[0],
+            },
+        },
+    ],
+    user_type_annotations: [
+        CanonicalUserTypeAnnotation {
+            user_ty: Canonical {
+                value: TypeOf(
+                    DefId(2:10656 ~ core[4d36]::fmt::{impl#2}::new_v1),
+                    UserArgs {
+                        args: [
+                            '^0,
+                            ^1,
+                            ^2,
+                        ],
+                        user_self_ty: Some(
+                            UserSelfTy {
+                                impl_def_id: DefId(2:10651 ~ core[4d36]::fmt::{impl#2}),
+                                self_ty: std::fmt::Arguments<'^3>,
+                            },
+                        ),
+                    },
+                ),
+                max_universe: U0,
+                defining_opaque_types: [],
+                variables: [
+                    CanonicalVarInfo {
+                        kind: Region(
+                            U0,
+                        ),
+                    },
+                    CanonicalVarInfo {
+                        kind: Const(
+                            U0,
+                        ),
+                    },
+                    CanonicalVarInfo {
+                        kind: Const(
+                            U0,
+                        ),
+                    },
+                    CanonicalVarInfo {
+                        kind: Region(
+                            U0,
+                        ),
+                    },
+                ],
+            },
+            span: /rustc/92c6c03805408a1a261b98013304e9bbf59ee428/library/std/src/macros.rs:143:28: 143:61 (#5),
+            inferred_ty: FnDef(
+                DefId(2:10656 ~ core[4d36]::fmt::{impl#2}::new_v1),
+                [
+                    '{erased},
+                    4_usize,
+                    3_usize,
+                ],
+            ),
+        },
+        CanonicalUserTypeAnnotation {
+            user_ty: Canonical {
+                value: TypeOf(
+                    DefId(2:10578 ~ core[4d36]::fmt::rt::{impl#1}::new_display),
+                    UserArgs {
+                        args: [
+                            '^0,
+                            ^1,
+                        ],
+                        user_self_ty: Some(
+                            UserSelfTy {
+                                impl_def_id: DefId(2:10573 ~ core[4d36]::fmt::rt::{impl#1}),
+                                self_ty: core::fmt::rt::Argument<'^2>,
+                            },
+                        ),
+                    },
+                ),
+                max_universe: U0,
+                defining_opaque_types: [],
+                variables: [
+                    CanonicalVarInfo {
+                        kind: Region(
+                            U0,
+                        ),
+                    },
+                    CanonicalVarInfo {
+                        kind: Ty(
+                            General(
+                                U0,
+                            ),
+                        ),
+                    },
+                    CanonicalVarInfo {
+                        kind: Region(
+                            U0,
+                        ),
+                    },
+                ],
+            },
+            span: demo.rs:5:15: 5:17 (#5),
+            inferred_ty: FnDef(
+                DefId(2:10578 ~ core[4d36]::fmt::rt::{impl#1}::new_display),
+                [
+                    '{erased},
+                    i32,
+                ],
+            ),
+        },
+        CanonicalUserTypeAnnotation {
+            user_ty: Canonical {
+                value: TypeOf(
+                    DefId(2:10578 ~ core[4d36]::fmt::rt::{impl#1}::new_display),
+                    UserArgs {
+                        args: [
+                            '^0,
+                            ^1,
+                        ],
+                        user_self_ty: Some(
+                            UserSelfTy {
+                                impl_def_id: DefId(2:10573 ~ core[4d36]::fmt::rt::{impl#1}),
+                                self_ty: core::fmt::rt::Argument<'^2>,
+                            },
+                        ),
+                    },
+                ),
+                max_universe: U0,
+                defining_opaque_types: [],
+                variables: [
+                    CanonicalVarInfo {
+                        kind: Region(
+                            U0,
+                        ),
+                    },
+                    CanonicalVarInfo {
+                        kind: Ty(
+                            General(
+                                U0,
+                            ),
+                        ),
+                    },
+                    CanonicalVarInfo {
+                        kind: Region(
+                            U0,
+                        ),
+                    },
+                ],
+            },
+            span: demo.rs:5:17: 5:19 (#5),
+            inferred_ty: FnDef(
+                DefId(2:10578 ~ core[4d36]::fmt::rt::{impl#1}::new_display),
+                [
+                    '{erased},
+                    i32,
+                ],
+            ),
+        },
+        CanonicalUserTypeAnnotation {
+            user_ty: Canonical {
+                value: TypeOf(
+                    DefId(2:10578 ~ core[4d36]::fmt::rt::{impl#1}::new_display),
+                    UserArgs {
+                        args: [
+                            '^0,
+                            ^1,
+                        ],
+                        user_self_ty: Some(
+                            UserSelfTy {
+                                impl_def_id: DefId(2:10573 ~ core[4d36]::fmt::rt::{impl#1}),
+                                self_ty: core::fmt::rt::Argument<'^2>,
+                            },
+                        ),
+                    },
+                ),
+                max_universe: U0,
+                defining_opaque_types: [],
+                variables: [
+                    CanonicalVarInfo {
+                        kind: Region(
+                            U0,
+                        ),
+                    },
+                    CanonicalVarInfo {
+                        kind: Ty(
+                            General(
+                                U0,
+                            ),
+                        ),
+                    },
+                    CanonicalVarInfo {
+                        kind: Region(
+                            U0,
+                        ),
+                    },
+                ],
+            },
+            span: demo.rs:5:19: 5:21 (#5),
+            inferred_ty: FnDef(
+                DefId(2:10578 ~ core[4d36]::fmt::rt::{impl#1}::new_display),
+                [
+                    '{erased},
+                    &'{erased} str,
+                ],
+            ),
+        },
+    ],
+    arg_count: 0,
+    spread_arg: None,
+    var_debug_info: [
+        x => _1,
+        y => _2,
+        s => _3,
+    ],
+    span: demo.rs:1:1: 6:2 (#0),
+    required_consts: [],
+    mentioned_items: [],
+    is_polymorphic: false,
+    injection_phase: None,
+    tainted_by_errors: None,
+    coverage_info_hi: None,
+    function_coverage_info: None,
+}
+unknown statement...
+assignment!
+unknown statement...
+unknown statement...
+assignment!
+unknown statement...
+unknown statement...
+assignment!
+unknown statement...
+unknown statement...
+unknown statement...
+unknown statement...
+unknown statement...
+unknown statement...
+unknown statement...
+assignment!
+assignment!
+assignment!
+unknown statement...
+unknown statement...
+unknown statement...
+unknown statement...
+unknown statement...
+unknown statement...
+assignment!
+assignment!
+unknown terminator
