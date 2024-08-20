@@ -54,13 +54,38 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
         self.parse_bb(BasicBlock::from_usize(0));
     }
 
+    fn get_operand(o: Operand<'tcx>) {
+    }
+
+    use rustc_middle::mir::syntax::BinOp;
+    fn bin_op(
+        &mut self,
+        op: BinOp,
+        operand: Box<(Operand<'tcx>, Operand<'tcx>)>,
+    ) {
+        let lhs = todo!();
+        match op {
+            BinOp::Eq => todo!(),
+            _ => println!("unknown binary operation"),
+        }
+    }
+
+    fn assignment(&mut self, val: Box<(Place<'tcx>, Rvalue<'tcx>)>) {
+        let (place, val) = *val;
+        let local = place.local.as_usize();
+        match val {
+            BinaryOp(op, operand) => self.bin_op(op, operand),
+            _ => println!("unknown assignment operation"),
+        }
+    }
+
     pub fn parse_bb(&mut self, bb: BasicBlock) {
         match self.mir_body.basic_blocks.get(bb) {
             Some(bb_data) => {
                 // Statements
                 for statement in &bb_data.statements {
                     match statement.kind {
-                        StatementKind::Assign(_) => println!("assignment!"),
+                        StatementKind::Assign(val) => self.assignment(val),
                         _ => println!("unknown statement..."),
                     }
                 }
@@ -88,7 +113,7 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
             Operand::Constant(_) => return, // don't know when constant is used yet? if (true)?
         }
         // will need to make a vector here to keep track of !a && !b -> !a && !b && !c -> etc. for all targets
-        let mut curr_pc: Vec<String> = Vec::new();
+        let mut curr_pc: Vec<z3::ast::Bool<'ctx>> = Vec::new();
         for (value, target) in targets.iter() {
             // Make a clone of curr
             let mut cloned_curr = self.curr.clone();
@@ -97,13 +122,21 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
             //     .constraints
             //     .push(format!("{} = {}", local.as_usize(), value)); // this is temp wrong and definitely not general
             //                                                         // Append to Negation PC vector for the otherwise branch
+            let curr_constraint = cloned_curr.get_bool(local.as_usize().to_string().as_str()).unwrap();
+            //static_bool(local.as_usize() != value as usize);
+            println!("{:#?}", curr_constraint);
+
+            cloned_curr.add_constraint(curr_constraint);
+
+            curr_pc.push(self.curr.logical_not(curr_constraint));
+
             // curr_pc.push(format!("{} != {}", local.as_usize(), value));
             // Push updated clone to parser's stack
             self.stack.push((cloned_curr, target));
         }
         // -----> We take the otherwise branch (right to left DFS... for now?)
         // Update current PC
-        // self.curr.constraints.append(&mut curr_pc);
+        self.curr.constraints.append(&mut curr_pc);
         // Then move current to the next bb
         self.parse_bb(targets.otherwise());
     }

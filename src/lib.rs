@@ -164,6 +164,8 @@ pub fn analyze_mir_body<'a>(mir_body: MappedReadGuard<'a, Body<'a>>) {
         }
     }
 
+    println!("{:#?}", ev);
+
     let mut mir_parser = MIRParser::new(mir_body, ev);
     mir_parser.parse();
 }
