@@ -49,7 +49,13 @@ impl<'ctx> SymExec<'ctx> {
         ];
         let unsafe_regex = Regexp::concat(self.context, regex_parts);
         solver.assert(&variable.regex_matches(&unsafe_regex));
-        Ok(solver.check())
+        let result = solver.check();
+        if result == z3::SatResult::Sat {
+            let model = solver.get_model().expect("Model should exist.");
+            println!("Model: ");
+            println!("{}", model);
+        }
+        Ok(result)
     }
     /// Adds a constraint to the executor. This constraint will be used for all satisfiability checks.
     pub fn add_constraint(&mut self, constraint: z3::ast::Bool<'ctx>) {
@@ -68,7 +74,8 @@ impl<'ctx> SymExec<'ctx> {
     pub fn get_string(&self, variable_name: &str) -> Option<&z3::ast::String<'ctx>> {
         self.string_variables.get(variable_name)
     }
-    /// Assigns a string with the given value to the given variable name, adding it to the executor.
+    /// Assigns a string with the given value to the given variable name, adding it to the executor. Can also be used
+    /// to replace the value of a string variable.
     pub fn assign_string(&mut self, variable_name: &str, value: z3::ast::String<'ctx>) {
         self.string_variables
             .insert(variable_name.to_string(), value);
@@ -106,7 +113,8 @@ impl<'ctx> SymExec<'ctx> {
     pub fn get_bool(&self, variable_name: &str) -> Option<&z3::ast::Bool<'ctx>> {
         self.bool_variables.get(variable_name)
     }
-    /// Assigns a bool with the given value to the given variable name, adding it to the executor.
+    /// Assigns a bool with the given value to the given variable name, adding it to the executor. Can also be used
+    /// to replace the value of a bool variable.
     pub fn assign_bool(&mut self, variable_name: &str, value: z3::ast::Bool<'ctx>) {
         self.bool_variables.insert(variable_name.to_string(), value);
     }
@@ -155,7 +163,8 @@ impl<'ctx> SymExec<'ctx> {
     pub fn get_int(&self, variable_name: &str) -> Option<&z3::ast::Int<'ctx>> {
         self.int_variables.get(variable_name)
     }
-    /// Assigns a int with the given value to the given variable name, adding it to the executor.
+    /// Assigns a int with the given value to the given variable name, adding it to the executor. Can also be used
+    /// to replace the value of a int variable.
     pub fn assign_int(&mut self, variable_name: &str, value: z3::ast::Int<'ctx>) {
         self.int_variables.insert(variable_name.to_string(), value);
     }
