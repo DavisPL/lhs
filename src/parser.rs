@@ -5,6 +5,7 @@ use rustc_data_structures::sync::{MappedReadGuard, ReadGuard, RwLock};
 use rustc_middle::mir::Body;
 use rustc_middle::mir::{BasicBlock, Local};
 use rustc_middle::mir::{Operand, SwitchTargets};
+use rustc_middle::mir::{Place, Rvalue};
 use rustc_middle::mir::{StatementKind, TerminatorKind};
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -54,27 +55,27 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
         self.parse_bb(BasicBlock::from_usize(0));
     }
 
-    fn get_operand(o: Operand<'tcx>) {
-    }
-
-    use rustc_middle::mir::syntax::BinOp;
-    fn bin_op(
-        &mut self,
-        op: BinOp,
-        operand: Box<(Operand<'tcx>, Operand<'tcx>)>,
-    ) {
-        let lhs = todo!();
-        match op {
-            BinOp::Eq => todo!(),
-            _ => println!("unknown binary operation"),
-        }
-    }
-
-    fn assignment(&mut self, val: Box<(Place<'tcx>, Rvalue<'tcx>)>) {
+    // fn get_operand(o: Operand<'tcx>) {
+    // }
+    //
+    // use rustc_middle::mir::syntax::BinOp;
+    // fn bin_op(
+    //     &mut self,
+    //     op: BinOp,
+    //     operand: Box<(Operand<'tcx>, Operand<'tcx>)>,
+    // ) {
+    //     let lhs = todo!();
+    //     match op {
+    //         BinOp::Eq => todo!(),
+    //         _ => println!("unknown binary operation"),
+    //     }
+    // }
+    //
+    fn assignment<'tcx>(&mut self, val: Box<(Place<'tcx>, Rvalue<'tcx>)>) {
         let (place, val) = *val;
         let local = place.local.as_usize();
         match val {
-            BinaryOp(op, operand) => self.bin_op(op, operand),
+            // BinaryOp(op, operand) => self.bin_op(op, operand),
             _ => println!("unknown assignment operation"),
         }
     }
@@ -84,8 +85,8 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
             Some(bb_data) => {
                 // Statements
                 for statement in &bb_data.statements {
-                    match statement.kind {
-                        StatementKind::Assign(val) => self.assignment(val),
+                    match &statement.kind {
+                        StatementKind::Assign(val) => self.assignment(val.clone()),
                         _ => println!("unknown statement..."),
                     }
                 }
@@ -122,13 +123,16 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
             //     .constraints
             //     .push(format!("{} = {}", local.as_usize(), value)); // this is temp wrong and definitely not general
             //                                                         // Append to Negation PC vector for the otherwise branch
-            let curr_constraint = cloned_curr.get_bool(local.as_usize().to_string().as_str()).unwrap();
+            let curr_constraint = cloned_curr
+                .get_bool(local.as_usize().to_string().as_str())
+                .unwrap()
+                .clone();
             //static_bool(local.as_usize() != value as usize);
             println!("{:#?}", curr_constraint);
 
-            cloned_curr.add_constraint(curr_constraint);
+            cloned_curr.add_constraint(curr_constraint.clone());
 
-            curr_pc.push(self.curr.logical_not(curr_constraint));
+            curr_pc.push(self.curr.logical_not(&curr_constraint));
 
             // curr_pc.push(format!("{} != {}", local.as_usize(), value));
             // Push updated clone to parser's stack
