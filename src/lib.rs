@@ -9,6 +9,7 @@ use std::path::PathBuf;
 
 // use std::env;
 use clap::Parser;
+use clap::ValueEnum;
 use parser::symexec;
 
 use std::fs::File;
@@ -24,16 +25,26 @@ pub struct Args {
     #[arg(short, long, required = true)]
     pub source: String,
 
-    // Parsing variable options?
+    /// Tool action options
+    #[arg(short, long, required = true, value_enum)]
+    pub action: Action,
+
     /// Toggle matching with numeric variables
-    #[arg(long)]
+    #[arg(long)] 
     pub numeric: bool,
+}
+
+#[derive(Debug, ValueEnum, Clone)]
+pub enum Action {
+    Print,
+    Trace,
+    Local,
 }
 
 pub fn run(args: Args) {
     // Attempt to make PathBuf and error if invalid filepath
     let path = path::PathBuf::from(&args.source);
-    get_mir_body(path);
+    get_mir_body(path, args);
 }
 
 // -------------------- RUSTC PORTION --------------------
@@ -62,7 +73,7 @@ use rustc_data_structures::sync::{MappedReadGuard, ReadGuard, RwLock};
 use rustc_middle::mir::Body;
 
 // For now assuming there should only be one function in the Rust file
-pub fn get_mir_body(path: PathBuf) {
+pub fn get_mir_body(path: PathBuf, args: Args) {
     let out = process::Command::new("rustc")
         .arg("--print=sysroot")
         .current_dir(".")
@@ -135,7 +146,12 @@ pub fn get_mir_body(path: PathBuf) {
                     let def_id = local_def_id.to_def_id();
                     if tcx.def_kind(local_def_id) == DefKind::Fn {
                         // We got the mir_body! Let's pass it into our analyzer/parser
-                        analyze_mir_body(tcx.mir_built(local_def_id).borrow());
+                        // hir_map.span(local_def_id)
+                        match args.action {
+                            Action::Print => print_basic_blocks(tcx.mir_built(local_def_id).borrow()),
+                            Action::Trace => analyze_mir_body(tcx.mir_built(local_def_id).borrow()),
+                            Action::Local => local_decls(tcx.mir_built(local_def_id).borrow()),
+                        }   
                     }
                 }
             })
@@ -168,4 +184,16 @@ pub fn analyze_mir_body<'a>(mir_body: MappedReadGuard<'a, Body<'a>>) {
 
     let mut mir_parser = MIRParser::new(mir_body, ev);
     mir_parser.parse();
+}
+
+pub fn print_basic_blocks<'a>(mir_body: MappedReadGuard<'a, Body<'a>>) {
+    for (bb, data) in mir_body.basic_blocks.iter_enumerated() {
+        println!("{:?}: {:#?}", bb, data);
+    }
+}
+
+pub fn local_decls<'a>(mir_body: MappedReadGuard<'a, Body<'a>>) {
+    for (local, local_decl) in mir_body.local_decls.iter_enumerated() {
+        println!("_{} = {}",local.as_usize(), local_decl.ty);
+    }
 }
