@@ -40,14 +40,17 @@ pub struct MIRParser<'a, 'ctx> {
     mir_body: MappedReadGuard<'a, Body<'a>>,
     curr: symexec::SymExec<'ctx>,
     stack: Vec<(symexec::SymExec<'ctx>, BasicBlock)>,
+    arg_count: usize,
 }
 
 impl<'a, 'ctx> MIRParser<'a, 'ctx> {
     pub fn new(mir_body: MappedReadGuard<'a, Body<'a>>, z3: symexec::SymExec<'ctx>) -> Self {
+        let arg_count = mir_body.arg_count;
         MIRParser {
             mir_body,
             curr: z3,
             stack: Vec::new(),
+            arg_count,
         }
     }
 
