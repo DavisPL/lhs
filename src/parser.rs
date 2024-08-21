@@ -1,5 +1,3 @@
-
-
 extern crate rustc_middle;
 extern crate rustc_data_structures;
 
@@ -11,6 +9,7 @@ use rustc_data_structures::sync::{MappedReadGuard, ReadGuard, RwLock};
 use std::collections::HashMap;
 use std::sync::Arc;
 
+#[derive(Debug)]
 pub struct Environment {
     type_map: HashMap<Local, u32>,
     pc: Vec<String>,
@@ -52,6 +51,8 @@ impl<'a> MIRParser<'a>{
     }
 
     pub fn parse_bb(&mut self, bb: BasicBlock) {
+        // Print current basic block number
+        println!("bb{}", bb.as_usize());
         match self.mir_body.basic_blocks.get(bb) {
             Some(bb_data) => {
                 // Statements
@@ -66,6 +67,7 @@ impl<'a> MIRParser<'a>{
                     TerminatorKind::Goto{target} => self.parse_bb(*target),
                     TerminatorKind::SwitchInt{discr, targets} => self.parse_switch_int(discr.clone(), targets.clone()),
                     TerminatorKind::Return => self.parse_return(),
+                    TerminatorKind::Call{..} => println!("i bet it's a call"),
                     _ => println!("unknown terminator"),
                 }
             },
@@ -88,10 +90,11 @@ impl<'a> MIRParser<'a>{
             // Make a clone of curr
             let mut cloned_curr = self.curr.clone();
             // Update the clone's PC
-            cloned_curr.pc.push(format!("{} = {}", local.as_usize(), value)); // this is temp wrong and definitely not general
+            cloned_curr.pc.push(format!("_{} = {}", local.as_usize(), value)); // this is temp wrong and definitely not general
             // Append to Negation PC vector for the otherwise branch
-            curr_pc.push(format!("{} != {}", local.as_usize(), value));
+            curr_pc.push(format!("_{} != {}", local.as_usize(), value));
             // Push updated clone to parser's stack
+            println!("PUSHING: {:?}", cloned_curr);
             self.stack.push((cloned_curr, target));
         }
         // -----> We take the otherwise branch (right to left DFS... for now?)
@@ -105,9 +108,12 @@ impl<'a> MIRParser<'a>{
         // Drop curr
         // Replace curr with stack top
         if let Some((next_curr, next_bb)) = self.stack.pop() {
+            println!("COMPLETE: {:?}", self.curr);
             self.curr = next_curr; // Move popped stack value into self.curr
+            println!("NEXT: {:?}", self.curr);
             self.parse_bb(next_bb);
         } else {
+            println!("Done!");
             // There are no more paths! The stack is empty
             return;
         }
