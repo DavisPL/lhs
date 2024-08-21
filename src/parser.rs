@@ -207,7 +207,7 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
             }
             Operand::Constant(place) => { // Box<ConstOperand<'tcx>> 
             /*
-            so this is ConstOperand consists of 
+            so this ConstOperand consists of 
             pub struct ConstOperand<'tcx> {
                 pub span: Span, # this spam is again rustc_span::span_encoding::Span, where, span_encoding is private
                 pub user_ty: Option<UserTypeAnnotationIndex>,
@@ -219,7 +219,7 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
                 let const_user_ty = place.user_ty;
                 let constant = place.const_;
 
-                println!("Span: {:?}", const_span); // examples/simple.rs:2:5: 2:19 (#0) This is where the function is present
+                println!("Span: {:?}", const_span); // examples/simple.rs:2:5: 2:19 (#0) This is where the function is present in the source code
                 println!("User Type: {:?}", const_user_ty); // None , idk what this is 
                 println!("Constant: {:?}", constant); // Val(ZeroSized, FnDef(DefId(1:2345 ~ std[c0a3]::fs::write), [&'{erased} str, &'{erased} str]))
 
@@ -248,16 +248,9 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
                             if def_id.index.as_u32() == 2345 { //2345 is def_id of std::fs::write , need a better way to do this
                                 println!("Call to std::fs::write detected.");
                               
-                                // self.process_fs_write(args, destination, target, unwind);
-                            }
+                                }
                         }
                         
-                        // if let TyKind::FnDef(def_id, _) = ty.kind() {
-                        //     // Retrieve the function name from DefId using the type context
-                        //     let function_name = self.tcx.def_path_str(*def_id);
-                        //     println!("Function Name: {:?}", function_name);
-    
-                        // }
                     }
                 }    
             }
