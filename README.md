@@ -22,24 +22,19 @@ It's crucial to install `rustc` from the official Rust source. If you have insta
 
 Once Rust is installed, set the required nightly version:
 
-\`\`\`bash
-rustup default nightly-2024-07-21
-\`\`\`
+`rustup default nightly-2024-07-21`
 
 ### Clone the Repository
 
 To install LRHS, clone the repository and ensure you use the `--recursive` flag to include submodules:
 
-\`\`\`bash
-git clone --recursive https://github.com/DavisPL/lrhs.git
-\`\`\`
+`git clone --recursive https://github.com/DavisPL/lrhs.git`
 
 ## Usage
 
 To run LRHS with an example file:
 
-\`\`\`bash
-cargo run -- -s [your_file.rs]
-\`\`\`
+`cargo run -- -s [your_file.rs]`
+
 
 Replace \`[your_file.rs]\` with the path to your Rust source file.
