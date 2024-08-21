@@ -3,12 +3,15 @@ extern crate rustc_middle;
 
 use rustc_data_structures::sync::{MappedReadGuard, ReadGuard, RwLock};
 use rustc_middle::mir::Body;
-use rustc_middle::mir::{BasicBlock, Local, Place, SourceInfo, UnwindAction , CallSource , Const , ConstValue};
+use rustc_middle::mir::Rvalue;
+use rustc_middle::mir::{
+    BasicBlock, CallSource, Const, ConstValue, Local, Place, SourceInfo, UnwindAction,
+};
 use rustc_middle::mir::{Operand, SwitchTargets};
 use rustc_middle::mir::{StatementKind, TerminatorKind};
+use rustc_middle::ty::TyKind;
 use std::collections::HashMap;
 use std::sync::Arc;
-use rustc_middle::ty::TyKind;
 // use rustc_span::span_encoding::Span;
 
 #[path = "../z3/src/symexec.rs"]
@@ -75,22 +78,22 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
     //     }
     // }
 
-    // fn assignment(&mut self, val: Box<(Place<'tcx>, Rvalue<'tcx>)>) {
-    //     let (place, val) = *val;
-    //     let local = place.local.as_usize();
-    //     match val {
-    //         BinaryOp(op, operand) => self.bin_op(op, operand),
-    //         _ => println!("unknown assignment operation"),
-    //     }
-    // }
+    fn assignment<'tcx>(&mut self, val: Box<(Place<'tcx>, Rvalue<'tcx>)>) {
+        let (place, val) = *val;
+        let local = place.local.as_usize();
+        match val {
+            // BinaryOp(op, operand) => self.bin_op(op, operand),
+            _ => println!("unknown assignment operation"),
+        }
+    }
 
     pub fn parse_bb(&mut self, bb: BasicBlock) {
         match self.mir_body.basic_blocks.get(bb) {
             Some(bb_data) => {
                 // Statements
                 for statement in &bb_data.statements {
-                    match statement.kind {
-                        // StatementKind::Assign(val) => self.assignment(val),
+                    match &statement.kind {
+                        StatementKind::Assign(val) => self.assignment(val.clone()),
                         _ => println!("unknown statement..."),
                     }
                 }
@@ -101,24 +104,24 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
                         self.parse_switch_int(discr.clone(), targets.clone())
                     }
                     TerminatorKind::Call {
-                        func, // <Operand<'tcx>>
-                        args, //Box<[Spanned<Operand<'tcx>>]>
+                        func,        // <Operand<'tcx>>
+                        args,        //Box<[Spanned<Operand<'tcx>>]>
                         destination, // Place<'tcx>
-                        target, // Option<BasicBlock>
-                        unwind, // UnwindAction
+                        target,      // Option<BasicBlock>
+                        unwind,      // UnwindAction
                         call_source, // CallSource
-                        fn_span, // Span
+                        fn_span,     // Span
                     } => {
                         self.parse_call(
                             func.clone(),
-                            args.clone(),           
-                            destination.clone(),    
-                            target.clone(),          
-                            unwind.clone(),          
-                            call_source.clone(),    
-                            // fn_span.clone(),        
+                            args.clone(),
+                            destination.clone(),
+                            target.clone(),
+                            unwind.clone(),
+                            call_source.clone(),
+                            // fn_span.clone(),
                         );
-                    },
+                    }
                     TerminatorKind::Return => self.parse_return(),
                     _ => println!("unknown terminator"),
                 }
@@ -140,21 +143,22 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
         let mut curr_pc: Vec<z3::ast::Bool<'ctx>> = Vec::new();
         for (value, target) in targets.iter() {
             // Make a clone of curr
-            let cloned_curr = self.curr.clone();
+            let mut cloned_curr = self.curr.clone();
             // Update the clone's PC
             // cloned_curr
             //     .constraints
             //     .push(format!("{} = {}", local.as_usize(), value)); // this is temp wrong and definitely not general
             //                                                         // Append to Negation PC vector for the otherwise branch
-            let curr_constraint = cloned_curr.get_bool(local.as_usize().to_string().as_str()).unwrap();
+            let curr_constraint = cloned_curr
+                .get_bool(local.as_usize().to_string().as_str())
+                .unwrap()
+                .clone();
             //static_bool(local.as_usize() != value as usize);
             println!("{:#?}", curr_constraint);
 
-            // {
-            // cloned_curr.add_constraint(curr_constraint.clone());
-            // }    
+            cloned_curr.add_constraint(curr_constraint.clone());
 
-            curr_pc.push(self.curr.logical_not(curr_constraint));
+            curr_pc.push(self.curr.logical_not(&curr_constraint));
 
             // curr_pc.push(format!("{} != {}", local.as_usize(), value));
             // Push updated clone to parser's stack
@@ -200,7 +204,8 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
 
         let local: Local;
         match func {
-            Operand::Copy(place) => { // Place<'tcx>
+            Operand::Copy(place) => {
+                // Place<'tcx>
                 let local = place.local;
                 // println!("Local: {:?}", local); //Not sure about this just copied, switchInt format
             }
@@ -208,34 +213,35 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
                 let local = place.local;
                 // println!("Local: {:?}", local); //Not sure about this just copied, switchInt format
             }
-            Operand::Constant(place) => { // Box<ConstOperand<'tcx>> 
-            /*
-            so this ConstOperand consists of 
-            pub struct ConstOperand<'tcx> {
-                pub span: Span, # this spam is again rustc_span::span_encoding::Span, where, span_encoding is private
-                pub user_ty: Option<UserTypeAnnotationIndex>,
-                pub const_: Const<'tcx>,
-            }
+            Operand::Constant(place) => {
+                // Box<ConstOperand<'tcx>>
+                /*
+                so this ConstOperand consists of
+                pub struct ConstOperand<'tcx> {
+                    pub span: Span, # this spam is again rustc_span::span_encoding::Span, where, span_encoding is private
+                    pub user_ty: Option<UserTypeAnnotationIndex>,
+                    pub const_: Const<'tcx>,
+                }
 
-            */
+                */
                 let const_span = place.span;
                 let const_user_ty = place.user_ty;
                 let constant = place.const_;
 
                 println!("Span: {:?}", const_span); // examples/simple.rs:2:5: 2:19 (#0) This is where the function is present in the source code
-                println!("User Type: {:?}", const_user_ty); // None , idk what this is 
+                println!("User Type: {:?}", const_user_ty); // None , idk what this is
                 println!("Constant: {:?}", constant); // Val(ZeroSized, FnDef(DefId(1:2345 ~ std[c0a3]::fs::write), [&'{erased} str, &'{erased} str]))
 
-            /*  
-            Now this const is 
-            pub enum Const<'tcx> {
-                Ty(Ty<'tcx>, Const<'tcx>),
-                Unevaluated(UnevaluatedConst<'tcx>, Ty<'tcx>),
-                Val(ConstValue<'tcx>, Ty<'tcx>),
-            }
-            */
+                /*
+                Now this const is
+                pub enum Const<'tcx> {
+                    Ty(Ty<'tcx>, Const<'tcx>),
+                    Unevaluated(UnevaluatedConst<'tcx>, Ty<'tcx>),
+                    Val(ConstValue<'tcx>, Ty<'tcx>),
+                }
+                */
 
-                match constant{
+                match constant {
                     Const::Ty(_ty, _const) => {
                         println!("here 236"); // Don't know
                     }
@@ -243,30 +249,22 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
                         println!("here 240"); // Don't know
                     }
                     Const::Val(const_value, ty) => {
-                        // println!("here 244"); 
+                        // println!("here 244");
                         println!("Const Value: {:?}", const_value); //ZeroSized, don't know what this is
                         println!("Type: {:?}", ty); //FnDef(DefId(1:2345 ~ std[c0a3]::fs::write), [&'{erased} str, &'{erased} str])
 
                         if let TyKind::FnDef(def_id, _) = ty.kind() {
-                            if def_id.index.as_u32() == 2345 { //2345 is def_id of std::fs::write , need a better way to do this
+                            if def_id.index.as_u32() == 2345 {
+                                //2345 is def_id of std::fs::write , need a better way to do this
                                 println!("Call to std::fs::write detected.");
-                              
-                                }
+                            }
                         }
-                        
                     }
-                }    
-            }
+                }
+            } // Now we have to match the constant value
 
-            // Now we have to match the constant value
-            
-
-            //    println!("{:?}" , constant.literal);
-        
+              //    println!("{:?}" , constant.literal);
         }
-    
-        
     }
-   
 }
 // }

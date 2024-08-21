@@ -20,15 +20,34 @@ It's crucial to install `rustc` from the official Rust source. If you have insta
 
 **Installing the required nightly version:**
 
-Once Rust is installed, set the required nightly version:
+Once Rust is installed, you should `cd` into the project directory and run `rustup --version`, which should download and set `rustc` to the correct version from the `toolchain.toml` file.
 
-`rustup default nightly-2024-07-21`
+The `rustc` version we are using is: `rustup default nightly-2024-07-21`
+
+This is what you should be seeing when running the `rustc` and `rustup` version commands:
+
+```bash
+❯ rustc --version
+rustc 1.82.0-nightly (92c6c0380 2024-07-21)
+❯ rustup --version
+rustup 1.27.1 (54dd3d00f 2024-04-24)
+info: This is the version for the rustup toolchain manager, not the rustc compiler.
+info: The currently active `rustc` version is `rustc 1.82.0-nightly (92c6c0380 2024-07-21)`
+```
 
 ### Clone the Repository
 
 To install LRHS, clone the repository and ensure you use the `--recursive` flag to include submodules:
 
-`git clone --recursive https://github.com/DavisPL/lrhs.git`
+```bash
+git clone --recursive https://github.com/DavisPL/lrhs.git
+git submodule init
+```
+
+To update the submodule (if needed), run:
+```bash
+git submodule update --remote
+```
 
 ## Usage
 
