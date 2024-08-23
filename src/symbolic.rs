@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use z3;
 use z3::ast::{Ast, Regexp};
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct Environment<'ctx> {
     pub context: &'ctx z3::Context,
     pub string_variables: HashMap<String, z3::ast::String<'ctx>>,
