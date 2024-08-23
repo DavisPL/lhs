@@ -65,16 +65,89 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
         self.parse_bb(BasicBlock::from_usize(0));
     }
 
-    // fn get_operand(o: Operand<'tcx>) {
-    // }
+    fn eq_op<'tcx>(
+        self_curr: &mut symexec::SymExec<'ctx>,
+        local: &str,
+        lhs: Operand<'tcx>,
+        rhs: Operand<'tcx>,
+    ) {
+        match lhs {
+            Operand::Copy(place) | Operand::Move(place) => {
+                let left_local = place.local.as_usize().to_string();
+                // println!("Local: {:?}", local); //Not sure about this just copied, switchInt format
+                match rhs {
+                    Operand::Copy(place) | Operand::Move(place) => {
+                        let right_local = place.local.as_usize().to_string();
+                        // println!("Local: {:?}", local); //Not sure about this just copied, switchInt format
+                        if let Some(var) = self_curr.get_int(left_local.as_str()) {
+                            self_curr.assign_bool(
+                                local,
+                                self_curr.int_equals(
+                                    var,
+                                    self_curr.get_int(right_local.as_str()).unwrap(),
+                                ),
+                            );
+                        } else if let Some(var) = self_curr.get_bool(left_local.as_str()) {
+                            self_curr.assign_bool(
+                                local,
+                                self_curr.bool_equals(
+                                    var,
+                                    self_curr.get_bool(right_local.as_str()).unwrap(),
+                                ),
+                            );
+                        } else if let Some(var) = self_curr.get_string(left_local.as_str()) {
+                            self_curr.assign_bool(
+                                local,
+                                self_curr.string_equals(
+                                    var,
+                                    self_curr.get_string(right_local.as_str()).unwrap(),
+                                ),
+                            );
+                        }
+                    }
+                    Operand::Constant(constant) => {
+                        let operand = *constant;
+                        let constant = operand.const_;
+                        // println!("Local: {:?}", local); //Not sure about this just copied, switchInt format
+                        if let Some(var) = self_curr.get_int(left_local.as_str()) {
+                            self_curr.assign_bool(
+                                local,
+                                self_curr.int_equals(
+                                    var,
+                                    &self_curr
+                                        .static_int(constant.try_to_scalar_int().unwrap().to_i64()),
+                                ),
+                            );
+                        } else if let Some(var) = self_curr.get_bool(left_local.as_str()) {
+                            self_curr.assign_bool(
+                                local,
+                                self_curr.bool_equals(
+                                    var,
+                                    &self_curr.static_bool(constant.try_to_bool().unwrap()),
+                                ),
+                            );
+                        }
+                        // Constant strings not supported right now
+                        // else if let Some(var) = self_curr.get_string(left_local) {
+                        //     self_curr.assign_bool(
+                        //         local,
+                        //         self_curr.string_equals(var, constant.eval().unwrap()),
+                        //     );
+                        // }
+                    }
+                }
+            }
+            Operand::Constant(place) => {}
+        }
+    }
 
-    // use rustc_middle::mir::syntax::BinOp;
     fn bin_op<'tcx>(
         self_curr: &mut symexec::SymExec<'ctx>,
+        local: &str,
         op: BinOp,
         operand: Box<(Operand<'tcx>, Operand<'tcx>)>,
     ) {
-        let lhs = todo!();
+        let (lhs, rhs) = *operand;
         match op {
             BinOp::Eq => todo!(),
             _ => println!("unknown binary operation"),
@@ -86,9 +159,10 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
         val: Box<(Place<'tcx>, Rvalue<'tcx>)>,
     ) {
         let (place, val) = *val;
-        let local = place.local.as_usize();
+        let binding = place.local.as_usize().to_string();
+        let local = binding.as_str();
         match val {
-            BinaryOp(op, operand) => Self::bin_op(self_curr, op, operand),
+            BinaryOp(op, operand) => Self::bin_op(self_curr, local, op, operand),
             _ => println!("unknown assignment operation"),
         }
     }
