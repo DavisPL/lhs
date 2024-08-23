@@ -6,6 +6,7 @@ use rustc_middle::mir::BinOp;
 use rustc_middle::mir::Body;
 use rustc_middle::mir::Rvalue;
 use rustc_middle::mir::Rvalue::BinaryOp;
+use rustc_middle::mir::Rvalue::Use;
 use rustc_middle::mir::{
     BasicBlock, CallSource, Const, ConstValue, Local, Place, SourceInfo, UnwindAction,
 };
@@ -154,6 +155,31 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
         }
     }
 
+    fn r#use<'tcx>(self_curr: &mut symexec::SymExec<'ctx>, local: &str, operand: Operand<'tcx>) {
+        match operand {
+            Operand::Copy(place) | Operand::Move(place) => {
+                let place = place.local.as_usize().to_string();
+                if let Some(var) = self_curr.get_int(local) {
+                    self_curr.assign_bool(
+                        local,
+                        self_curr.int_equals(var, self_curr.get_int(place.as_str()).unwrap()),
+                    );
+                } else if let Some(var) = self_curr.get_bool(local) {
+                    self_curr.assign_bool(
+                        local,
+                        self_curr.bool_equals(var, self_curr.get_bool(place.as_str()).unwrap()),
+                    );
+                } else if let Some(var) = self_curr.get_string(local) {
+                    self_curr.assign_bool(
+                        local,
+                        self_curr.string_equals(var, self_curr.get_string(place.as_str()).unwrap()),
+                    );
+                }
+            }
+            _ => println!("unsupported"),
+        }
+    }
+
     fn assignment<'tcx>(
         self_curr: &mut symexec::SymExec<'ctx>,
         val: Box<(Place<'tcx>, Rvalue<'tcx>)>,
@@ -162,6 +188,7 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
         let binding = place.local.as_usize().to_string();
         let local = binding.as_str();
         match val {
+            Use(operand) => Self::r#use(self_curr, local, operand),
             BinaryOp(op, operand) => Self::bin_op(self_curr, local, op, operand),
             _ => println!("unknown assignment operation"),
         }
