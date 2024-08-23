@@ -191,6 +191,8 @@ pub fn analyze_mir_body<'a>(mir_body: MappedReadGuard<'a, Body<'a>>) {
 
     let mut mir_parser = MIRParser::new(mir_body, ev);
     mir_parser.parse();
+
+    println!("{:#?}", mir_parser.curr);
 }
 
 pub fn print_basic_blocks<'a>(mir_body: MappedReadGuard<'a, Body<'a>>) {

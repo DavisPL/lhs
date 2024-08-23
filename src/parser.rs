@@ -48,7 +48,7 @@ impl Environment {
 
 pub struct MIRParser<'a, 'ctx> {
     mir_body: MappedReadGuard<'a, Body<'a>>,
-    curr: symexec::SymExec<'ctx>,
+    pub curr: symexec::SymExec<'ctx>,
     stack: Vec<(symexec::SymExec<'ctx>, BasicBlock)>,
     arg_count: usize,
 }
@@ -162,20 +162,15 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
         match operand {
             Operand::Copy(place) | Operand::Move(place) => {
                 let place = place.local.as_usize().to_string();
-                if let Some(var) = self_curr.get_int(local) {
-                    self_curr.assign_bool(
+                if let Some(_) = self_curr.get_int(local) {
+                    self_curr.assign_int(local, self_curr.get_int(place.as_str()).unwrap().clone());
+                } else if let Some(_) = self_curr.get_bool(local) {
+                    self_curr
+                        .assign_bool(local, self_curr.get_bool(place.as_str()).unwrap().clone());
+                } else if let Some(_) = self_curr.get_string(local) {
+                    self_curr.assign_string(
                         local,
-                        self_curr.int_equals(var, self_curr.get_int(place.as_str()).unwrap()),
-                    );
-                } else if let Some(var) = self_curr.get_bool(local) {
-                    self_curr.assign_bool(
-                        local,
-                        self_curr.bool_equals(var, self_curr.get_bool(place.as_str()).unwrap()),
-                    );
-                } else if let Some(var) = self_curr.get_string(local) {
-                    self_curr.assign_bool(
-                        local,
-                        self_curr.string_equals(var, self_curr.get_string(place.as_str()).unwrap()),
+                        self_curr.get_string(place.as_str()).unwrap().clone(),
                     );
                 }
             }
