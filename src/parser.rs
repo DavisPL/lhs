@@ -22,7 +22,7 @@ use rustc_middle::mir::interpret::ConstAllocation;
 #[path = "../z3/src/symexec.rs"]
 pub mod symexec;
 
-const DEF_ID_FS_WRITE : u32 = 2345;
+const DEF_ID_FS_WRITE : usize = 2345;
 
 /*
 pub struct Environment {
@@ -309,9 +309,13 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
          if func_def_id == Some(DEF_ID_FS_WRITE) {
             //   println!("Found function DefId in call: {:?}", def_id);
             println!("Found fs::write call");
+            let frist_arg = self.parse_operand(&args[0].node).unwrap();
+            self.curr.is_write_safe(frist_arg.to_string().as_str());
+            // let vec : Vec<u32> = args.iter().map(|arg| self.parse_operand(&arg.node).unwrap()).collect();
+            //  self.parse_args(&args);
          }
          
-        self.parse_args(&args); // I can get the args, but do i need to do something about this, or just call sovler? How will solver know that i have to check for these variables, do I create a z3 model? 
+         // I can get the args, but do i need to do something about this, or just call sovler? How will solver know that i have to check for these variables, do I create a z3 model? 
 
         // println!("Destination: {:?}", destination); //_4 what does this mean?
 
@@ -324,7 +328,7 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
        // println!("Call Source: {:?}", call_source); // https://doc.rust-lang.org/beta/nightly-rustc/rustc_middle/mir/syntax/enum.CallSource.html do we care about this?
     }
 
-    fn parse_operand<'tcx>(&self, operand: &Operand<'tcx>) -> Option<u32> {
+    fn parse_operand<'tcx>(&self, operand: &Operand<'tcx>) -> Option<usize> {
         match operand {
             Operand::Copy(_place) => {
                 // Handle the case for Operand::Copy if necessary, otherwise return None
@@ -342,7 +346,8 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
                 let projection = place.projection;
     
                 println!("Local: {:?}", local);  // ths is the variable number like _1, _2 etc.
-                println!("Projection: {:?}", projection); // this is [] - it means value is accessed directly.
+                return Some(local.as_usize());
+                // println!("Projection: {:?}", projection); // this is [] - it means value is accessed directly.
 
                 // println!("{:?}" , projection.)
 
@@ -439,7 +444,7 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
                         if let TyKind::FnDef(def_id, idk) = ty.kind() {
                             println!("Found function DefId in const: {:?}", def_id);
                             println!("IDK: {:?}", idk);
-                            return Some(def_id.index.as_u32());
+                            return Some(def_id.index.as_usize());
                         }
                         None
                     }
@@ -502,13 +507,14 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
         None
     }
     
-    fn parse_args<'tcx>(&self, args: &[rustc_span::source_map::Spanned<Operand<'tcx>>]) {
-        for arg in args.iter() {
-            println!("Arg: {:?}", arg);
-            if let Some(def_id) = self.parse_operand(&arg.node) {
-                println!("Found function DefId in args: {:?}", def_id);
-            }
-        }
-    }
+    // fn parse_args<'tcx>(&self, args: &[rustc_span::source_map::Spanned<Operand<'tcx>>])  -> Option<usize> {
+    //         println!("Arg: {:?}", arg);
+    //         if let Some(def_id) = self.parse_operand(&arg.node) {
+    //             println!("Found function DefId in args: {:?}", def_id);
+    //         }
+    //     }
+    //     // let arg = self.parse_operand(&args[0].node);
+    //     // return Some(arg.as_usize());
+    // }
 }
 // }
