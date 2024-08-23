@@ -16,10 +16,13 @@ use rustc_middle::ty::TyKind;
 use std::collections::HashMap;
 use std::sync::Arc;
 
+use rustc_middle::mir::interpret::ConstAllocation;
 // use rustc_span::span_encoding::Span;
 
 #[path = "../z3/src/symexec.rs"]
 pub mod symexec;
+
+const DEF_ID_FS_WRITE : u32 = 2345;
 
 /*
 pub struct Environment {
@@ -290,6 +293,7 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
         }
     }
 
+    
     pub fn parse_call<'tcx>(
         &mut self,
         func: Operand<'tcx>,
@@ -300,77 +304,210 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
         call_source: CallSource,
         // fn_span: Span,
     ) {
-        println!("Call to function");
-        // println!("Function: {:?}", func);
-        // println!("Args: {:?}", args);
-        // println!("Destination: {:?}", destination);
-        // println!("Target: {:?}", target);
-        // println!("Unwind: {:?}", unwind);
-        // println!("Call Source: {:?}", call_source);
-        // println!("Function Span: {:?}", fn_span); # the struct is private
+        let func_def_id = self.parse_operand(&func); //passing it func, gives def_id
+        // println!("Func DefId: {:?}", func_def_id);
+         if func_def_id == Some(DEF_ID_FS_WRITE) {
+            //   println!("Found function DefId in call: {:?}", def_id);
+            println!("Found fs::write call");
+         }
+         
+        self.parse_args(&args); // I can get the args, but do i need to do something about this, or just call sovler? How will solver know that i have to check for these variables, do I create a z3 model? 
 
-        let local: Local;
-        match func {
-            Operand::Copy(place) => {
-                // Place<'tcx>
-                let local = place.local;
-                // println!("Local: {:?}", local); //Not sure about this just copied, switchInt format
+        // println!("Destination: {:?}", destination); //_4 what does this mean?
+
+        // println!("Target: {:?}", target); //this is a basic block, so do i just call parse_bb for it?
+        // parse_bb(target.unwrap());
+        // call parse_bb for target
+
+        // println!("Unwind: {:?}", unwind); //this is also a basic block, so do i just call parse_bb for it?, but this is for unwind, do we need this? this is _4 in this case - we ignore unwinding
+
+       // println!("Call Source: {:?}", call_source); // https://doc.rust-lang.org/beta/nightly-rustc/rustc_middle/mir/syntax/enum.CallSource.html do we care about this?
+    }
+
+    fn parse_operand<'tcx>(&self, operand: &Operand<'tcx>) -> Option<u32> {
+        match operand {
+            Operand::Copy(_place) => {
+                // Handle the case for Operand::Copy if necessary, otherwise return None
+                println!("here 225"); // Placeholder for Copy case
+                None
             }
             Operand::Move(place) => {
+                // this is for function arguments.
+                println!("here 230"); // Placeholder for Move case
+                // pub struct Place<'tcx> {
+                //     pub local: Local,
+                //     pub projection: &'tcx List<PlaceElem<'tcx>>,
+                // }
                 let local = place.local;
-                // println!("Local: {:?}", local); //Not sure about this just copied, switchInt format
+                let projection = place.projection;
+    
+                println!("Local: {:?}", local);  // ths is the variable number like _1, _2 etc.
+                println!("Projection: {:?}", projection); // this is [] - it means value is accessed directly.
+
+                // println!("{:?}" , projection.)
+
+                /*
+                enum PlaceElem<'tcx> {
+                    Deref,
+                    Field(FieldIdx, Ty<'tcx>),
+                    Index(Local),
+                    ConstantIndex {
+                        offset: u64,
+                        min_length: u64,
+                        from_end: bool,
+                    },
+                    Subslice {
+                        from: u64,
+                        to: u64,
+                        from_end: bool,
+                    },
+                    Downcast(Option<Symbol>, VariantIdx),
+                    OpaqueCast(Ty<'tcx>),
+                    Subtype(Ty<'tcx>),
+                }
+                */  
+
+                // match elem {
+                //     PlaceElem::Deref => {
+                //         println!("Dereferencing");
+                //     }
+                //     PlaceElem::Field(field_idx, ty) => {
+                //         println!("Accessing field {:?} of type {:?}", field_idx, ty);
+                //     }
+                //     PlaceElem::Index(local) => {
+                //         println!("Indexing with local {:?}", local);
+                //     }
+                //     PlaceElem::ConstantIndex { offset, min_length, from_end } => {
+                //         println!("Indexing with constant offset: {}, min length: {}, from end: {}", offset, min_length, from_end);
+                //     }
+                //     PlaceElem::Subslice { from, to, from_end } => {
+                //         println!("Subslice from: {}, to: {}, from end: {}", from, to, from_end);
+                //     }
+                //     PlaceElem::Downcast(symbol, variant_idx) => {
+                //         println!("Downcasting to variant {:?} with symbol {:?}", variant_idx, symbol);
+                //     }
+                //     PlaceElem::OpaqueCast(ty) => {
+                //         println!("Opaque casting to type {:?}", ty);
+                //     }
+                //     PlaceElem::Subtype(ty) => {
+                //         println!("Subtyping to type {:?}", ty);
+                //     }
+                // }
+                
+                None
             }
             Operand::Constant(place) => {
-                // Box<ConstOperand<'tcx>>
-                /*
-                so this ConstOperand consists of
-                pub struct ConstOperand<'tcx> {
-                    pub span: Span, # this spam is again rustc_span::span_encoding::Span, where, span_encoding is private
-                    pub user_ty: Option<UserTypeAnnotationIndex>,
-                    pub const_: Const<'tcx>,
-                }
-
-                */
+                //this is for funciton calls 
+                //also for arga when you hardcode them , e.g, std::fs::write("a.txt", "Hello, world!").unwrap();
                 let const_span = place.span;
+                println!("Const Span: {:?}", const_span);
+
                 let const_user_ty = place.user_ty;
+                println!("Const User Ty: {:?}", const_user_ty);
                 let constant = place.const_;
-
-                println!("Span: {:?}", const_span); // examples/simple.rs:2:5: 2:19 (#0) This is where the function is present in the source code
-                println!("User Type: {:?}", const_user_ty); // None , idk what this is
-                println!("Constant: {:?}", constant); // Val(ZeroSized, FnDef(DefId(1:2345 ~ std[c0a3]::fs::write), [&'{erased} str, &'{erased} str]))
-
-                /*
-                Now this const is
-                pub enum Const<'tcx> {
-                    Ty(Ty<'tcx>, Const<'tcx>),
-                    Unevaluated(UnevaluatedConst<'tcx>, Ty<'tcx>),
-                    Val(ConstValue<'tcx>, Ty<'tcx>),
-                }
-                */
-
+                
+                // pub enum Const<'tcx> {
+                //     Ty(Ty<'tcx>, Const<'tcx>),
+                //     Unevaluated(UnevaluatedConst<'tcx>, Ty<'tcx>),
+                //     Val(ConstValue<'tcx>, Ty<'tcx>),
+                // }
                 match constant {
                     Const::Ty(_ty, _const) => {
-                        println!("here 236"); // Don't know
+                        println!("here 236"); // Placeholder for Ty case
+                        None
                     }
                     Const::Unevaluated(_unevaluated_const, _ty) => {
-                        println!("here 240"); // Don't know
+                        println!("here 240"); // Placeholder for Unevaluated case
+                        None
                     }
                     Const::Val(const_value, ty) => {
-                        // println!("here 244");
-                        println!("Const Value: {:?}", const_value); //ZeroSized, don't know what this is
-                        println!("Type: {:?}", ty); //FnDef(DefId(1:2345 ~ std[c0a3]::fs::write), [&'{erased} str, &'{erased} str])
+                        // println!("here 244"); 
+                        println!("Const Value: {:?} {:?}", const_value , ty); 
 
-                        if let TyKind::FnDef(def_id, _) = ty.kind() {
-                            if def_id.index.as_u32() == 2345 {
-                                //2345 is def_id of std::fs::write , need a better way to do this
-                                println!("Call to std::fs::write detected.");
+                        match const_value {
+                            ConstValue::Slice { data, meta } => {
+                                if let Some(str_data) = self.extract_string_from_const(&data, meta) {
+                                    println!("Extracted string: {:?}", str_data);
+                                }
+                            }
+                            _ => {
+                                println!("Unhandled ConstValue variant");
                             }
                         }
+    
+
+                        if let TyKind::FnDef(def_id, idk) = ty.kind() {
+                            println!("Found function DefId in const: {:?}", def_id);
+                            println!("IDK: {:?}", idk);
+                            return Some(def_id.index.as_u32());
+                        }
+                        None
                     }
                 }
-            } // Now we have to match the constant value
+            }
+        }
+    }
+    
 
-              //    println!("{:?}" , constant.literal);
+    fn extract_string_from_const<'tcx>(
+        &self,
+        data: &'tcx ConstAllocation<'tcx>, //tpub struct ConstAllocation<'tcx>(pub Interned<'tcx, Allocation>);
+        meta: u64,
+    ) -> Option<String> {
+        println!("Data: {:?}", data);
+        println!("Meta: {:?}", meta);
+
+        //0: Interned<'tcx, Allocation>
+        let allocation = &data.0.align; //this is alignment
+
+        //https://doc.rust-lang.org/beta/nightly-rustc/rustc_middle/mir/interpret/allocation/struct.Allocation.html
+        //this is probably what we need
+        
+        // pub struct Allocation<Prov: Provenance = CtfeProvenance, Extra = (), Bytes = Box<[u8]>> {
+        //     bytes: Bytes,
+        //     provenance: ProvenanceMap<Prov>,
+        //     init_mask: InitMask,
+        //     pub align: Align,
+        //     pub mutability: Mutability, if mutable or not, bool 
+        //     pub extra: Extra,
+        // }
+
+        //if i do 0.0 available fields are: `align`, `mutability`, `extra`
+        //if i do 0.1, i have PrivateZst
+
+        // this is interned
+        // pub struct Interned<'a, T>(pub &'a T, pub PrivateZst);
+
+        // this is allocation
+        // pub struct Allocation<Prov: Provenance = CtfeProvenance, Extra = (), Bytes = Box<[u8]>> {
+        //     bytes: Bytes,
+        //     provenance: ProvenanceMap<Prov>,
+        //     init_mask: InitMask,
+        //     pub align: Align,
+        //     pub mutability: Mutability,
+        //     pub extra: Extra,
+        // }
+
+        // let allocation = allocation.0.1;
+
+
+        println!("Allocation: {:?}", allocation);
+
+        // Typically, the `Interned<Allocation>` type has methods to access the allocation data
+        // You might need to use an API method like `inspect` or something similar to get the bytes
+
+        // Assuming we have a method to get the raw bytes of the allocation
+        let string_length = meta as usize;
+
+        None
+    }
+    
+    fn parse_args<'tcx>(&self, args: &[rustc_span::source_map::Spanned<Operand<'tcx>>]) {
+        for arg in args.iter() {
+            println!("Arg: {:?}", arg);
+            if let Some(def_id) = self.parse_operand(&arg.node) {
+                println!("Found function DefId in args: {:?}", def_id);
+            }
         }
     }
 }
