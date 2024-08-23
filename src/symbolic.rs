@@ -82,10 +82,10 @@ impl<'ctx> Environment<'ctx> {
         let regex_parts = &[
             &slash,
             &Regexp::union(self.context, &[&slash, &dot_slash]).star(),
-            &Regexp::literal(self.context, "self"),
+            &Regexp::literal(self.context, "proc"),
             &slash,
             &Regexp::union(self.context, &[&slash, &dot_slash]).star(),
-            &Regexp::literal(self.context, "proc"),
+            &Regexp::literal(self.context, "self"),
             &slash,
             &Regexp::union(self.context, &[&slash, &dot_slash]).star(),
             &Regexp::literal(self.context, "mem"),
