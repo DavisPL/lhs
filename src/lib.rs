@@ -30,7 +30,7 @@ pub struct Args {
     pub action: Action,
 
     /// Toggle matching with numeric variables
-    #[arg(long)] 
+    #[arg(long)]
     pub numeric: bool,
 }
 
@@ -148,10 +148,12 @@ pub fn get_mir_body(path: PathBuf, args: Args) {
                         // We got the mir_body! Let's pass it into our analyzer/parser
                         // hir_map.span(local_def_id)
                         match args.action {
-                            Action::Print => print_basic_blocks(tcx.mir_built(local_def_id).borrow()),
+                            Action::Print => {
+                                print_basic_blocks(tcx.mir_built(local_def_id).borrow())
+                            }
                             Action::Trace => analyze_mir_body(tcx.mir_built(local_def_id).borrow()),
                             Action::Local => local_decls(tcx.mir_built(local_def_id).borrow()),
-                        }   
+                        }
                     }
                 }
             })
@@ -175,6 +177,11 @@ pub fn analyze_mir_body<'a>(mir_body: MappedReadGuard<'a, Body<'a>>) {
         match local_decl.ty.kind() {
             TyKind::Int(_) => ev.create_int(local.as_usize().to_string().as_str()),
             TyKind::Str => ev.create_uninterpreted_string(local.as_usize().to_string().as_str()),
+            TyKind::Ref(_, ty, _) => {
+                if ty.is_str() {
+                    ev.create_uninterpreted_string(local.as_usize().to_string().as_str())
+                }
+            }
             TyKind::Bool => ev.create_uninterpreted_bool(local.as_usize().to_string().as_str()),
             _ => println!("Unsupported Type: {}", local_decl.ty),
         }
@@ -194,6 +201,7 @@ pub fn print_basic_blocks<'a>(mir_body: MappedReadGuard<'a, Body<'a>>) {
 
 pub fn local_decls<'a>(mir_body: MappedReadGuard<'a, Body<'a>>) {
     for (local, local_decl) in mir_body.local_decls.iter_enumerated() {
-        println!("_{} = {}",local.as_usize(), local_decl.ty);
+        println!("_{} = {}", local.as_usize(), local_decl.ty);
     }
 }
+

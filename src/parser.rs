@@ -22,7 +22,7 @@ use rustc_middle::mir::interpret::ConstAllocation;
 #[path = "../z3/src/symexec.rs"]
 pub mod symexec;
 
-const DEF_ID_FS_WRITE : usize = 2345;
+const DEF_ID_FS_WRITE: usize = 2345;
 
 /*
 pub struct Environment {
@@ -153,7 +153,7 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
     ) {
         let (lhs, rhs) = *operand;
         match op {
-            BinOp::Eq => todo!(),
+            BinOp::Eq => Self::eq_op(self_curr, local, lhs, rhs),
             _ => println!("unknown binary operation"),
         }
     }
@@ -293,7 +293,6 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
         }
     }
 
-    
     pub fn parse_call<'tcx>(
         &mut self,
         func: Operand<'tcx>,
@@ -305,17 +304,17 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
         // fn_span: Span,
     ) {
         let func_def_id = self.parse_operand(&func); //passing it func, gives def_id
-        // println!("Func DefId: {:?}", func_def_id);
-         if func_def_id == Some(DEF_ID_FS_WRITE) {
+                                                     // println!("Func DefId: {:?}", func_def_id);
+        if func_def_id == Some(DEF_ID_FS_WRITE) {
             //   println!("Found function DefId in call: {:?}", def_id);
             println!("Found fs::write call");
             let frist_arg = self.parse_operand(&args[0].node).unwrap();
             self.curr.is_write_safe(frist_arg.to_string().as_str());
             // let vec : Vec<u32> = args.iter().map(|arg| self.parse_operand(&arg.node).unwrap()).collect();
             //  self.parse_args(&args);
-         }
-         
-         // I can get the args, but do i need to do something about this, or just call sovler? How will solver know that i have to check for these variables, do I create a z3 model? 
+        }
+
+        // I can get the args, but do i need to do something about this, or just call sovler? How will solver know that i have to check for these variables, do I create a z3 model?
 
         // println!("Destination: {:?}", destination); //_4 what does this mean?
 
@@ -325,7 +324,7 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
 
         // println!("Unwind: {:?}", unwind); //this is also a basic block, so do i just call parse_bb for it?, but this is for unwind, do we need this? this is _4 in this case - we ignore unwinding
 
-       // println!("Call Source: {:?}", call_source); // https://doc.rust-lang.org/beta/nightly-rustc/rustc_middle/mir/syntax/enum.CallSource.html do we care about this?
+        // println!("Call Source: {:?}", call_source); // https://doc.rust-lang.org/beta/nightly-rustc/rustc_middle/mir/syntax/enum.CallSource.html do we care about this?
     }
 
     fn parse_operand<'tcx>(&self, operand: &Operand<'tcx>) -> Option<usize> {
@@ -338,14 +337,14 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
             Operand::Move(place) => {
                 // this is for function arguments.
                 println!("here 230"); // Placeholder for Move case
-                // pub struct Place<'tcx> {
-                //     pub local: Local,
-                //     pub projection: &'tcx List<PlaceElem<'tcx>>,
-                // }
+                                      // pub struct Place<'tcx> {
+                                      //     pub local: Local,
+                                      //     pub projection: &'tcx List<PlaceElem<'tcx>>,
+                                      // }
                 let local = place.local;
                 let projection = place.projection;
-    
-                println!("Local: {:?}", local);  // ths is the variable number like _1, _2 etc.
+
+                println!("Local: {:?}", local); // ths is the variable number like _1, _2 etc.
                 return Some(local.as_usize());
                 // println!("Projection: {:?}", projection); // this is [] - it means value is accessed directly.
 
@@ -370,7 +369,7 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
                     OpaqueCast(Ty<'tcx>),
                     Subtype(Ty<'tcx>),
                 }
-                */  
+                */
 
                 // match elem {
                 //     PlaceElem::Deref => {
@@ -398,11 +397,11 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
                 //         println!("Subtyping to type {:?}", ty);
                 //     }
                 // }
-                
+
                 None
             }
             Operand::Constant(place) => {
-                //this is for funciton calls 
+                //this is for funciton calls
                 //also for arga when you hardcode them , e.g, std::fs::write("a.txt", "Hello, world!").unwrap();
                 let const_span = place.span;
                 println!("Const Span: {:?}", const_span);
@@ -410,7 +409,7 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
                 let const_user_ty = place.user_ty;
                 println!("Const User Ty: {:?}", const_user_ty);
                 let constant = place.const_;
-                
+
                 // pub enum Const<'tcx> {
                 //     Ty(Ty<'tcx>, Const<'tcx>),
                 //     Unevaluated(UnevaluatedConst<'tcx>, Ty<'tcx>),
@@ -426,12 +425,13 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
                         None
                     }
                     Const::Val(const_value, ty) => {
-                        // println!("here 244"); 
-                        println!("Const Value: {:?} {:?}", const_value , ty); 
+                        // println!("here 244");
+                        println!("Const Value: {:?} {:?}", const_value, ty);
 
                         match const_value {
                             ConstValue::Slice { data, meta } => {
-                                if let Some(str_data) = self.extract_string_from_const(&data, meta) {
+                                if let Some(str_data) = self.extract_string_from_const(&data, meta)
+                                {
                                     println!("Extracted string: {:?}", str_data);
                                 }
                             }
@@ -439,7 +439,6 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
                                 println!("Unhandled ConstValue variant");
                             }
                         }
-    
 
                         if let TyKind::FnDef(def_id, idk) = ty.kind() {
                             println!("Found function DefId in const: {:?}", def_id);
@@ -452,7 +451,6 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
             }
         }
     }
-    
 
     fn extract_string_from_const<'tcx>(
         &self,
@@ -467,13 +465,13 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
 
         //https://doc.rust-lang.org/beta/nightly-rustc/rustc_middle/mir/interpret/allocation/struct.Allocation.html
         //this is probably what we need
-        
+
         // pub struct Allocation<Prov: Provenance = CtfeProvenance, Extra = (), Bytes = Box<[u8]>> {
         //     bytes: Bytes,
         //     provenance: ProvenanceMap<Prov>,
         //     init_mask: InitMask,
         //     pub align: Align,
-        //     pub mutability: Mutability, if mutable or not, bool 
+        //     pub mutability: Mutability, if mutable or not, bool
         //     pub extra: Extra,
         // }
 
@@ -495,7 +493,6 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
 
         // let allocation = allocation.0.1;
 
-
         println!("Allocation: {:?}", allocation);
 
         // Typically, the `Interned<Allocation>` type has methods to access the allocation data
@@ -506,7 +503,7 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
 
         None
     }
-    
+
     // fn parse_args<'tcx>(&self, args: &[rustc_span::source_map::Spanned<Operand<'tcx>>])  -> Option<usize> {
     //         println!("Arg: {:?}", arg);
     //         if let Some(def_id) = self.parse_operand(&arg.node) {
