@@ -51,9 +51,14 @@ git submodule update --remote
 
 ## Usage
 
-To run LRHS with an example file:
+To run LRHS you need to provide the path to Rust source file and action. 
 
-`cargo run -- -s [your_file.rs]`
+You can specify an action using the -a flag. We currently support three actions, 
+1) Print
+2) Trace
+3) Local
 
+To get trace for a file named example.rs you can run. 
 
-Replace \`[your_file.rs]\` with the path to your Rust source file.
+`cargo run -- -s example.rs -a trace`
+

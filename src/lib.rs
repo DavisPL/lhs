@@ -214,3 +214,4 @@ pub fn local_decls<'a>(mir_body: MappedReadGuard<'a, Body<'a>>) {
         println!("_{} = {}", local.as_usize(), local_decl.ty);
     }
 }
+
