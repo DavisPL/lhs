@@ -318,7 +318,29 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
         if func_def_id == Some(DEF_ID_FS_WRITE) {
             //     //   println!("Found function DefId in call: {:?}", def_id);
             // println!("Found fs::write call");
-            let first_arg = self.parse_operand(&args[0].node);
+            let mut first_arg = self.parse_operand(&args[0].node);
+            if first_arg == Some(1) {
+                let arg = Self::parse_operand_get_const_string(&args[0].node);
+                let obj = self.curr.static_string(arg.unwrap().as_str());
+                let result = self.curr.is_write_safe(&obj);
+                match result {
+                    Ok(sat_result) => match sat_result {
+                        z3::SatResult::Sat => {
+                            // println!("The result is SAT.");
+                            // need to return a span here, because write to /proc/self/mem is a safety violation
+                            return self.get_span_from_operand(&func);
+                        }
+                        z3::SatResult::Unsat => {}
+                        z3::SatResult::Unknown => {}
+                    },
+                    Err(e) => {
+                        println!(
+                            "An error occurred parse_call , contact Hassnain and Anirudh: {}",
+                            e
+                        );
+                    }
+                }
+            }
             // println!("First Arg: {:?}", first_arg);
             match first_arg {
                 Some(arg) => {
@@ -455,7 +477,11 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
                 // println!("Local: {:?}", local); // ths is the variable number like _1, _2 etc.
                 return Some(local.as_usize());
             }
-            Operand::Constant(place) => None,
+            Operand::Constant(place) => {
+                // println!("here I am ");
+                Some(1)
+                // None
+            },
         }
     }
 
