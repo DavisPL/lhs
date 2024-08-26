@@ -62,9 +62,11 @@ extern crate rustc_middle;
 
 use std::{path, process, str, sync::Arc};
 
+use rustc_middle::ty::TyCtxt;
 use rustc_errors::registry;
 use rustc_hash::FxHashMap;
 use rustc_session::config;
+use rustc_span::FileNameDisplayPreference;
 
 use rustc_hir::def::DefKind;
 // use rustc_hir::hir::ItemKind;
@@ -145,12 +147,19 @@ pub fn get_mir_body(path: PathBuf, args: Args) {
                 for local_def_id in tcx.hir().krate().owners.indices() {
                     let def_id = local_def_id.to_def_id();
                     if tcx.def_kind(local_def_id) == DefKind::Fn {
+                        println!("MIR for function: {:?}", local_def_id);
+                        // Construct mir_built body for function
+                        let mir_body = tcx.mir_built(local_def_id).borrow();
+                        // Print position of current function being analyzed using Span
+                        // let span_data = mir_body.span.data();
+                        let source_map = tcx.sess.source_map();
+                        let mir_string: String = source_map.span_to_string(mir_body.span, FileNameDisplayPreference::Local); // Might not display nice with Local?
+                        println!("{mir_string}");
                         // We got the mir_body! Let's pass it into our analyzer/parser
-                        // hir_map.span(local_def_id)
                         match args.action {
-                            Action::Print => print_basic_blocks(tcx.mir_built(local_def_id).borrow()),
-                            Action::Trace => analyze_mir_body(tcx.mir_built(local_def_id).borrow()),
-                            Action::Local => local_decls(tcx.mir_built(local_def_id).borrow()),
+                            Action::Print => print_basic_blocks(mir_body),
+                            Action::Trace => analyze_mir_body(mir_body),
+                            Action::Local => local_decls(mir_body),
                         }   
                     }
                 }
@@ -158,6 +167,7 @@ pub fn get_mir_body(path: PathBuf, args: Args) {
         });
     });
 }
+
 
 mod parser;
 
@@ -175,6 +185,11 @@ pub fn analyze_mir_body<'a>(mir_body: MappedReadGuard<'a, Body<'a>>) {
         match local_decl.ty.kind() {
             TyKind::Int(_) => ev.create_int(local.as_usize().to_string().as_str()),
             TyKind::Str => ev.create_uninterpreted_string(local.as_usize().to_string().as_str()),
+            TyKind::Ref(_, ty, _) => {
+                if ty.is_str() {
+                    ev.create_uninterpreted_string(local.as_usize().to_string().as_str())
+                }
+            }
             TyKind::Bool => ev.create_uninterpreted_bool(local.as_usize().to_string().as_str()),
             _ => println!("Unsupported Type: {}", local_decl.ty),
         }
@@ -184,6 +199,8 @@ pub fn analyze_mir_body<'a>(mir_body: MappedReadGuard<'a, Body<'a>>) {
 
     let mut mir_parser = MIRParser::new(mir_body, ev);
     mir_parser.parse();
+
+    println!("{:#?}", mir_parser.curr);
 }
 
 pub fn print_basic_blocks<'a>(mir_body: MappedReadGuard<'a, Body<'a>>) {
@@ -194,6 +211,6 @@ pub fn print_basic_blocks<'a>(mir_body: MappedReadGuard<'a, Body<'a>>) {
 
 pub fn local_decls<'a>(mir_body: MappedReadGuard<'a, Body<'a>>) {
     for (local, local_decl) in mir_body.local_decls.iter_enumerated() {
-        println!("_{} = {}",local.as_usize(), local_decl.ty);
+        println!("_{} = {}", local.as_usize(), local_decl.ty);
     }
 }
