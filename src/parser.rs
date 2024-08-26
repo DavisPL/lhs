@@ -322,7 +322,8 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
             // println!("First Arg: {:?}", first_arg);
             match first_arg {
                 Some(arg) => {
-                    let result = self.curr.is_write_safe(arg.to_string().as_str());
+                    let arg = self.curr.get_string(arg.to_string().as_str()).unwrap();
+                    let result = self.curr.is_write_safe(arg);
                     match result {
                         Ok(sat_result) => match sat_result {
                             z3::SatResult::Sat => {
