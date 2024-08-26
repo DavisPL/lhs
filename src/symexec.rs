@@ -25,11 +25,7 @@ impl<'ctx> SymExec<'ctx> {
     /// Checks if there is an assignment to symbolic variables in the executor such that write_arg_name matches /proc/self/mem.
     /// This function can be used to check that a write such a `fs::write(filename, contents)` does not write to the directory
     /// /proc/self/mem. The argument write_arg_name must already be present in the environment. If it is not, an Error is returned.
-    pub fn is_write_safe(&mut self, write_arg_name: &str) -> Result<z3::SatResult, &str> {
-        let variable = match self.string_variables.get(write_arg_name) {
-            Some(x) => x,
-            None => return Err("write_arg_name is not present in the environment."),
-        };
+    pub fn is_write_safe(&mut self, expr: &z3::ast::String<'ctx>) -> Result<z3::SatResult, &str> {
         let solver = z3::Solver::new(self.context);
         for constraint in &self.constraints {
             solver.assert(constraint);
@@ -48,7 +44,7 @@ impl<'ctx> SymExec<'ctx> {
             &Regexp::literal(self.context, "mem"),
         ];
         let unsafe_regex = Regexp::concat(self.context, regex_parts);
-        solver.assert(&variable.regex_matches(&unsafe_regex));
+        solver.assert(&expr.regex_matches(&unsafe_regex));
         let result = solver.check();
         if result == z3::SatResult::Sat {
             let model = solver.get_model().expect("Model should exist.");
