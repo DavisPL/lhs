@@ -193,21 +193,19 @@ pub fn analyze_mir_body<'a>(mir_body: MappedReadGuard<'a, Body<'a>>) {
                 }
             }
             TyKind::Bool => ev.create_uninterpreted_bool(local.as_usize().to_string().as_str()),
-            TyKind::Adt(a, _) => {
-                // println!("Adt: {:?}", a);
-                let fields = a.all_fields().collect::<Vec<_>>();
-    
-                let def_ids: Vec<_> = fields.iter().map(|field| field.did).collect();
-                
+            TyKind::Adt(fields, _) => {
+                let def_ids = fields
+                    .all_fields()
+                    .map(|field| field.did)
+                    .collect::<Vec<_>>();
+
                 // Now you have a Vec containing all DefIds
                 for def_id in &def_ids {
-                    // println!("DefId: {:?}", def_id.index.as_usize());
                     if def_id.index.as_usize() == DEF_ID_PATH_BUFF {
                         ev.create_uninterpreted_string(local.as_usize().to_string().as_str());
                         break;
                     }
                 }
-                // println!("_________");
             }
             _ => println!("Unsupported Type: {}", local_decl.ty),
         }
