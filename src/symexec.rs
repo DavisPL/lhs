@@ -22,6 +22,14 @@ impl<'ctx> SymExec<'ctx> {
             constraints: Vec::new(),
         }
     }
+    /// Checks if the constraints in the executor are satisfiable.
+    pub fn check_constraint_sat(&self) -> z3::SatResult {
+        let solver = z3::Solver::new(self.context);
+        for constraint in &self.constraints {
+            solver.assert(constraint);
+        }
+        solver.check()
+    }
     /// Checks if there is an assignment to symbolic variables in the executor such that write_arg_name matches /proc/self/mem.
     /// This function can be used to check that a write such a `fs::write(filename, contents)` does not write to the directory
     /// /proc/self/mem. The argument write_arg_name must already be present in the environment. If it is not, an Error is returned.
