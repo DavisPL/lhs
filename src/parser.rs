@@ -340,32 +340,33 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
                         );
                     }
                 }
-            }
-            // println!("First Arg: {:?}", first_arg);
-            match first_arg {
-                Some(arg) => {
-                    let arg = self.curr.get_string(arg.to_string().as_str()).unwrap();
-                    let result = self.curr.is_write_safe(arg);
-                    match result {
-                        Ok(sat_result) => match sat_result {
-                            z3::SatResult::Sat => {
-                                // println!("The result is SAT.");
-                                // need to return a span here, because write to /proc/self/mem is a safety violation
-                                return self.get_span_from_operand(&func);
-                            }
-                            z3::SatResult::Unsat => {}
-                            z3::SatResult::Unknown => {}
-                        },
-                        Err(e) => {
-                            println!(
+            } else {
+                // println!("First Arg: {:?}", first_arg);
+                match first_arg {
+                    Some(arg) => {
+                        let arg = self.curr.get_string(arg.to_string().as_str()).unwrap();
+                        let result = self.curr.is_write_safe(arg);
+                        match result {
+                            Ok(sat_result) => match sat_result {
+                                z3::SatResult::Sat => {
+                                    // println!("The result is SAT.");
+                                    // need to return a span here, because write to /proc/self/mem is a safety violation
+                                    return self.get_span_from_operand(&func);
+                                }
+                                z3::SatResult::Unsat => {}
+                                z3::SatResult::Unknown => {}
+                            },
+                            Err(e) => {
+                                println!(
                                 "An error occurred parse_call , contact Hassnain and Anirudh: {}",
                                 e
                             );
+                            }
                         }
                     }
-                }
-                None => {
-                    println!("Parse Call : This should never happen, contact Hassnain if this is printed");
+                    None => {
+                        println!("Parse Call : This should never happen, contact Hassnain if this is printed");
+                    }
                 }
             }
         }
@@ -481,7 +482,7 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
                 // println!("here I am ");
                 Some(1)
                 // None
-            },
+            }
         }
     }
 
@@ -576,3 +577,4 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
     }
 }
 // }
+
