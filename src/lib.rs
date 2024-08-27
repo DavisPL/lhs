@@ -29,7 +29,7 @@ pub struct Args {
     pub action: Action,
 
     /// Toggle matching with numeric variables
-    #[arg(long)] 
+    #[arg(long)]
     pub numeric: bool,
 }
 
@@ -61,9 +61,9 @@ extern crate rustc_middle;
 
 use std::{path, process, str, sync::Arc};
 
-use rustc_middle::ty::TyCtxt;
 use rustc_errors::registry;
 use rustc_hash::FxHashMap;
+use rustc_middle::ty::TyCtxt;
 use rustc_session::config;
 use rustc_span::FileNameDisplayPreference;
 
@@ -152,21 +152,21 @@ pub fn get_mir_body(path: PathBuf, args: Args) {
                         // Print position of current function being analyzed using Span
                         // let span_data = mir_body.span.data();
                         let source_map = tcx.sess.source_map();
-                        let mir_string: String = source_map.span_to_string(mir_body.span, FileNameDisplayPreference::Local); // Might not display nice with Local?
+                        let mir_string: String = source_map
+                            .span_to_string(mir_body.span, FileNameDisplayPreference::Local); // Might not display nice with Local?
                         println!("{mir_string}");
                         // We got the mir_body! Let's pass it into our analyzer/parser
                         match args.action {
                             Action::Trace => analyze_mir_body(mir_body),
                             Action::Blocks => print_basic_blocks(mir_body),
                             Action::Local => print_local_decls(mir_body),
-                        }   
+                        }
                     }
                 }
             })
         });
     });
 }
-
 
 mod parser;
 
@@ -213,4 +213,3 @@ pub fn print_local_decls<'a>(mir_body: MappedReadGuard<'a, Body<'a>>) {
         println!("_{} = {}", local.as_usize(), local_decl.ty);
     }
 }
-

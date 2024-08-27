@@ -1,4 +1,4 @@
-fn main(){
+fn main() {
     let filename = "a.txt";
     let contents = "Hello, world!";
     // std::fs::write("a.txt", "Hello, world!").unwrap();

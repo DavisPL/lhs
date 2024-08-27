@@ -2,9 +2,11 @@ extern crate rustc_abi;
 extern crate rustc_data_structures;
 extern crate rustc_middle;
 use rustc_data_structures::sync::{MappedReadGuard, ReadGuard, RwLock};
-use rustc_middle::mir::{BinOp, Body, Operand, SwitchTargets, StatementKind, TerminatorKind};
-use rustc_middle::mir::{Rvalue, Rvalue::BinaryOp, Rvalue::Use};
-use rustc_middle::mir::{BasicBlock, CallSource, Const, ConstValue, Local, Place, SourceInfo, UnwindAction};
+use rustc_middle::mir::Rvalue::{self, BinaryOp, Use};
+use rustc_middle::mir::{
+    BasicBlock, CallSource, Const, ConstValue, Local, Place, SourceInfo, UnwindAction,
+};
+use rustc_middle::mir::{BinOp, Body, Operand, StatementKind, SwitchTargets, TerminatorKind};
 use rustc_middle::ty::TyKind;
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -540,4 +542,3 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
     }
 }
 // }
-
