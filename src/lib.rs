@@ -15,6 +15,8 @@ use std::fs::File;
 use std::fs::FileType;
 use std::io::ErrorKind;
 
+const DEF_ID_PATH_BUFF: usize = 5175;
+
 #[derive(Parser, Debug)]
 #[command(name = "mir_analyzer")]
 #[command(version = "1.0.1")]
@@ -192,8 +194,20 @@ pub fn analyze_mir_body<'a>(mir_body: MappedReadGuard<'a, Body<'a>>) {
             }
             TyKind::Bool => ev.create_uninterpreted_bool(local.as_usize().to_string().as_str()),
             TyKind::Adt(a, _) => {
-                // TODO: Hassnain please implement this!!!
-                println!("{:#?}, {:#?}", a, a.all_fields().collect::<Vec<_>>())
+                // println!("Adt: {:?}", a);
+                let fields = a.all_fields().collect::<Vec<_>>();
+    
+                let def_ids: Vec<_> = fields.iter().map(|field| field.did).collect();
+                
+                // Now you have a Vec containing all DefIds
+                for def_id in &def_ids {
+                    // println!("DefId: {:?}", def_id.index.as_usize());
+                    if def_id.index.as_usize() == DEF_ID_PATH_BUFF {
+                        ev.create_uninterpreted_string(local.as_usize().to_string().as_str());
+                        break;
+                    }
+                }
+                // println!("_________");
             }
             _ => println!("Unsupported Type: {}", local_decl.ty),
         }
