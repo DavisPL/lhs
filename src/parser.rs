@@ -2,16 +2,9 @@ extern crate rustc_abi;
 extern crate rustc_data_structures;
 extern crate rustc_middle;
 use rustc_data_structures::sync::{MappedReadGuard, ReadGuard, RwLock};
-use rustc_middle::mir::BinOp;
-use rustc_middle::mir::Body;
-use rustc_middle::mir::Rvalue;
-use rustc_middle::mir::Rvalue::BinaryOp;
-use rustc_middle::mir::Rvalue::Use;
-use rustc_middle::mir::{
-    BasicBlock, CallSource, Const, ConstValue, Local, Place, SourceInfo, UnwindAction,
-};
-use rustc_middle::mir::{Operand, SwitchTargets};
-use rustc_middle::mir::{StatementKind, TerminatorKind};
+use rustc_middle::mir::{BinOp, Body, Operand, SwitchTargets, StatementKind, TerminatorKind};
+use rustc_middle::mir::{Rvalue, Rvalue::BinaryOp, Rvalue::Use};
+use rustc_middle::mir::{BasicBlock, CallSource, Const, ConstValue, Local, Place, SourceInfo, UnwindAction};
 use rustc_middle::ty::TyKind;
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -33,43 +26,18 @@ pub mod symexec;
 
 const DEF_ID_FS_WRITE: usize = 2345;
 
-/*
-pub struct Environment {
-    type_map: HashMap<Local, u32>,
-    pc: Vec<String>,
-}
-
-impl Environment {
-    fn new() -> Self {
-        Environment {
-            type_map: HashMap::new(),
-            pc: Vec::new(),
-        }
-    }
-    fn clone(&self) -> Self {
-        Environment {
-            type_map: self.type_map.clone(),
-            pc: self.pc.clone(),
-        }
-    }
-}
-*/
-
 pub struct MIRParser<'a, 'ctx> {
     mir_body: MappedReadGuard<'a, Body<'a>>,
     pub curr: symexec::SymExec<'ctx>,
     stack: Vec<(symexec::SymExec<'ctx>, BasicBlock)>,
-    arg_count: usize,
 }
 
 impl<'a, 'ctx> MIRParser<'a, 'ctx> {
     pub fn new(mir_body: MappedReadGuard<'a, Body<'a>>, z3: symexec::SymExec<'ctx>) -> Self {
-        let arg_count = mir_body.arg_count;
         MIRParser {
             mir_body,
             curr: z3,
             stack: Vec::new(),
-            arg_count,
         }
     }
 
@@ -263,11 +231,7 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
         for (value, target) in targets.iter() {
             // Make a clone of curr
             let mut cloned_curr = self.curr.clone();
-            // Update the clone's PC
-            // cloned_curr
-            //     .constraints
-            //     .push(format!("{} = {}", local.as_usize(), value)); // this is temp wrong and definitely not general
-            //                                                         // Append to Negation PC vector for the otherwise branch
+            // Update the clone's PC                                                     // Append to Negation PC vector for the otherwise branch
             let curr_constraint = cloned_curr
                 .get_bool(local.as_usize().to_string().as_str())
                 .unwrap()
@@ -291,7 +255,6 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
     }
 
     pub fn parse_return(&mut self) {
-        // Drop curr
         // Replace curr with stack top
         if let Some((next_curr, next_bb)) = self.stack.pop() {
             self.curr = next_curr; // Move popped stack value into self.curr
@@ -316,7 +279,7 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
                                                                  // println!("Func DefId: {:?}", func_def_id);
 
         if func_def_id == Some(DEF_ID_FS_WRITE) {
-            //     //   println!("Found function DefId in call: {:?}", def_id);
+            // println!("Found function DefId in call: {:?}", def_id);
             // println!("Found fs::write call");
             let mut first_arg = self.parse_operand(&args[0].node);
             if first_arg == Some(1) {

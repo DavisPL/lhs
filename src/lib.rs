@@ -7,7 +7,6 @@ use std::fs;
 use std::path::Path;
 use std::path::PathBuf;
 
-// use std::env;
 use clap::Parser;
 use clap::ValueEnum;
 use parser::symexec;
@@ -36,8 +35,8 @@ pub struct Args {
 
 #[derive(Debug, ValueEnum, Clone)]
 pub enum Action {
-    Print,
     Trace,
+    Blocks,
     Local,
 }
 
@@ -157,9 +156,9 @@ pub fn get_mir_body(path: PathBuf, args: Args) {
                         println!("{mir_string}");
                         // We got the mir_body! Let's pass it into our analyzer/parser
                         match args.action {
-                            Action::Print => print_basic_blocks(mir_body),
                             Action::Trace => analyze_mir_body(mir_body),
-                            Action::Local => local_decls(mir_body),
+                            Action::Blocks => print_basic_blocks(mir_body),
+                            Action::Local => print_local_decls(mir_body),
                         }   
                     }
                 }
@@ -209,7 +208,7 @@ pub fn print_basic_blocks<'a>(mir_body: MappedReadGuard<'a, Body<'a>>) {
     }
 }
 
-pub fn local_decls<'a>(mir_body: MappedReadGuard<'a, Body<'a>>) {
+pub fn print_local_decls<'a>(mir_body: MappedReadGuard<'a, Body<'a>>) {
     for (local, local_decl) in mir_body.local_decls.iter_enumerated() {
         println!("_{} = {}", local.as_usize(), local_decl.ty);
     }
