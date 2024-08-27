@@ -1,4 +1,4 @@
-# LRHS
+# LHS
 ### A command line utility for searching for analyzing a given Rust code's MIR and verifying proc/self/mem safety
 
 ## Installation
@@ -6,7 +6,7 @@
 ### Prerequisites
 Before you begin, ensure you have the following installed:
 
-- **Rust Nightly**: LRHS requires Rust's nightly to utilize the `rustc_private` library.
+- **Rust Nightly**: LHS requires Rust's nightly to utilize the `rustc_private` library.
 
 ### Installing `rustc`
 
@@ -37,10 +37,10 @@ info: The currently active `rustc` version is `rustc 1.82.0-nightly (92c6c0380 2
 
 ### Clone the Repository
 
-To install LRHS, clone the repository and ensure you use the `--recursive` flag to include submodules:
+To install LHS, clone the repository and ensure you use the `--recursive` flag to include submodules:
 
 ```bash
-git clone --recursive https://github.com/DavisPL/lrhs.git
+git clone --recursive https://github.com/DavisPL/lhs.git
 git submodule init
 ```
 
@@ -51,7 +51,7 @@ git submodule update --remote
 
 ## Usage
 
-To run LRHS you need to provide the path to Rust source file and action. 
+To run LHS you need to provide the path to Rust source file and action. 
 
 You can specify an action using the -a flag. We currently support three actions, 
 1) Print
