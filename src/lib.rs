@@ -184,12 +184,17 @@ pub fn analyze_mir_body<'a>(mir_body: MappedReadGuard<'a, Body<'a>>) {
         match local_decl.ty.kind() {
             TyKind::Int(_) => ev.create_int(local.as_usize().to_string().as_str()),
             TyKind::Str => ev.create_uninterpreted_string(local.as_usize().to_string().as_str()),
+            TyKind::Char => ev.create_uninterpreted_string(local.as_usize().to_string().as_str()),
             TyKind::Ref(_, ty, _) => {
                 if ty.is_str() {
                     ev.create_uninterpreted_string(local.as_usize().to_string().as_str())
                 }
             }
             TyKind::Bool => ev.create_uninterpreted_bool(local.as_usize().to_string().as_str()),
+            TyKind::Adt(a, _) => {
+                // TODO: Hassnain please implement this!!!
+                println!("{:#?}, {:#?}", a, a.all_fields().collect::<Vec<_>>())
+            }
             _ => println!("Unsupported Type: {}", local_decl.ty),
         }
     }
