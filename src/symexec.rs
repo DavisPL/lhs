@@ -22,12 +22,13 @@ impl<'ctx> SymExec<'ctx> {
             constraints: Vec::new(),
         }
     }
-    /// Checks if the constraints in the executor are satisfiable.
-    pub fn check_constraint_sat(&self) -> z3::SatResult {
+    /// Checks if the constraints in the executor and the new constraint are satisfiable.
+    pub fn check_constraint_sat(&self, new_constraint: &z3::ast::Bool<'ctx>) -> z3::SatResult {
         let solver = z3::Solver::new(self.context);
         for constraint in &self.constraints {
             solver.assert(constraint);
         }
+        solver.assert(new_constraint);
         solver.check()
     }
     /// Checks if there is an assignment to symbolic variables in the executor such that write_arg_name matches /proc/self/mem.
