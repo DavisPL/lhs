@@ -163,31 +163,22 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
                 let constant = op.const_;
                 // println!("Local: {:?}", local); //Not sure about this just copied, switchInt format
                 if let Some(var) = self_curr.get_int(local) {
-                    self_curr.assign_bool(
+                    self_curr.assign_int(
                         local,
-                        self_curr.int_equals(
-                            var,
-                            &self_curr.static_int(constant.try_to_scalar_int().unwrap().to_i64()),
-                        ),
+                        self_curr.static_int(constant.try_to_scalar_int().unwrap().to_i64()),
                     );
                 } else if let Some(var) = self_curr.get_bool(local) {
                     self_curr.assign_bool(
                         local,
-                        self_curr.bool_equals(
-                            var,
-                            &self_curr.static_bool(constant.try_to_bool().unwrap()),
-                        ),
+                        self_curr.static_bool(constant.try_to_bool().unwrap()),
                     );
                 } else if let Some(var) = self_curr.get_string(local) {
-                    self_curr.assign_bool(
+                    self_curr.assign_string(
                         local,
-                        self_curr.string_equals(
-                            var,
-                            &self_curr.static_string(
-                                Self::parse_operand_get_const_string(&operand)
-                                    .unwrap()
-                                    .as_str(),
-                            ),
+                        self_curr.static_string(
+                            Self::parse_operand_get_const_string(&operand)
+                                .unwrap()
+                                .as_str(),
                         ),
                     );
                 }
@@ -223,7 +214,9 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
                 // Terminator
                 match &bb_data.terminator().kind {
                     TerminatorKind::Goto { target } => self.parse_bb(*target),
-                    TerminatorKind::SwitchInt { discr, targets } => self.parse_switch_int(discr.clone(), targets.clone()),
+                    TerminatorKind::SwitchInt { discr, targets } => {
+                        self.parse_switch_int(discr.clone(), targets.clone())
+                    }
                     TerminatorKind::Call {
                         func,        // <Operand<'tcx>>
                         args,        //Box<[Spanned<Operand<'tcx>>]>
@@ -244,16 +237,25 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
                         )
                     }
                     TerminatorKind::Return => self.parse_return(),
-                    _ => {println!("unknown terminator"); None},
-                    // TODO: Handle drop and other terminators that are focused on unwinding
+                    _ => {
+                        println!("unknown terminator");
+                        None
+                    } // TODO: Handle drop and other terminators that are focused on unwinding
                 }
             }
             // ERROR: Couldn't find the bb we were supposed to process
-            None => {eprintln!("I couldn't find the bb :("); None},
+            None => {
+                eprintln!("I couldn't find the bb :(");
+                None
+            }
         }
     }
 
-    pub fn parse_switch_int(&mut self, discr: Operand, targets: SwitchTargets) -> Option<rustc_span::Span> {
+    pub fn parse_switch_int(
+        &mut self,
+        discr: Operand,
+        targets: SwitchTargets,
+    ) -> Option<rustc_span::Span> {
         // Fetch the LHS Local variable, this will be important for updating PC
         let local: Local;
         match discr {
@@ -266,7 +268,8 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
         // TODO: differentiate between local == bool and local != bool (2 >= args in switchInt)
         for (value, target) in targets.iter() {
             // Get bool z3 var
-            let curr_constraint = self.curr
+            let curr_constraint = self
+                .curr
                 .get_bool(local.as_usize().to_string().as_str())
                 .unwrap() // This shouldn't panic, the bool Local should exist
                 .clone();
