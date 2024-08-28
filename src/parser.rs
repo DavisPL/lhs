@@ -158,6 +158,40 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
                     );
                 }
             }
+            Operand::Constant(ref constant) => {
+                let op = constant.clone();
+                let constant = op.const_;
+                // println!("Local: {:?}", local); //Not sure about this just copied, switchInt format
+                if let Some(var) = self_curr.get_int(local) {
+                    self_curr.assign_bool(
+                        local,
+                        self_curr.int_equals(
+                            var,
+                            &self_curr.static_int(constant.try_to_scalar_int().unwrap().to_i64()),
+                        ),
+                    );
+                } else if let Some(var) = self_curr.get_bool(local) {
+                    self_curr.assign_bool(
+                        local,
+                        self_curr.bool_equals(
+                            var,
+                            &self_curr.static_bool(constant.try_to_bool().unwrap()),
+                        ),
+                    );
+                } else if let Some(var) = self_curr.get_string(local) {
+                    self_curr.assign_bool(
+                        local,
+                        self_curr.string_equals(
+                            var,
+                            &self_curr.static_string(
+                                Self::parse_operand_get_const_string(&operand)
+                                    .unwrap()
+                                    .as_str(),
+                            ),
+                        ),
+                    );
+                }
+            }
             _ => println!("unsupported"),
         }
     }
