@@ -54,11 +54,12 @@ git submodule update --remote
 To run LHS you need to provide the path to Rust source file and action. 
 
 You can specify an action using the -a flag. We currently support three actions, 
-1) Print
-2) Trace
-3) Local
+1) `Trace`: trace through function control flow
+2) `Blocks`: print basic blocks
+3) `Local`: print local declarations (variables)
 
-To get trace for a file named example.rs you can run. 
-
-`cargo run -- -s example.rs -a trace`
+To get trace for a file named example.rs you can run:
+```bash
+cargo run -- -s example.rs -a trace
+```
 
