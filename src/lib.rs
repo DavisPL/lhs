@@ -125,24 +125,8 @@ pub fn get_mir_body(path: PathBuf, args: Args) {
             // F: for<'tcx> FnOnce(&'tcx Queries<'tcx>) -> T
             // Parse the program and print the syntax tree.
             let parse = queries.parse().unwrap().get_mut().clone();
-            // println!("{parse:?}");
-
             // Analyze the program and inspect the types of definitions.
             queries.global_ctxt().unwrap().enter(|tcx| {
-                // for id in tcx.hir().items() {
-                //     let hir = tcx.hir();
-                //     let item = hir.item(id);
-                //     match item.kind {
-                //         rustc_hir::ItemKind::Static(_, _, _) | rustc_hir::ItemKind::Fn(_, _, _) => { // print out static and function variables! -- HELLO and main!
-                //             let name = item.ident;
-                //             let ty = tcx.type_of(item.hir_id().owner.def_id);
-                //             // println!("{name:?}:\t{ty:?}")
-                //         }
-                //         _ => (),
-                //     }
-                // }
-
-                // Attempt of usage at `mir_built`
                 let hir_map = tcx.hir();
                 // Get all LocalDefID's (DefID's local to current krate)
                 for local_def_id in tcx.hir().krate().owners.indices() {
@@ -159,7 +143,7 @@ pub fn get_mir_body(path: PathBuf, args: Args) {
                         println!("{mir_string}");
                         // We got the mir_body! Let's pass it into our analyzer/parser
                         match args.action {
-                            Action::Trace => analyze_mir_body(mir_body),
+                            Action::Trace => trace_mir_body(mir_body),
                             Action::Blocks => print_basic_blocks(mir_body),
                             Action::Local => print_local_decls(mir_body),
                         }
@@ -176,7 +160,7 @@ use crate::parser::MIRParser;
 
 use rustc_middle::ty::TyKind;
 
-pub fn analyze_mir_body<'a>(mir_body: MappedReadGuard<'a, Body<'a>>) {
+pub fn trace_mir_body<'a>(mir_body: MappedReadGuard<'a, Body<'a>>) {
     dbg!("{}", &mir_body);
     let cfg = z3::Config::new();
     let ctx = z3::Context::new(&cfg);

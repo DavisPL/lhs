@@ -247,6 +247,7 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
                     }
                     TerminatorKind::Return => self.parse_return(),
                     _ => println!("unknown terminator"),
+                    // TODO: Handle drop and other terminators that are focused on unwinding
                 }
             }
             // ERROR: Couldn't find the bb we were supposed to process
@@ -262,31 +263,27 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
             Operand::Move(place) => local = place.local,
             Operand::Constant(_) => return, // don't know when constant is used yet? if (true)?
         }
-        // will need to make a vector here to keep track of !a && !b -> !a && !b && !c -> etc. for all targets
+        // Vector to keep track of !a && !b -> !a && !b && !c -> etc. for all targets
         let mut curr_pc: Vec<z3::ast::Bool<'ctx>> = Vec::new();
+        // TODO: differentiate between local == bool and local != bool (2 >= args in switchInt)
         for (value, target) in targets.iter() {
-            // Make a clone of curr
-            let mut cloned_curr = self.curr.clone();
-            // Update the clone's PC                                                     // Append to Negation PC vector for the otherwise branch
-            let curr_constraint = cloned_curr
+            // Get bool z3 var
+            let curr_constraint = self.curr
                 .get_bool(local.as_usize().to_string().as_str())
-                .unwrap()
+                .unwrap() // This shouldn't panic, the bool Local should exist
                 .clone();
-            //static_bool(local.as_usize() != value as usize);
-            println!("{:#?}", curr_constraint);
-
-            cloned_curr.add_constraint(curr_constraint.clone());
-
+            // If path is reachable, make a clone and add to stack
+            if self.curr.check_constraint_sat(&curr_constraint) == z3::SatResult::Sat {
+                let mut cloned_curr = self.curr.clone();
+                cloned_curr.add_constraint(curr_constraint.clone());
+                self.stack.push((cloned_curr, target));
+            }
+            // Add negated constraint to vector
             curr_pc.push(self.curr.logical_not(&curr_constraint));
-
-            // curr_pc.push(format!("{} != {}", local.as_usize(), value));
-            // Push updated clone to parser's stack
-            self.stack.push((cloned_curr, target));
         }
         // -----> We take the otherwise branch (right to left DFS... for now?)
-        // Update current PC
+        // Update curr PC and take its path
         self.curr.constraints.append(&mut curr_pc);
-        // Then move current to the next bb
         self.parse_bb(targets.otherwise());
     }
 
