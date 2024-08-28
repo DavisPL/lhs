@@ -43,9 +43,9 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
         }
     }
 
-    pub fn parse(&mut self) {
+    pub fn parse(&mut self) -> Option<rustc_span::Span> {
         // We start traversing the function MIR body from bb0
-        self.parse_bb(BasicBlock::from_usize(0));
+        self.parse_bb(BasicBlock::from_usize(0))
     }
 
     fn eq_op<'tcx>(
@@ -210,7 +210,7 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
         }
     }
 
-    pub fn parse_bb(&mut self, bb: BasicBlock) {
+    pub fn parse_bb(&mut self, bb: BasicBlock) -> Option<rustc_span::Span> {
         match self.mir_body.basic_blocks.get(bb) {
             Some(bb_data) => {
                 // Statements
@@ -223,9 +223,7 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
                 // Terminator
                 match &bb_data.terminator().kind {
                     TerminatorKind::Goto { target } => self.parse_bb(*target),
-                    TerminatorKind::SwitchInt { discr, targets } => {
-                        self.parse_switch_int(discr.clone(), targets.clone())
-                    }
+                    TerminatorKind::SwitchInt { discr, targets } => self.parse_switch_int(discr.clone(), targets.clone()),
                     TerminatorKind::Call {
                         func,        // <Operand<'tcx>>
                         args,        //Box<[Spanned<Operand<'tcx>>]>
@@ -243,25 +241,25 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
                             unwind.clone(),
                             call_source.clone(),
                             // fn_span.clone(),
-                        );
+                        )
                     }
                     TerminatorKind::Return => self.parse_return(),
-                    _ => println!("unknown terminator"),
+                    _ => {println!("unknown terminator"); None},
                     // TODO: Handle drop and other terminators that are focused on unwinding
                 }
             }
             // ERROR: Couldn't find the bb we were supposed to process
-            None => eprintln!("I couldn't find the bb :("),
+            None => {eprintln!("I couldn't find the bb :("); None},
         }
     }
 
-    pub fn parse_switch_int(&mut self, discr: Operand, targets: SwitchTargets) {
+    pub fn parse_switch_int(&mut self, discr: Operand, targets: SwitchTargets) -> Option<rustc_span::Span> {
         // Fetch the LHS Local variable, this will be important for updating PC
         let local: Local;
         match discr {
             Operand::Copy(place) => local = place.local,
             Operand::Move(place) => local = place.local,
-            Operand::Constant(_) => return, // don't know when constant is used yet? if (true)?
+            Operand::Constant(_) => return None, // don't know when constant is used yet? if (true)?
         }
         // Vector to keep track of !a && !b -> !a && !b && !c -> etc. for all targets
         let mut curr_pc: Vec<z3::ast::Bool<'ctx>> = Vec::new();
@@ -284,17 +282,17 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
         // -----> We take the otherwise branch (right to left DFS... for now?)
         // Update curr PC and take its path
         self.curr.constraints.append(&mut curr_pc);
-        self.parse_bb(targets.otherwise());
+        self.parse_bb(targets.otherwise())
     }
 
-    pub fn parse_return(&mut self) {
+    pub fn parse_return(&mut self) -> Option<rustc_span::Span> {
         // Replace curr with stack top
         if let Some((next_curr, next_bb)) = self.stack.pop() {
             self.curr = next_curr; // Move popped stack value into self.curr
-            self.parse_bb(next_bb);
+            self.parse_bb(next_bb)
         } else {
             // There are no more paths! The stack is empty
-            return;
+            None
         }
     }
 
@@ -313,7 +311,7 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
 
         if func_def_id == Some(DEF_ID_FS_WRITE) {
             // println!("Found function DefId in call: {:?}", def_id);
-            // println!("Found fs::write call");
+            println!("Found fs::write call");
             let mut first_arg = self.parse_operand(&args[0].node);
             if first_arg == Some(1) {
                 let arg = Self::parse_operand_get_const_string(&args[0].node);
@@ -366,8 +364,7 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
                 }
             }
         }
-        self.parse_bb(target.unwrap());
-        None
+        self.parse_bb(target.unwrap())
 
         // self.parse_args(&args);
 
