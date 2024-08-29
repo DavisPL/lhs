@@ -206,8 +206,8 @@ pub fn trace_mir_body<'a>(mir_body: MappedReadGuard<'a, Body<'a>>) {
             // TODO: query solver model for the actual assignments,
             // and show the arguments of function that can be malicious
             // (based on arg_count)
-        },
-        None => println!("No potential writes to proc/self/mem detected!")
+        }
+        None => println!("No potential writes to proc/self/mem detected!"),
     }
 
     println!("{:#?}", mir_parser.curr);
