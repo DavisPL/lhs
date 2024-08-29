@@ -210,7 +210,7 @@ pub fn trace_mir_body<'a>(mir_body: MappedReadGuard<'a, Body<'a>>) {
         None => println!("No potential writes to proc/self/mem detected!")
     }
 
-    // println!("{:#?}", mir_parser.curr);
+    println!("{:#?}", mir_parser.curr);
 }
 
 pub fn print_basic_blocks<'a>(mir_body: MappedReadGuard<'a, Body<'a>>) {

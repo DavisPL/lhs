@@ -163,32 +163,27 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
                 let constant = op.const_;
                 // println!("Local: {:?}", local); //Not sure about this just copied, switchInt format
                 if let Some(var) = self_curr.get_int(local) {
-                    self_curr.assign_bool(
-                        local,
-                        self_curr.int_equals(
-                            var,
-                            &self_curr.static_int(constant.try_to_scalar_int().unwrap().to_i64()),
-                        ),
+                    self_curr.assign_int(
+              local,
+                            self_curr.static_int(constant.try_to_scalar_int().unwrap().to_i64()),
                     );
                 } else if let Some(var) = self_curr.get_bool(local) {
                     self_curr.assign_bool(
                         local,
-                        self_curr.bool_equals(
-                            var,
-                            &self_curr.static_bool(constant.try_to_bool().unwrap()),
-                        ),
+
+                            self_curr.static_bool(constant.try_to_bool().unwrap()),
+
                     );
                 } else if let Some(var) = self_curr.get_string(local) {
-                    self_curr.assign_bool(
+                    self_curr.assign_string(
                         local,
-                        self_curr.string_equals(
-                            var,
-                            &self_curr.static_string(
+  
+                            self_curr.static_string(
                                 Self::parse_operand_get_const_string(&operand)
                                     .unwrap()
                                     .as_str(),
                             ),
-                        ),
+                
                     );
                 }
             }
@@ -204,7 +199,7 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
         let binding = place.local.as_usize().to_string();
         let local = binding.as_str();
         match val {
-            Use(operand) => Self::r#use(self_curr, local, operand),
+            Use(operand) => Self::r#use(self_curr, local, operand), // Ethan fix this :)
             BinaryOp(op, operand) => Self::bin_op(self_curr, local, op, operand),
             _ => println!("unknown assignment operation"),
         }
@@ -213,6 +208,7 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
     pub fn parse_bb(&mut self, bb: BasicBlock) -> Option<rustc_span::Span> {
         match self.mir_body.basic_blocks.get(bb) {
             Some(bb_data) => {
+                println!("bb{}", bb.as_u32());
                 // Statements
                 for statement in &bb_data.statements {
                     match &statement.kind {
@@ -245,7 +241,8 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
                     }
                     TerminatorKind::Return => self.parse_return(),
                     _ => {println!("unknown terminator"); None},
-                    // TODO: Handle drop and other terminators that are focused on unwinding
+                    // TODO: Handle Drop and other terminators that are focused on unwinding
+                    // TODO: Handle FalseUnwind
                 }
             }
             // ERROR: Couldn't find the bb we were supposed to process
@@ -271,10 +268,15 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
                 .unwrap() // This shouldn't panic, the bool Local should exist
                 .clone();
             // If path is reachable, make a clone and add to stack
+            println!("{}", curr_constraint);
+            println!("{:#?}", self.curr);
             if self.curr.check_constraint_sat(&curr_constraint) == z3::SatResult::Sat {
+                println!("\tCreating a clone!");
                 let mut cloned_curr = self.curr.clone();
                 cloned_curr.add_constraint(curr_constraint.clone());
                 self.stack.push((cloned_curr, target));
+            } else {
+                println!("\tIgnore path, unreachable");
             }
             // Add negated constraint to vector
             curr_pc.push(self.curr.logical_not(&curr_constraint));
@@ -308,60 +310,42 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
     ) -> Option<rustc_span::Span> {
         let func_def_id = Self::parse_operand_get_def_id(&func); //passing it func, gives def_id
                                                                  // println!("Func DefId: {:?}", func_def_id);
-
+        // Detected fs::write!
         if func_def_id == Some(DEF_ID_FS_WRITE) {
             // println!("Found function DefId in call: {:?}", def_id);
             println!("Found fs::write call");
             let mut first_arg = self.parse_operand(&args[0].node);
-            if first_arg == Some(1) {
-                let arg = Self::parse_operand_get_const_string(&args[0].node);
-                let obj = self.curr.static_string(arg.unwrap().as_str());
-                let result = self.curr.is_write_safe(&obj);
-                match result {
-                    Ok(sat_result) => match sat_result {
-                        z3::SatResult::Sat => {
-                            // println!("The result is SAT.");
-                            // need to return a span here, because write to /proc/self/mem is a safety violation
-                            return self.get_span_from_operand(&func);
-                        }
-                        z3::SatResult::Unsat => {}
-                        z3::SatResult::Unknown => {}
-                    },
-                    Err(e) => {
-                        println!(
-                            "An error occurred parse_call , contact Hassnain and Anirudh: {}",
-                            e
-                        );
-                    }
-                }
-            } else {
-                // println!("First Arg: {:?}", first_arg);
-                match first_arg {
-                    Some(arg) => {
+            match first_arg {
+                Some(arg) => {
+                    let result: Result<SatResult, &str>; // To decide whether the file write is malicious
+                    if arg == 0 { // Constant
+                        let arg = Self::parse_operand_get_const_string(&args[0].node);
+                        let obj = self.curr.static_string(arg.unwrap().as_str());
+                        result = self.curr.is_write_safe(&obj);
+                    } else { // Variable
                         let arg = self.curr.get_string(arg.to_string().as_str()).unwrap();
-                        let result = self.curr.is_write_safe(arg);
-                        match result {
-                            Ok(sat_result) => match sat_result {
-                                z3::SatResult::Sat => {
-                                    // println!("The result is SAT.");
-                                    // need to return a span here, because write to /proc/self/mem is a safety violation
-                                    return self.get_span_from_operand(&func);
-                                }
-                                z3::SatResult::Unsat => {}
-                                z3::SatResult::Unknown => {}
-                            },
-                            Err(e) => {
-                                println!(
-                                "An error occurred parse_call , contact Hassnain and Anirudh: {}",
+                        result = self.curr.is_write_safe(arg);
+                    }
+                    // Can the string be proc/self/mem?
+                    match result {
+                        Ok(sat_result) => match sat_result {
+                            z3::SatResult::Sat => {
+                                // println!("The result is SAT.");
+                                // need to return a span here, because write to /proc/self/mem is a safety violation
+                                return self.get_span_from_operand(&func);
+                            }
+                            z3::SatResult::Unsat => {}
+                            z3::SatResult::Unknown => {}
+                        },
+                        Err(e) => {
+                            println!(
+                                "An error occurred in parse_call, contact Hassnain and Anirudh: {}",
                                 e
                             );
-                            }
                         }
                     }
-                    None => {
-                        println!("Parse Call : This should never happen, contact Hassnain if this is printed");
-                    }
-                }
+                },
+                None => {println!("Parse Call : This should never happen, contact Hassnain if this is printed")},
             }
         }
         self.parse_bb(target.unwrap())
@@ -459,6 +443,7 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
 
     fn parse_operand<'tcx>(&self, operand: &Operand<'tcx>) -> Option<usize> {
         match operand {
+            // Can possibly handle Copy case, can still get local
             Operand::Copy(_place) => {
                 println!(
                     "Parse Operand : This should never happen, contact Hassnain if this is printed"
@@ -469,11 +454,11 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
                 let local = place.local;
                 let projection = place.projection;
                 // println!("Local: {:?}", local); // ths is the variable number like _1, _2 etc.
-                return Some(local.as_usize());
+                Some(local.as_usize())
             }
             Operand::Constant(place) => {
                 // println!("here I am ");
-                Some(1)
+                Some(0)
                 // None
             }
         }
