@@ -183,7 +183,7 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
                     );
                 }
             }
-            _ => println!("unsupported"),
+            //_ => println!("unsupported"),
         }
     }
 
@@ -237,10 +237,12 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
                             // fn_span.clone(),
                         )
                     }
+                    TerminatorKind::Drop {place, target, unwind, replace } => self.parse_bb(*target),
+                    TerminatorKind::FalseUnwind {real_target, unwind} => self.parse_bb(*real_target), // untested
+                    TerminatorKind::FalseEdge {real_target, imaginary_target} => self.parse_bb(*real_target), // untested
                     TerminatorKind::Return => self.parse_return(),
                     _ => {println!("unknown terminator"); None},
-                    // TODO: Handle Drop and other terminators that are focused on unwinding
-                    // TODO: Handle FalseUnwind
+                    // TODO: Handle Assert
                 }
             }
             // ERROR: Couldn't find the bb we were supposed to process
@@ -320,7 +322,7 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
         if func_def_id == Some(DEF_ID_FS_WRITE) {
             // println!("Found function DefId in call: {:?}", def_id);
             println!("Found fs::write call");
-            let mut first_arg = self.parse_operand(&args[0].node);
+            let first_arg = self.parse_operand(&args[0].node);
             match first_arg {
                 Some(arg) => {
                     let result: Result<SatResult, &str>; // To decide whether the file write is malicious
@@ -528,18 +530,18 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
         // None
     }
 
-    fn parse_args<'tcx>(
-        &self,
-        args: &[rustc_span::source_map::Spanned<Operand<'tcx>>],
-    ) -> Option<usize> {
-        for arg in args {
-            println!("Arg: {:?}", arg.node);
-            let string = self.parse_operand(&arg.node);
-            println!("String: {:?}", string);
-            //should reurn the variable name or value?
-        }
-        None
-    }
+    // fn parse_args<'tcx>(
+    //     &self,
+    //     args: &[rustc_span::source_map::Spanned<Operand<'tcx>>],
+    // ) -> Option<usize> {
+    //     for arg in args {
+    //         println!("Arg: {:?}", arg.node);
+    //         let string = self.parse_operand(&arg.node);
+    //         println!("String: {:?}", string);
+    //         //should reurn the variable name or value?
+    //     }
+    //     None
+    // }
 
     fn get_span_from_operand(&self, operand: &Operand) -> Option<rustc_span::Span> {
         match operand {
