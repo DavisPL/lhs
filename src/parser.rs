@@ -7,6 +7,7 @@ use rustc_middle::mir::{
     BasicBlock, CallSource, Const, ConstValue, Local, Place, SourceInfo, UnwindAction,
 };
 use rustc_middle::mir::{BinOp, Body, Operand, StatementKind, SwitchTargets, TerminatorKind};
+use rustc_middle::ty::ScalarInt;
 use rustc_middle::ty::TyKind;
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -93,13 +94,11 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
                         let constant = operand.const_;
                         // println!("Local: {:?}", local); //Not sure about this just copied, switchInt format
                         if let Some(var) = self_curr.get_int(left_local.as_str()) {
+                            let num =
+                                Self::get_integer_constant(constant.try_to_scalar_int().unwrap());
                             self_curr.assign_bool(
                                 local,
-                                self_curr.int_equals(
-                                    var,
-                                    &self_curr
-                                        .static_int(constant.try_to_scalar_int().unwrap().to_i64()),
-                                ),
+                                self_curr.int_equals(var, &self_curr.static_int(num)),
                             );
                         } else if let Some(var) = self_curr.get_bool(left_local.as_str()) {
                             self_curr.assign_bool(
@@ -142,6 +141,21 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
         }
     }
 
+    fn get_integer_constant(constant: ScalarInt) -> i64 {
+        constant.to_int(constant.size()) as i64
+        // if let Some(con) = constant.try_to_i8() {
+        //     con as i64
+        // } else if let Some(con) = constant.try_to_i16() {
+        //     con as i64
+        // } else if let Some(con) = constant.try_to_i32() {
+        //     con as i64
+        // } else if let Some(con) = constant.try_to_i64() {
+        //     con as i64
+        // } else {
+        //     constant.try_to_i128() as i64
+        // }
+    }
+
     fn r#use<'tcx>(self_curr: &mut symexec::SymExec<'ctx>, local: &str, operand: Operand<'tcx>) {
         match operand {
             Operand::Copy(place) | Operand::Move(place) => {
@@ -163,10 +177,8 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
                 let constant = op.const_;
                 // println!("Local: {:?}", local); //Not sure about this just copied, switchInt format
                 if let Some(var) = self_curr.get_int(local) {
-                    self_curr.assign_int(
-                        local,
-                        self_curr.static_int(constant.try_to_scalar_int().unwrap().to_i64()),
-                    );
+                    let num = Self::get_integer_constant(constant.try_to_scalar_int().unwrap());
+                    self_curr.assign_int(local, self_curr.static_int(num));
                 } else if let Some(var) = self_curr.get_bool(local) {
                     self_curr.assign_bool(
                         local,
@@ -182,8 +194,7 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
                         ),
                     );
                 }
-            }
-            //_ => println!("unsupported"),
+            } //_ => println!("unsupported"),
         }
     }
 
@@ -237,12 +248,25 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
                             // fn_span.clone(),
                         )
                     }
-                    TerminatorKind::Drop {place, target, unwind, replace } => self.parse_bb(*target),
-                    TerminatorKind::FalseUnwind {real_target, unwind} => self.parse_bb(*real_target), // untested
-                    TerminatorKind::FalseEdge {real_target, imaginary_target} => self.parse_bb(*real_target), // untested
+                    TerminatorKind::Drop {
+                        place,
+                        target,
+                        unwind,
+                        replace,
+                    } => self.parse_bb(*target),
+                    TerminatorKind::FalseUnwind {
+                        real_target,
+                        unwind,
+                    } => self.parse_bb(*real_target), // untested
+                    TerminatorKind::FalseEdge {
+                        real_target,
+                        imaginary_target,
+                    } => self.parse_bb(*real_target), // untested
                     TerminatorKind::Return => self.parse_return(),
-                    _ => {println!("unknown terminator"); None},
-                    // TODO: Handle Assert
+                    _ => {
+                        println!("unknown terminator");
+                        None
+                    } // TODO: Handle Assert
                 }
             }
             // ERROR: Couldn't find the bb we were supposed to process
@@ -297,6 +321,7 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
 
     pub fn parse_return(&mut self) -> Option<rustc_span::Span> {
         // Replace curr with stack top
+        dbg!("Debugging: {}", &self.curr);
         if let Some((next_curr, next_bb)) = self.stack.pop() {
             self.curr = next_curr; // Move popped stack value into self.curr
             self.parse_bb(next_bb)
@@ -318,7 +343,7 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
     ) -> Option<rustc_span::Span> {
         let func_def_id = Self::parse_operand_get_def_id(&func); //passing it func, gives def_id
                                                                  // println!("Func DefId: {:?}", func_def_id);
-        // Detected fs::write!
+                                                                 // Detected fs::write!
         if func_def_id == Some(DEF_ID_FS_WRITE) {
             // println!("Found function DefId in call: {:?}", def_id);
             println!("Found fs::write call");
@@ -326,11 +351,13 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
             match first_arg {
                 Some(arg) => {
                     let result: Result<SatResult, &str>; // To decide whether the file write is malicious
-                    if arg == 0 { // Constant
+                    if arg == 0 {
+                        // Constant
                         let arg = Self::parse_operand_get_const_string(&args[0].node);
                         let obj = self.curr.static_string(arg.unwrap().as_str());
                         result = self.curr.is_write_safe(&obj);
-                    } else { // Variable
+                    } else {
+                        // Variable
                         let arg = self.curr.get_string(arg.to_string().as_str()).unwrap();
                         result = self.curr.is_write_safe(arg);
                     }
@@ -352,8 +379,10 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
                             );
                         }
                     }
-                },
-                None => {println!("Parse Call : This should never happen, contact Hassnain if this is printed")},
+                }
+                None => {
+                    println!("Parse Call : This should never happen, contact Hassnain if this is printed")
+                }
             }
         }
         self.parse_bb(target.unwrap())
