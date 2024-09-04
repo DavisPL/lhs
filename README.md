@@ -1,4 +1,4 @@
-# LHS
+# LHS: Leveraging (not) HIR via Symbolic execution
 ### A command line utility for searching for analyzing a given Rust code's MIR and verifying proc/self/mem safety
 
 ## Installation
