@@ -289,34 +289,35 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
             Operand::Move(place) => local = place.local,
             Operand::Constant(_) => return None, // don't know when constant is used yet? if (true)?
         }
-        // Vector to keep track of !a && !b -> !a && !b && !c -> etc. for all targets
-        let mut curr_pc: Vec<z3::ast::Bool<'ctx>> = Vec::new();
+
         // TODO: differentiate between local == bool and local != bool (2 >= args in switchInt)
-        for (value, target) in targets.iter() {
-            // Get bool z3 var
-            let curr_constraint = self
-                .curr
-                .get_bool(local.as_usize().to_string().as_str())
-                .unwrap() // This shouldn't panic, the bool Local should exist
-                .clone();
-            // If path is reachable, make a clone and add to stack
-            println!("{}", curr_constraint);
-            println!("{:#?}", self.curr);
-            if self.curr.check_constraint_sat(&curr_constraint) == z3::SatResult::Sat {
-                println!("\tCreating a clone!");
-                let mut cloned_curr = self.curr.clone();
-                cloned_curr.add_constraint(curr_constraint.clone());
-                self.stack.push((cloned_curr, target));
-            } else {
-                println!("\tIgnore path, unreachable");
+        match self.curr.get_bool(local.as_usize().to_string().as_str()) {
+            Some(z3_bool) => { // Bool variable -- only 2 arguments
+                for (value, target) in targets.iter() {
+                    // Get negation of bool z3 var
+                    let curr_constraint = self.curr.logical_not(&z3_bool);
+                    // Check reachability of `false` constraint
+                    if self.curr.check_constraint_sat(&curr_constraint) == z3::SatResult::Sat {
+                        println!("\tCreating a clone!");
+                        let mut cloned_curr = self.curr.clone();
+                        cloned_curr.add_constraint(curr_constraint);
+                        self.stack.push((cloned_curr, target));
+                    } else {
+                        println!("\tIgnore path, unreachable");
+                    }
+                }
+                // Traverse `true` constraint 
+                self.curr.constraints.push(z3_bool.clone());
+                self.parse_bb(targets.otherwise())
+            },
+            None => {
+                // TODO: at least handle switchInts on numerics...
+                // Some numerics get produced from something like `_7 = discriminant(_4)` where _4 is a weird type like Result
+                // Might just need to ignore these cases. Don't know semantics of discr.
+                println!("NOT HANDLING MULTIPLE ARGUMENT SWITCHINT, terminating...");
+                None
             }
-            // Add negated constraint to vector
-            curr_pc.push(self.curr.logical_not(&curr_constraint));
         }
-        // -----> We take the otherwise branch (right to left DFS... for now?)
-        // Update curr PC and take its path
-        self.curr.constraints.append(&mut curr_pc);
-        self.parse_bb(targets.otherwise())
     }
 
     pub fn parse_return(&mut self) -> Option<rustc_span::Span> {
@@ -331,6 +332,7 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
         }
     }
 
+    // TODO: Handle String comparison overloaded function calls, possibly also with PathBuf comparison
     pub fn parse_call<'tcx>(
         &mut self,
         func: Operand<'tcx>,
@@ -381,7 +383,7 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
                     }
                 }
                 None => {
-                    println!("Parse Call : This should never happen, contact Hassnain if this is printed")
+                    println!("Parse Call: This should never happen, contact Hassnain if this is printed")
                 }
             }
         }
@@ -407,7 +409,7 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
         match operand {
             Operand::Copy(_place) => {
                 println!(
-                    "Parse Operand : This should never happen, contact Hassnain if this is printed"
+                    "Parse Operand: This should never happen, contact Hassnain if this is printed"
                 );
                 None
             }
@@ -416,11 +418,11 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
                 let constant = place.const_;
                 match constant {
                     Const::Ty(_ty, _const) => {
-                        println!("Parse Operand : This should never happen, contact Hassnain if this is printed");
+                        println!("Parse Operand: This should never happen, contact Hassnain if this is printed");
                         None
                     }
                     Const::Unevaluated(_unevaluated_const, _ty) => {
-                        println!("Parse Operand : This should never happen, contact Hassnain if this is printed");
+                        println!("Parse Operand: This should never happen, contact Hassnain if this is printed");
                         None
                     }
                     Const::Val(const_value, ty) => {
@@ -438,13 +440,13 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
         match operand {
             Operand::Copy(_place) => {
                 println!(
-                    "Parse Operand : This should never happen, contact Hassnain if this is printed"
+                    "Parse Operand: This should never happen, contact Hassnain if this is printed"
                 );
                 None
             }
             Operand::Move(place) => {
                 println!(
-                    "Parse Operand : This should never happen, contact Hassnain if this is printed"
+                    "Parse Operand: This should never happen, contact Hassnain if this is printed"
                 );
                 None
             }
@@ -452,11 +454,11 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
                 let constant = place.const_;
                 match constant {
                     Const::Ty(_ty, _const) => {
-                        println!("Parse Operand : This should never happen, contact Hassnain if this is printed");
+                        println!("Parse Operand: This should never happen, contact Hassnain if this is printed");
                         None
                     }
                     Const::Unevaluated(_unevaluated_const, _ty) => {
-                        println!("Parse Operand : This should never happen, contact Hassnain if this is printed");
+                        println!("Parse Operand: This should never happen, contact Hassnain if this is printed");
                         None
                     }
                     Const::Val(const_value, ty) => {
@@ -468,7 +470,7 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
                                 }
                             }
                             _ => {
-                                println!("Parse Operand : This should never happen, contact Hassnain if this is printed");
+                                println!("Parse Operand: This should never happen, contact Hassnain if this is printed");
                             }
                         }
                         None
@@ -483,7 +485,7 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
             // Can possibly handle Copy case, can still get local
             Operand::Copy(_place) => {
                 println!(
-                    "Parse Operand : This should never happen, contact Hassnain if this is printed"
+                    "Parse Operand: This should never happen, contact Hassnain if this is printed"
                 );
                 None
             }
