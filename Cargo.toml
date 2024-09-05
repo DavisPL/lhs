@@ -1,7 +1,0 @@
-[package]
-name = "modeling-safety"
-version = "0.1.0"
-edition = "2021"
-
-[dependencies]
-z3 = "0.12.1"
