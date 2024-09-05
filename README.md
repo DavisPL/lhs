@@ -7,6 +7,7 @@
 Before you begin, ensure you have the following installed:
 
 - **Rust Nightly**: LHS requires Rust's nightly to utilize the `rustc_private` library.
+- **z3**: You must install z3 on your system and ensure the Rust z3 API can be accessed.
 
 ### Installing `rustc`
 
@@ -35,19 +36,17 @@ info: This is the version for the rustup toolchain manager, not the rustc compil
 info: The currently active `rustc` version is `rustc 1.82.0-nightly (92c6c0380 2024-07-21)`
 ```
 
-### Clone the Repository
+### Installing z3
 
-To install LHS, clone the repository and ensure you use the `--recursive` flag to include submodules:
+If you are on a Macintosh machine, please follow the following instructions to install:
 
 ```bash
-git clone --recursive https://github.com/DavisPL/lhs.git
-git submodule init
+brew install z3
+export LIBRARY_PATH="/opt/homebrew/Cellar/z3/4.13.0/lib"
+export Z3_SYS_Z3_HEADER="/opt/homebrew/Cellar/z3/4.13.0/include/z3.h"
 ```
 
-To update the submodule (if needed), run:
-```bash
-git submodule update --remote
-```
+It is strongly suggested to add the two environmental variables to your `~/.bashrc` or `~/.zshrc` files for easy access in the startup times.
 
 ## Usage
 
