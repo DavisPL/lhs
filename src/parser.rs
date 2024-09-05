@@ -17,15 +17,13 @@ use rustc_middle::mir::interpret::AllocRange;
 use rustc_middle::mir::interpret::ConstAllocation;
 use rustc_session::config::OptLevel::Size;
 
+use crate::symexec;
 use z3::SatResult;
 
 // use rustc_abi::Size;
 // use rustc_hash::Size;
 
 // use rustc_span::span_encoding::Span;
-
-#[path = "../z3/src/symexec.rs"]
-pub mod symexec;
 
 const DEF_ID_FS_WRITE: usize = 2345;
 
@@ -292,7 +290,8 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
 
         // TODO: differentiate between local == bool and local != bool (2 >= args in switchInt)
         match self.curr.get_bool(local.as_usize().to_string().as_str()) {
-            Some(z3_bool) => { // Bool variable -- only 2 arguments
+            Some(z3_bool) => {
+                // Bool variable -- only 2 arguments
                 for (value, target) in targets.iter() {
                     // Get negation of bool z3 var
                     let curr_constraint = self.curr.logical_not(&z3_bool);
@@ -306,10 +305,10 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
                         println!("\tIgnore path, unreachable");
                     }
                 }
-                // Traverse `true` constraint 
+                // Traverse `true` constraint
                 self.curr.constraints.push(z3_bool.clone());
                 self.parse_bb(targets.otherwise())
-            },
+            }
             None => {
                 // TODO: at least handle switchInts on numerics...
                 // Some numerics get produced from something like `_7 = discriminant(_4)` where _4 is a weird type like Result
@@ -383,7 +382,9 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
                     }
                 }
                 None => {
-                    println!("Parse Call: This should never happen, contact Hassnain if this is printed")
+                    println!(
+                        "Parse Call: This should never happen, contact Hassnain if this is printed"
+                    )
                 }
             }
         }

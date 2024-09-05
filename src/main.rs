@@ -6,16 +6,16 @@
 
 use clap::Parser;
 use clap::ValueEnum;
-use parser::symexec;
 
 use std::fs;
-use std::path::{Path, PathBuf};
 use std::fs::{File, FileType};
 use std::io::ErrorKind;
+use std::path::{Path, PathBuf};
 
 const DEF_ID_PATH_BUFF: usize = 5175;
 
 mod parser;
+pub mod symexec;
 use crate::parser::MIRParser;
 
 // -------------------- START RUSTC PORTION --------------------
@@ -39,8 +39,8 @@ use rustc_middle::ty::{TyCtxt, TyKind};
 use rustc_session::config;
 use rustc_span::FileNameDisplayPreference;
 
-use rustc_hir::def::DefKind;
 use rustc_data_structures::sync::{MappedReadGuard, ReadGuard, RwLock};
+use rustc_hir::def::DefKind;
 use rustc_middle::mir::Body;
 // -------------------- END RUSTC PORTION --------------------
 
