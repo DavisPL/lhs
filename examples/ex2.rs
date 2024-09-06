@@ -1,6 +1,5 @@
 use std::fs;
 use std::io::{self, ErrorKind};
-use std::path::PathBuf;
 
 pub fn write_to_file_safe(contents: &str, filename: &str) -> io::Result<()> {
     if filename == "/proc/self/mem" {

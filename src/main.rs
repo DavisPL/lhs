@@ -69,11 +69,12 @@ pub struct Args {
     pub numeric: bool,
 }
 
-#[derive(Debug, ValueEnum, Clone)]
+#[derive(Debug, ValueEnum, Clone, Eq, PartialEq)]
 pub enum Action {
     Trace,
     Blocks,
     Local,
+    Query,
 }
 
 // For now assuming there should only be one function in the Rust file
@@ -143,10 +144,14 @@ pub fn get_mir_body(path: PathBuf, args: Args) {
                             .span_to_string(mir_body.span, FileNameDisplayPreference::Local); // Might not display nice with Local?
                         println!("{mir_string}");
                         // We got the mir_body! Let's pass it into our analyzer/parser
+                        if args.action == Action::Trace {
+                            dbg!("{}", &mir_body);
+                        }
                         match args.action {
                             Action::Trace => trace_mir_body(mir_body),
                             Action::Blocks => print_basic_blocks(mir_body),
                             Action::Local => print_local_decls(mir_body),
+                            Action::Query => trace_mir_body(mir_body),
                         }
                     }
                 }
@@ -156,7 +161,7 @@ pub fn get_mir_body(path: PathBuf, args: Args) {
 }
 
 pub fn trace_mir_body<'a>(mir_body: MappedReadGuard<'a, Body<'a>>) {
-    dbg!("{}", &mir_body);
+    // dbg!("{}", &mir_body);
     let cfg = z3::Config::new();
     let ctx = z3::Context::new(&cfg);
     let mut ev = symexec::SymExec::new(&ctx);
@@ -190,7 +195,7 @@ pub fn trace_mir_body<'a>(mir_body: MappedReadGuard<'a, Body<'a>>) {
         }
     }
 
-    println!("{:#?}", ev);
+    // println!("{:#?}", ev);
 
     let mut mir_parser = MIRParser::new(mir_body, ev);
     let fs_write_span: Option<rustc_span::Span> = mir_parser.parse();
@@ -205,7 +210,7 @@ pub fn trace_mir_body<'a>(mir_body: MappedReadGuard<'a, Body<'a>>) {
         None => println!("No potential writes to `/proc/self/mem` detected!"),
     }
 
-    println!("{:#?}", mir_parser.curr);
+    // println!("{:#?}", mir_parser.curr);
 }
 
 pub fn print_basic_blocks<'a>(mir_body: MappedReadGuard<'a, Body<'a>>) {

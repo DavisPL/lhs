@@ -287,7 +287,7 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
                 // TODO: at least handle switchInts on numerics...
                 // Some numerics get produced from something like `_7 = discriminant(_4)` where _4 is a weird type like Result
                 // Might just need to ignore these cases. Don't know semantics of discr.
-                println!("NOT HANDLING MULTIPLE ARGUMENT SWITCHINT, terminating...");
+                println!("NOT HANDLING MULTIPLE ARGUMENT SWITCHINT yet");
                 None
             }
         }
@@ -295,7 +295,7 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
 
     pub fn parse_return(&mut self) -> Option<rustc_span::Span> {
         // Replace curr with stack top
-        dbg!("Debugging: {}", &self.curr);
+        // dbg!("Debugging: {}", &self.curr);
         if let Some((next_curr, next_bb)) = self.stack.pop() {
             self.curr = next_curr; // Move popped stack value into self.curr
             self.parse_bb(next_bb)

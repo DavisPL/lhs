@@ -1,6 +1,5 @@
 use std::fs;
-use std::io::{self, ErrorKind};
-use std::path::PathBuf;
+use std::io;
 
 pub fn write_to_hw3(contents: &str) -> io::Result<()> {
     Ok(fs::write(

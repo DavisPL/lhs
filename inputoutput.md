@@ -19,8 +19,8 @@ pub fn write_to_file(contents: &str, filename: &str) -> io::Result<()> {
 ```
 **LHS output** (excerpt): 
 ```Bash
-WARNING: potential write to proc/self/mem
-        examples/ex1.rs:6:5: 6:14 (#0)
+WARNING: potential write to `/proc/self/mem`
+        examples/ex1.rs:5:5: 5:14 (#0)
 ```
 
 2. This function also contains an input (filename: `/proc/../proc/self/mem`) such that a safety property (write to /proc/self/mem) is violated.
@@ -35,8 +35,8 @@ pub fn write_to_file_safe(contents: &str, filename: &str) -> io::Result<()> {
 ```
 **LHS output** (excerpt): 
 ```Bash
-WARNING: potential write to proc/self/mem
-        examples/ex2.rs:9:5: 9:14 (#0)
+WARNING: potential write to `/proc/self/mem`
+        examples/ex2.rs:8:5: 8:14 (#0)
 ```
 
 3. This function contains no input such that a write to /proc/self/mem occurs.
@@ -53,7 +53,7 @@ pub fn write_to_file_actually_safe(contents: &str, filename: &str) -> io::Result
 ```
 **LHS output** (excerpt): 
 ```Bash
-No potential writes to proc/self/mem detected!
+No potential writes to `/proc/self/mem` detected!
 ```
 
 4. This function contains an input (operation: `|x| {fs::write("hello", "/proc/self/mem"); x}`)such that a write to /proc/self/mem occurs.
@@ -64,7 +64,7 @@ pub fn apply_operation_twice(num: i32, operation: impl Fn(i32) -> i32) -> i32 {
 ```
 **LHS output** (excerpt): 
 ```Bash
-No potential writes to proc/self/mem detected!
+No potential writes to `/proc/self/mem` detected!
 ```
 Note, this is intended behavior as LHS evaluates every single function located in the source file.
 It does not attempt to trace through function logic that is being called upon.
@@ -77,7 +77,7 @@ pub fn write_to_hw3(contents: &str)-> io::Result<()> {
 ```
 **LHS output** (excerpt): 
 ```Bash
-No potential writes to proc/self/mem detected!
+No potential writes to `/proc/self/mem` detected!
 ```
 
 6. The following two functions showcases the if/else branching traces.
@@ -94,7 +94,7 @@ fn main() {
 ```
 **LHS output** (excerpt): 
 ```Bash
-WARNING: potential write to proc/self/mem
+WARNING: potential write to `/proc/self/mem`
         examples/ex6a.rs:4:9: 4:23 (#0)
 ```
 b) Write to `/proc/self/mem` does not occur:
@@ -110,5 +110,5 @@ fn main() {
 ```
 **LHS output** (excerpt): 
 ```Bash
-No potential writes to proc/self/mem detected!
+No potential writes to `/proc/self/mem` detected!
 ```
