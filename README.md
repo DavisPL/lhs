@@ -15,9 +15,7 @@ It's crucial to install `rustc` from the official Rust source. If you have insta
 
 **Install Rust from the official source:**
 
-1. Visit the official Rust installation page: [Rust Installation](https://www.rust-lang.org/tools/install)
-2. Follow the provided instructions to install Rust and add `rustc` to your PATH.
-3. Refresh your terminal to ensure the changes take effect. 
+Visit the official Rust installation page: [Rust Installation](https://www.rust-lang.org/tools/install)
 
 **Installing the required nightly version:**
 
@@ -67,8 +65,12 @@ You can specify an action using the -a flag. We currently support three actions,
 2) `Blocks`: print basic blocks
 3) `Local`: print local declarations (variables)
 
-To get trace for a file named example.rs you can run:
+To get trace for a file named `example.rs` you can run:
 ```bash
 cargo run -- -s example.rs -a trace
 ```
+
+## Examples
+Please see the `inputoutput.md` file for input and output examples and expectations.
+All code snippets used can also be found in the `examples/` directory.
 
