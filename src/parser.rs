@@ -1,7 +1,10 @@
 extern crate rustc_abi;
 extern crate rustc_data_structures;
 extern crate rustc_middle;
+use crate::symexec;
 use rustc_data_structures::sync::{MappedReadGuard, ReadGuard, RwLock};
+use rustc_middle::mir::interpret::AllocRange;
+use rustc_middle::mir::interpret::ConstAllocation;
 use rustc_middle::mir::Rvalue::{self, BinaryOp, Use};
 use rustc_middle::mir::{
     BasicBlock, CallSource, Const, ConstValue, Local, Place, SourceInfo, UnwindAction,
@@ -9,21 +12,10 @@ use rustc_middle::mir::{
 use rustc_middle::mir::{BinOp, Body, Operand, StatementKind, SwitchTargets, TerminatorKind};
 use rustc_middle::ty::ScalarInt;
 use rustc_middle::ty::TyKind;
+use rustc_session::config::OptLevel::Size;
 use std::collections::HashMap;
 use std::sync::Arc;
-
-use rustc_middle::mir::interpret::AllocRange;
-
-use rustc_middle::mir::interpret::ConstAllocation;
-use rustc_session::config::OptLevel::Size;
-
-use crate::symexec;
 use z3::SatResult;
-
-// use rustc_abi::Size;
-// use rustc_hash::Size;
-
-// use rustc_span::span_encoding::Span;
 
 const DEF_ID_FS_WRITE: usize = 2345;
 
@@ -56,11 +48,9 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
         match lhs {
             Operand::Copy(place) | Operand::Move(place) => {
                 let left_local = place.local.as_usize().to_string();
-                // println!("Local: {:?}", local); //Not sure about this just copied, switchInt format
                 match rhs {
                     Operand::Copy(place) | Operand::Move(place) => {
                         let right_local = place.local.as_usize().to_string();
-                        // println!("Local: {:?}", local); //Not sure about this just copied, switchInt format
                         if let Some(var) = self_curr.get_int(left_local.as_str()) {
                             self_curr.assign_bool(
                                 local,
@@ -90,7 +80,6 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
                     Operand::Constant(ref constant) => {
                         let operand = constant.clone();
                         let constant = operand.const_;
-                        // println!("Local: {:?}", local); //Not sure about this just copied, switchInt format
                         if let Some(var) = self_curr.get_int(left_local.as_str()) {
                             let num =
                                 Self::get_integer_constant(constant.try_to_scalar_int().unwrap());
@@ -141,17 +130,6 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
 
     fn get_integer_constant(constant: ScalarInt) -> i64 {
         constant.to_int(constant.size()) as i64
-        // if let Some(con) = constant.try_to_i8() {
-        //     con as i64
-        // } else if let Some(con) = constant.try_to_i16() {
-        //     con as i64
-        // } else if let Some(con) = constant.try_to_i32() {
-        //     con as i64
-        // } else if let Some(con) = constant.try_to_i64() {
-        //     con as i64
-        // } else {
-        //     constant.try_to_i128() as i64
-        // }
     }
 
     fn r#use<'tcx>(self_curr: &mut symexec::SymExec<'ctx>, local: &str, operand: Operand<'tcx>) {
@@ -173,7 +151,6 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
             Operand::Constant(ref constant) => {
                 let op = constant.clone();
                 let constant = op.const_;
-                // println!("Local: {:?}", local); //Not sure about this just copied, switchInt format
                 if let Some(var) = self_curr.get_int(local) {
                     let num = Self::get_integer_constant(constant.try_to_scalar_int().unwrap());
                     self_curr.assign_int(local, self_curr.static_int(num));
@@ -192,7 +169,7 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
                         ),
                     );
                 }
-            } //_ => println!("unsupported"),
+            }
         }
     }
 
@@ -235,17 +212,14 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
                         unwind,      // UnwindAction
                         call_source, // CallSource
                         fn_span,     // Span
-                    } => {
-                        self.parse_call(
-                            func.clone(),
-                            args.clone(),
-                            destination.clone(),
-                            target.clone(),
-                            unwind.clone(),
-                            call_source.clone(),
-                            // fn_span.clone(),
-                        )
-                    }
+                    } => self.parse_call(
+                        func.clone(),
+                        args.clone(),
+                        destination.clone(),
+                        target.clone(),
+                        unwind.clone(),
+                        call_source.clone(),
+                    ),
                     TerminatorKind::Drop {
                         place,
                         target,
@@ -340,7 +314,6 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
         target: Option<BasicBlock>,
         unwind: UnwindAction,
         call_source: CallSource,
-        // fn_span: Span,
     ) -> Option<rustc_span::Span> {
         let func_def_id = Self::parse_operand_get_def_id(&func); //passing it func, gives def_id
                                                                  // println!("Func DefId: {:?}", func_def_id);
@@ -366,7 +339,6 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
                     match result {
                         Ok(sat_result) => match sat_result {
                             z3::SatResult::Sat => {
-                                // println!("The result is SAT.");
                                 // need to return a span here, because write to /proc/self/mem is a safety violation
                                 return self.get_span_from_operand(&func);
                             }
@@ -389,21 +361,6 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
             }
         }
         self.parse_bb(target.unwrap())
-
-        // self.parse_args(&args);
-
-        // self.parse_args(&args);
-        // I can get the args, but do i need to do something about this, or just call sovler? How will solver know that i have to check for these variables, do I create a z3 model?
-
-        // println!("Destination: {:?}", destination); //_4 what does this mean?
-
-        // println!("Target: {:?}", target); //this is a basic block, so do i just call parse_bb for it?
-        // parse_bb(target.unwrap());
-        // call parse_bb for target
-
-        // println!("Unwind: {:?}", unwind); //this is also a basic block, so do i just call parse_bb for it?, but this is for unwind, do we need this? this is _4 in this case - we ignore unwinding
-
-        // println!("Call Source: {:?}", call_source); // https://doc.rust-lang.org/beta/nightly-rustc/rustc_middle/mir/syntax/enum.CallSource.html do we care about this?
     }
 
     fn parse_operand_get_def_id<'tcx>(operand: &Operand<'tcx>) -> Option<usize> {
@@ -483,7 +440,6 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
 
     fn parse_operand<'tcx>(&self, operand: &Operand<'tcx>) -> Option<usize> {
         match operand {
-            // Can possibly handle Copy case, can still get local
             Operand::Copy(_place) => {
                 println!(
                     "Parse Operand: This should never happen, contact Hassnain if this is printed"
@@ -493,11 +449,9 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
             Operand::Move(place) => {
                 let local = place.local;
                 let projection = place.projection;
-                // println!("Local: {:?}", local); // ths is the variable number like _1, _2 etc.
                 Some(local.as_usize())
             }
             Operand::Constant(place) => {
-                // println!("here I am ");
                 Some(0)
                 // None
             }
@@ -518,62 +472,10 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
         };
         let allocation = &data.0.get_bytes_unchecked(range); //this is alignment
 
-        //https://doc.rust-lang.org/beta/nightly-rustc/rustc_middle/mir/interpret/allocation/struct.Allocation.html
-        //this is probably what we need
-
-        // pub struct Allocation<Prov: Provenance = CtfeProvenance, Extra = (), Bytes = Box<[u8]>> {
-        //     bytes: Bytes,
-        //     provenance: ProvenanceMap<Prov>,
-        //     init_mask: InitMask,
-        //     pub align: Align,
-        //     pub mutability: Mutability, if mutable or not, bool
-        //     pub extra: Extra,
-        // }
-
-        //if i do 0.0 available fields are: `align`, `mutability`, `extra`
-        //if i do 0.1, i have PrivateZst
-
-        // this is interned
-        // pub struct Interned<'a, T>(pub &'a T, pub PrivateZst);
-
-        // this is allocation
-        // pub struct Allocation<Prov: Provenance = CtfeProvenance, Extra = (), Bytes = Box<[u8]>> {
-        //     bytes: Bytes,
-        //     provenance: ProvenanceMap<Prov>,
-        //     init_mask: InitMask,
-        //     pub align: Align,
-        //     pub mutability: Mutability,
-        //     pub extra: Extra,
-        // }
-
-        // let allocation = allocation.0.1;
-
         let a: String = String::from_utf8(allocation.to_vec()).unwrap();
 
-        // println!("Allocation: {:?}", a);
         return Some(a);
-
-        // Typically, the `Interned<Allocation>` type has methods to access the allocation data
-        // You might need to use an API method like `inspect` or something similar to get the bytes
-
-        // Assuming we have a method to get the raw bytes of the allocation
-        // let string_length = meta as usize;
-
-        // None
     }
-
-    // fn parse_args<'tcx>(
-    //     &self,
-    //     args: &[rustc_span::source_map::Spanned<Operand<'tcx>>],
-    // ) -> Option<usize> {
-    //     for arg in args {
-    //         println!("Arg: {:?}", arg.node);
-    //         let string = self.parse_operand(&arg.node);
-    //         println!("String: {:?}", string);
-    //         //should reurn the variable name or value?
-    //     }
-    //     None
-    // }
 
     fn get_span_from_operand(&self, operand: &Operand) -> Option<rustc_span::Span> {
         match operand {
@@ -583,15 +485,12 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
             }
             Operand::Move(place) => {
                 println!("get_span_from_operand : Unsupported, This funciton currently caters only for constants. ");
-                // rustc_span::Span::DUMMY
                 None
             }
             Operand::Constant(place) => {
                 let const_span = place.span;
-                // println!("Const Span: {:?}", const_span);
                 return Some(const_span);
             }
         }
     }
 }
-// }

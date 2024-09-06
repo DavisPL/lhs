@@ -196,13 +196,13 @@ pub fn trace_mir_body<'a>(mir_body: MappedReadGuard<'a, Body<'a>>) {
     let fs_write_span: Option<rustc_span::Span> = mir_parser.parse();
     match fs_write_span {
         Some(sp) => {
-            println!("WARNING: potential write to proc/self/mem");
+            println!("WARNING: potential write to `/proc/self/mem`");
             println!("\t{:#?}", sp);
             // TODO: query solver model for the actual assignments,
             // and show the arguments of function that can be malicious
             // (based on arg_count)
         }
-        None => println!("No potential writes to proc/self/mem detected!"),
+        None => println!("No potential writes to `/proc/self/mem` detected!"),
     }
 
     println!("{:#?}", mir_parser.curr);
