@@ -1,7 +1,3 @@
-extern crate rustc_abi;
-extern crate rustc_data_structures;
-extern crate rustc_middle;
-use crate::symexec;
 use rustc_data_structures::sync::{MappedReadGuard, ReadGuard, RwLock};
 use rustc_middle::mir::interpret::AllocRange;
 use rustc_middle::mir::interpret::ConstAllocation;
@@ -17,30 +13,36 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use z3::SatResult;
 
+use crate::symexec::SymExec;
+use crate::operand::*;
+
 const DEF_ID_FS_WRITE: usize = 2345;
 
 pub struct MIRParser<'a, 'ctx> {
     mir_body: MappedReadGuard<'a, Body<'a>>,
-    pub curr: symexec::SymExec<'ctx>,
-    stack: Vec<(symexec::SymExec<'ctx>, BasicBlock)>,
+    pub curr: SymExec<'ctx>,
+    stack: Vec<(SymExec<'ctx>, BasicBlock)>,
+    path_count: u32,
 }
 
 impl<'a, 'ctx> MIRParser<'a, 'ctx> {
-    pub fn new(mir_body: MappedReadGuard<'a, Body<'a>>, z3: symexec::SymExec<'ctx>) -> Self {
+    pub fn new(mir_body: MappedReadGuard<'a, Body<'a>>, z3: SymExec<'ctx>) -> Self {
         MIRParser {
             mir_body,
             curr: z3,
             stack: Vec::new(),
+            path_count: 0,
         }
     }
 
     pub fn parse(&mut self) -> Option<rustc_span::Span> {
         // We start traversing the function MIR body from bb0
+        println!("START: Path 0!");
         self.parse_bb(BasicBlock::from_usize(0))
     }
 
     fn eq_op<'tcx>(
-        self_curr: &mut symexec::SymExec<'ctx>,
+        self_curr: &mut SymExec<'ctx>,
         local: &str,
         lhs: Operand<'tcx>,
         rhs: Operand<'tcx>,
@@ -101,7 +103,7 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
                                 self_curr.string_equals(
                                     var,
                                     &self_curr.static_string(
-                                        Self::parse_operand_get_const_string(&rhs)
+                                        get_operand_const_string(&rhs)
                                             .unwrap()
                                             .as_str(),
                                     ),
@@ -116,7 +118,7 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
     }
 
     fn bin_op<'tcx>(
-        self_curr: &mut symexec::SymExec<'ctx>,
+        self_curr: &mut SymExec<'ctx>,
         local: &str,
         op: BinOp,
         operand: Box<(Operand<'tcx>, Operand<'tcx>)>,
@@ -124,7 +126,8 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
         let (lhs, rhs) = *operand;
         match op {
             BinOp::Eq => Self::eq_op(self_curr, local, lhs, rhs),
-            _ => println!("unknown binary operation"),
+            //_ => println!("unknown binary operation"),
+            _ => (),
         }
     }
 
@@ -132,7 +135,7 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
         constant.to_int(constant.size()) as i64
     }
 
-    fn r#use<'tcx>(self_curr: &mut symexec::SymExec<'ctx>, local: &str, operand: Operand<'tcx>) {
+    fn r#use<'tcx>(self_curr: &mut SymExec<'ctx>, local: &str, operand: Operand<'tcx>) {
         match operand {
             Operand::Copy(place) | Operand::Move(place) => {
                 let place = place.local.as_usize().to_string();
@@ -163,7 +166,7 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
                     self_curr.assign_string(
                         local,
                         self_curr.static_string(
-                            Self::parse_operand_get_const_string(&operand)
+                            get_operand_const_string(&operand)
                                 .unwrap()
                                 .as_str(),
                         ),
@@ -174,7 +177,7 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
     }
 
     fn assignment<'tcx>(
-        self_curr: &mut symexec::SymExec<'ctx>,
+        self_curr: &mut SymExec<'ctx>,
         val: Box<(Place<'tcx>, Rvalue<'tcx>)>,
     ) {
         let (place, val) = *val;
@@ -183,26 +186,28 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
         match val {
             Use(operand) => Self::r#use(self_curr, local, operand), // Ethan fix this :)
             BinaryOp(op, operand) => Self::bin_op(self_curr, local, op, operand),
-            _ => println!("unknown assignment operation"),
+           // _ => println!("unknown assignment operation"),
+           _ => (),
         }
     }
 
     pub fn parse_bb(&mut self, bb: BasicBlock) -> Option<rustc_span::Span> {
         match self.mir_body.basic_blocks.get(bb) {
             Some(bb_data) => {
-                println!("bb{}", bb.as_u32());
+                println!("\tbb{}", bb.as_u32());
                 // Statements
                 for statement in &bb_data.statements {
                     match &statement.kind {
                         StatementKind::Assign(val) => Self::assignment(&mut self.curr, val.clone()),
-                        _ => println!("unknown statement..."),
+                        //_ => println!("unknown statement..."),
+                        _ => (),
                     }
                 }
                 // Terminator
                 match &bb_data.terminator().kind {
                     TerminatorKind::Goto { target } => self.parse_bb(*target),
                     TerminatorKind::SwitchInt { discr, targets } => {
-                        self.parse_switch_int(discr.clone(), targets.clone())
+                        self.parse_switch_int(bb, discr.clone(), targets.clone())
                     }
                     TerminatorKind::Call {
                         func,        // <Operand<'tcx>>
@@ -236,12 +241,13 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
                     } => self.parse_bb(*real_target), // untested
                     TerminatorKind::Return => self.parse_return(),
                     _ => {
-                        println!("unknown terminator");
+                        println!("Encountered Unknown Terminator: Quitting...");
                         None
                     } // TODO: Handle Assert
                 }
             }
-            // ERROR: Couldn't find the bb we were supposed to process
+            // ERROR: Couldn't find the bb we were supposed to process.
+            // This shouldn't ever happen unless the MIR CFG is faulty.
             None => {
                 eprintln!("I couldn't find the bb :(");
                 None
@@ -251,6 +257,7 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
 
     pub fn parse_switch_int(
         &mut self,
+        curr_bb: BasicBlock,
         discr: Operand,
         targets: SwitchTargets,
     ) -> Option<rustc_span::Span> {
@@ -271,12 +278,12 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
                     let curr_constraint = self.curr.logical_not(&z3_bool);
                     // Check reachability of `false` constraint
                     if self.curr.check_constraint_sat(&curr_constraint) == z3::SatResult::Sat {
-                        println!("\tCreating a clone!");
+                        println!("\tCreating a clone @ bb{}", curr_bb.as_u32());
                         let mut cloned_curr = self.curr.clone();
                         cloned_curr.add_constraint(curr_constraint);
                         self.stack.push((cloned_curr, target));
                     } else {
-                        println!("\tIgnore path, unreachable");
+                        println!("\tIgnoring path @ bb{}", curr_bb.as_u32());
                     }
                 }
                 // Traverse `true` constraint
@@ -287,8 +294,11 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
                 // TODO: at least handle switchInts on numerics...
                 // Some numerics get produced from something like `_7 = discriminant(_4)` where _4 is a weird type like Result
                 // Might just need to ignore these cases. Don't know semantics of discr.
-                println!("NOT HANDLING MULTIPLE ARGUMENT SWITCHINT yet");
-                None
+                // In the meantime, just go down all targets but don't add any constraints.
+                for (_, target) in targets.iter() {
+                    self.stack.push((self.curr.clone(), target));
+                }
+                self.parse_bb(targets.otherwise())
             }
         }
     }
@@ -298,6 +308,8 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
         // dbg!("Debugging: {}", &self.curr);
         if let Some((next_curr, next_bb)) = self.stack.pop() {
             self.curr = next_curr; // Move popped stack value into self.curr
+            self.path_count += 1;
+            println!("START: Path {}!", self.path_count);
             self.parse_bb(next_bb)
         } else {
             // There are no more paths! The stack is empty
@@ -315,19 +327,19 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
         unwind: UnwindAction,
         call_source: CallSource,
     ) -> Option<rustc_span::Span> {
-        let func_def_id = Self::parse_operand_get_def_id(&func); //passing it func, gives def_id
+        let func_def_id = get_operand_def_id(&func); //passing it func, gives def_id
                                                                  // println!("Func DefId: {:?}", func_def_id);
                                                                  // Detected fs::write!
         if func_def_id == Some(DEF_ID_FS_WRITE) {
             // println!("Found function DefId in call: {:?}", def_id);
-            println!("Found fs::write call");
-            let first_arg = self.parse_operand(&args[0].node);
+            println!("\tFound fs::write call");
+            let first_arg = get_operand_local(&args[0].node);
             match first_arg {
                 Some(arg) => {
                     let result: Result<SatResult, &str>; // To decide whether the file write is malicious
                     if arg == 0 {
                         // Constant
-                        let arg = Self::parse_operand_get_const_string(&args[0].node);
+                        let arg = get_operand_const_string(&args[0].node);
                         let obj = self.curr.static_string(arg.unwrap().as_str());
                         result = self.curr.is_write_safe(&obj);
                     } else {
@@ -340,7 +352,7 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
                         Ok(sat_result) => match sat_result {
                             z3::SatResult::Sat => {
                                 // need to return a span here, because write to /proc/self/mem is a safety violation
-                                return self.get_span_from_operand(&func);
+                                return get_operand_span(&func);
                             }
                             z3::SatResult::Unsat => {}
                             z3::SatResult::Unknown => {}
@@ -361,136 +373,5 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
             }
         }
         self.parse_bb(target.unwrap())
-    }
-
-    fn parse_operand_get_def_id<'tcx>(operand: &Operand<'tcx>) -> Option<usize> {
-        match operand {
-            Operand::Copy(_place) => {
-                println!(
-                    "Parse Operand: This should never happen, contact Hassnain if this is printed"
-                );
-                None
-            }
-            Operand::Move(place) => None,
-            Operand::Constant(place) => {
-                let constant = place.const_;
-                match constant {
-                    Const::Ty(_ty, _const) => {
-                        println!("Parse Operand: This should never happen, contact Hassnain if this is printed");
-                        None
-                    }
-                    Const::Unevaluated(_unevaluated_const, _ty) => {
-                        println!("Parse Operand: This should never happen, contact Hassnain if this is printed");
-                        None
-                    }
-                    Const::Val(const_value, ty) => {
-                        if let TyKind::FnDef(def_id, idk) = ty.kind() {
-                            return Some(def_id.index.as_usize());
-                        }
-                        None
-                    }
-                }
-            }
-        }
-    }
-
-    fn parse_operand_get_const_string<'tcx>(operand: &Operand<'tcx>) -> Option<String> {
-        match operand {
-            Operand::Copy(_place) => {
-                println!(
-                    "Parse Operand: This should never happen, contact Hassnain if this is printed"
-                );
-                None
-            }
-            Operand::Move(place) => {
-                println!(
-                    "Parse Operand: This should never happen, contact Hassnain if this is printed"
-                );
-                None
-            }
-            Operand::Constant(place) => {
-                let constant = place.const_;
-                match constant {
-                    Const::Ty(_ty, _const) => {
-                        println!("Parse Operand: This should never happen, contact Hassnain if this is printed");
-                        None
-                    }
-                    Const::Unevaluated(_unevaluated_const, _ty) => {
-                        println!("Parse Operand: This should never happen, contact Hassnain if this is printed");
-                        None
-                    }
-                    Const::Val(const_value, ty) => {
-                        match const_value {
-                            ConstValue::Slice { data, meta } => {
-                                if let Some(str_data) = Self::extract_string_from_const(&data, meta)
-                                {
-                                    return Some(str_data);
-                                }
-                            }
-                            _ => {
-                                println!("Parse Operand: This should never happen, contact Hassnain if this is printed");
-                            }
-                        }
-                        None
-                    }
-                }
-            }
-        }
-    }
-
-    fn parse_operand<'tcx>(&self, operand: &Operand<'tcx>) -> Option<usize> {
-        match operand {
-            Operand::Copy(_place) => {
-                println!(
-                    "Parse Operand: This should never happen, contact Hassnain if this is printed"
-                );
-                None
-            }
-            Operand::Move(place) => {
-                let local = place.local;
-                let projection = place.projection;
-                Some(local.as_usize())
-            }
-            Operand::Constant(place) => {
-                Some(0)
-                // None
-            }
-        }
-    }
-
-    fn extract_string_from_const<'tcx>(
-        data: &'tcx ConstAllocation<'tcx>, //pub struct ConstAllocation<'tcx>(pub Interned<'tcx, Allocation>);
-        meta: u64,
-    ) -> Option<String> {
-        println!("Data: {:?}", data);
-        println!("Meta: {:?}", meta);
-
-        //0: Interned<'tcx, Allocation>
-        let range: AllocRange = AllocRange {
-            start: rustc_abi::Size::from_bytes(0),
-            size: rustc_abi::Size::from_bytes(meta),
-        };
-        let allocation = &data.0.get_bytes_unchecked(range); //this is alignment
-
-        let a: String = String::from_utf8(allocation.to_vec()).unwrap();
-
-        return Some(a);
-    }
-
-    fn get_span_from_operand(&self, operand: &Operand) -> Option<rustc_span::Span> {
-        match operand {
-            Operand::Copy(_place) => {
-                println!("get_span_from_operand : Unsupported, This funciton currently caters only for constants. ");
-                return None;
-            }
-            Operand::Move(place) => {
-                println!("get_span_from_operand : Unsupported, This funciton currently caters only for constants. ");
-                None
-            }
-            Operand::Constant(place) => {
-                let const_span = place.span;
-                return Some(const_span);
-            }
-        }
     }
 }
