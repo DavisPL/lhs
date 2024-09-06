@@ -66,33 +66,25 @@ You can specify an action using the -a flag. We currently support three actions,
 3) `Local`: print local declarations (variables)
 4) `Query`: provides the result of whether or not there is a potential write to `/proc/self/mem`
 
-To get trace for a file named `example.rs` you can run:
-```bash
-cargo run -- -s example.rs -a trace
-```
 An example output for the results:
 ```bash
 ❯ cargo run -- -s examples/ex1.rs -a query
-    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.02s
-     Running `target/debug/mir-analyzer -s examples/ex1.rs -a query`
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.10s
+     Running `target/debug/lhs -s examples/ex1.rs -a query`
 MIR for function: DefId(0:5 ~ ex1[6c4e]::write_to_file)
 examples/ex1.rs:4:1: 7:2
 Unsupported Type: ()
 Unsupported Type: !
 Unsupported Type: ()
 Unsupported Type: ()
-bb0
-unknown statement...
-unknown statement...
-unknown statement...
-unknown statement...
-unknown statement...
-Found fs::write call
+START: Path 0!
+	bb0
+	Found fs::write call
 Model:
 2 -> "/proc/self/./mem"
 
 WARNING: potential write to `/proc/self/mem`
-        examples/ex1.rs:5:5: 5:14 (#0)
+	examples/ex1.rs:5:5: 5:14 (#0)
 ```
 
 ## Examples

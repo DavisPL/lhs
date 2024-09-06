@@ -14,9 +14,8 @@ use std::path::{Path, PathBuf};
 
 const DEF_ID_PATH_BUFF: usize = 5175;
 
-mod parser;
-pub mod symexec;
-use crate::parser::MIRParser;
+use lhs::symexec;
+use lhs::parser::MIRParser;
 
 // -------------------- START RUSTC PORTION --------------------
 extern crate rustc_driver;
@@ -52,7 +51,7 @@ fn main() {
 }
 
 #[derive(Parser, Debug)]
-#[command(name = "mir_analyzer")]
+#[command(name = "LHS: Leveraging (not) HIR via Symbolic execution")]
 #[command(version = "1.0.1")]
 #[command(about = "A command line utility for searching for analyzing a given Rust code's MIR and verifying proc/self/mem safety", long_about = None)]
 pub struct Args {
