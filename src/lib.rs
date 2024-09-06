@@ -13,10 +13,10 @@ extern crate rustc_interface;
 extern crate rustc_session;
 extern crate rustc_span;
 
+extern crate rustc_abi;
 extern crate rustc_data_structures;
 extern crate rustc_middle;
-extern crate rustc_abi;
 
-pub mod symexec;
-pub mod parser;
 pub mod operand;
+pub mod parser;
+pub mod symexec;

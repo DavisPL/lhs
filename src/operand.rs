@@ -1,7 +1,5 @@
 use rustc_middle::mir::interpret::{AllocRange, ConstAllocation};
-use rustc_middle::mir::{
-    BasicBlock, CallSource, Const, ConstValue, Local, Place,
-};
+use rustc_middle::mir::{BasicBlock, CallSource, Const, ConstValue, Local, Place};
 use rustc_middle::ty::ScalarInt;
 use rustc_middle::ty::TyKind;
 
@@ -68,8 +66,7 @@ pub fn get_operand_const_string<'tcx>(operand: &Operand<'tcx>) -> Option<String>
                 Const::Val(const_value, ty) => {
                     match const_value {
                         ConstValue::Slice { data, meta } => {
-                            if let Some(str_data) = extract_string_from_const(&data, meta)
-                            {
+                            if let Some(str_data) = extract_string_from_const(&data, meta) {
                                 return Some(str_data);
                             }
                         }
@@ -139,3 +136,4 @@ pub fn get_operand_span(operand: &Operand) -> Option<rustc_span::Span> {
         }
     }
 }
+

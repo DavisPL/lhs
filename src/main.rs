@@ -14,8 +14,8 @@ use std::path::{Path, PathBuf};
 
 const DEF_ID_PATH_BUFF: usize = 5175;
 
-use lhs::symexec;
 use lhs::parser::MIRParser;
+use lhs::symexec;
 
 // -------------------- START RUSTC PORTION --------------------
 extern crate rustc_driver;

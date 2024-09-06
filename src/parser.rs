@@ -13,8 +13,8 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use z3::SatResult;
 
-use crate::symexec::SymExec;
 use crate::operand::*;
+use crate::symexec::SymExec;
 
 const DEF_ID_FS_WRITE: usize = 2345;
 
@@ -103,9 +103,7 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
                                 self_curr.string_equals(
                                     var,
                                     &self_curr.static_string(
-                                        get_operand_const_string(&rhs)
-                                            .unwrap()
-                                            .as_str(),
+                                        get_operand_const_string(&rhs).unwrap().as_str(),
                                     ),
                                 ),
                             );
@@ -165,29 +163,23 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
                 } else if let Some(var) = self_curr.get_string(local) {
                     self_curr.assign_string(
                         local,
-                        self_curr.static_string(
-                            get_operand_const_string(&operand)
-                                .unwrap()
-                                .as_str(),
-                        ),
+                        self_curr
+                            .static_string(get_operand_const_string(&operand).unwrap().as_str()),
                     );
                 }
             }
         }
     }
 
-    fn assignment<'tcx>(
-        self_curr: &mut SymExec<'ctx>,
-        val: Box<(Place<'tcx>, Rvalue<'tcx>)>,
-    ) {
+    fn assignment<'tcx>(self_curr: &mut SymExec<'ctx>, val: Box<(Place<'tcx>, Rvalue<'tcx>)>) {
         let (place, val) = *val;
         let binding = place.local.as_usize().to_string();
         let local = binding.as_str();
         match val {
             Use(operand) => Self::r#use(self_curr, local, operand), // Ethan fix this :)
             BinaryOp(op, operand) => Self::bin_op(self_curr, local, op, operand),
-           // _ => println!("unknown assignment operation"),
-           _ => (),
+            // _ => println!("unknown assignment operation"),
+            _ => (),
         }
     }
 
@@ -241,7 +233,7 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
                     } => self.parse_bb(*real_target), // untested
                     TerminatorKind::Return => self.parse_return(),
                     _ => {
-                        println!("Encountered Unknown Terminator: Quitting...");
+                        println!("Encountered Unknown Terminator. Results may be incorrect.");
                         None
                     } // TODO: Handle Assert
                 }
@@ -328,8 +320,8 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
         call_source: CallSource,
     ) -> Option<rustc_span::Span> {
         let func_def_id = get_operand_def_id(&func); //passing it func, gives def_id
-                                                                 // println!("Func DefId: {:?}", func_def_id);
-                                                                 // Detected fs::write!
+                                                     // println!("Func DefId: {:?}", func_def_id);
+                                                     // Detected fs::write!
         if func_def_id == Some(DEF_ID_FS_WRITE) {
             // println!("Found function DefId in call: {:?}", def_id);
             println!("\tFound fs::write call");
