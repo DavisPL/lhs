@@ -1,5 +1,5 @@
 # LHS: Leveraging (not) HIR via Symbolic execution
-### A command line utility for searching for analyzing a given Rust code's MIR and verifying proc/self/mem safety
+### A command line utility for searching for analyzing a given Rust code's MIR and verifying `std::fs::write` calls' safeness, in particular, writes to `/proc/self/mem`
 
 ## Installation
 
@@ -73,4 +73,21 @@ cargo run -- -s example.rs -a trace
 ## Examples
 Please see the `inputoutput.md` file for input and output examples and expectations.
 All code snippets used can also be found in the `examples/` directory.
+
+## Credits 
+This project was a result of Prof. Dr. Caleb Stanford's Davis PL research group.
+The following members have made contributions to this project (names in alphabetical order):
+- Anirudh Basu
+- Audrey Gobaco
+- Muhammad Hassnain
+- Ethan Ng
+
+The authors of this project wish to thank the following projects and papers that have influenced this work:
+- MIRChecker [https://dl.acm.org/doi/10.1145/3460120.3484541](https://dl.acm.org/doi/10.1145/3460120.3484541)
+    - In particular, this internal meme from the GitHub repository [https://github.com/lizhuohua/rust-mir-checker/issues/15](https://github.com/lizhuohua/rust-mir-checker/issues/15)
+- MIRI [https://github.com/rust-lang/miri](https://github.com/rust-lang/miri)
+- MIRAI [https://github.com/facebookexperimental/MIRAI](https://github.com/facebookexperimental/MIRAI)
+- Cargo Scan [https://github.com/PLSysSec/cargo-scan](https://github.com/PLSysSec/cargo-scan)
+
+A portion of this project was funded by the NSF.
 
