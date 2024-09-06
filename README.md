@@ -7,7 +7,7 @@
 Before you begin, ensure you have the following installed:
 
 - **Rust Nightly**: LHS requires Rust's nightly to utilize the `rustc_private` library.
-- **z3**: You must install z3 on your system and ensure the Rust z3 API can be accessed.
+- **Z3**: You must install Z3 on your system and ensure the Rust Z3 API can be accessed.
 
 ### Installing `rustc`
 
@@ -36,7 +36,7 @@ info: This is the version for the rustup toolchain manager, not the rustc compil
 info: The currently active `rustc` version is `rustc 1.82.0-nightly (92c6c0380 2024-07-21)`
 ```
 
-### Installing z3
+### Installing Z3
 
 If you are on a Macintosh machine, please follow the following instructions to install:
 
@@ -47,6 +47,16 @@ export Z3_SYS_Z3_HEADER="/opt/homebrew/Cellar/z3/4.13.0/include/z3.h"
 ```
 
 It is strongly suggested to add the two environmental variables to your `~/.bashrc` or `~/.zshrc` files for easy access in the startup times.
+
+If you are using Ubuntu, please follow the following instuctions to install:
+
+```bash
+sudo apt-get update
+sudo apt-get install z3
+sudo apt install libclang-dev clang
+```
+
+You can check that Z3 installed successfully using `z3 --version`. 
 
 ## Usage
 
