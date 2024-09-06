@@ -48,7 +48,7 @@ export Z3_SYS_Z3_HEADER="/opt/homebrew/Cellar/z3/4.13.0/include/z3.h"
 
 It is strongly suggested to add the two environmental variables to your `~/.bashrc` or `~/.zshrc` files for easy access in the startup times.
 
-If you are using Ubuntu, please follow the following instuctions to install:
+If you are using Ubuntu (or running WSL with Ubuntu), please follow the following instuctions to install:
 
 ```bash
 sudo apt-get update
