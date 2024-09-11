@@ -1,5 +1,5 @@
 # LHS: Leveraging (not) HIR via Symbolic execution
-### A command line utility for searching for analyzing a given Rust code's MIR and verifying `std::fs::write` calls' safeness, in particular, writes to `/proc/self/mem`
+### A command line utility for analyzing a given Rust code's MIR and verifying `std::fs::write` calls' safeness, in particular, writes to `/proc/self/mem`
 
 ## Installation
 
@@ -90,6 +90,14 @@ WARNING: potential write to `/proc/self/mem`
 ## Examples
 Please see the `inputoutput.md` file for input and output examples and expectations.
 All code snippets used can also be found in the `examples/` directory.
+
+## FAQ
+1. What is with the funny name `LHS`?
+
+This came about during project selection when our principle investigator proposed two project directions, one listed on the left hand side of the board, and one on the right.
+LHS, short for Left Hand Side, became the *de facto* name of the project.
+At the time of release, one of our team members came up with a more applicable name that would also shorten to LHS, now known as "Leveraging (not) HIR via Symbolic execution",
+ensuring that LHS continues to live on gloriously as part of the repository.
 
 ## Credits 
 This project was a result of Prof. Dr. Caleb Stanford's Davis PL research group.
