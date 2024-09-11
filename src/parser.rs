@@ -56,7 +56,7 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
                         if let Some(var) = self_curr.get_int(left_local.as_str()) {
                             self_curr.assign_bool(
                                 local,
-                                self_curr.int_equals(
+                                self_curr.int_eq(
                                     var,
                                     self_curr.get_int(right_local.as_str()).unwrap(),
                                 ),
@@ -64,7 +64,7 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
                         } else if let Some(var) = self_curr.get_bool(left_local.as_str()) {
                             self_curr.assign_bool(
                                 local,
-                                self_curr.bool_equals(
+                                self_curr.bool_eq(
                                     var,
                                     self_curr.get_bool(right_local.as_str()).unwrap(),
                                 ),
@@ -72,7 +72,7 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
                         } else if let Some(var) = self_curr.get_string(left_local.as_str()) {
                             self_curr.assign_bool(
                                 local,
-                                self_curr.string_equals(
+                                self_curr.string_eq(
                                     var,
                                     self_curr.get_string(right_local.as_str()).unwrap(),
                                 ),
@@ -87,12 +87,12 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
                                 Self::get_integer_constant(constant.try_to_scalar_int().unwrap());
                             self_curr.assign_bool(
                                 local,
-                                self_curr.int_equals(var, &self_curr.static_int(num)),
+                                self_curr.int_eq(var, &self_curr.static_int(num)),
                             );
                         } else if let Some(var) = self_curr.get_bool(left_local.as_str()) {
                             self_curr.assign_bool(
                                 local,
-                                self_curr.bool_equals(
+                                self_curr.bool_eq(
                                     var,
                                     &self_curr.static_bool(constant.try_to_bool().unwrap()),
                                 ),
@@ -100,7 +100,7 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
                         } else if let Some(var) = self_curr.get_string(left_local.as_str()) {
                             self_curr.assign_bool(
                                 local,
-                                self_curr.string_equals(
+                                self_curr.string_eq(
                                     var,
                                     &self_curr.static_string(
                                         get_operand_const_string(&rhs).unwrap().as_str(),
@@ -267,7 +267,7 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
                 // Bool variable -- only 2 arguments
                 for (value, target) in targets.iter() {
                     // Get negation of bool z3 var
-                    let curr_constraint = self.curr.logical_not(&z3_bool);
+                    let curr_constraint = self.curr.not(&z3_bool);
                     // Check reachability of `false` constraint
                     if self.curr.check_constraint_sat(&curr_constraint) == z3::SatResult::Sat {
                         println!("\tCreating a clone @ bb{}", curr_bb.as_u32());

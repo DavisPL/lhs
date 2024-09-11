@@ -92,18 +92,18 @@ impl<'ctx> SymExec<'ctx> {
     /// Creates a z3 string expression from the concatenation of two strings.
     pub fn concat_strings(
         &self,
-        value1: &z3::ast::String<'ctx>,
-        value2: &z3::ast::String<'ctx>,
+        lhs: &z3::ast::String<'ctx>,
+        rhs: &z3::ast::String<'ctx>,
     ) -> z3::ast::String<'ctx> {
-        z3::ast::String::concat(self.context, &[value1, value2])
+        z3::ast::String::concat(self.context, &[lhs, rhs])
     }
     /// Creates a z3 bool expression representing whether or not two strings are equivalent.
-    pub fn string_equals(
+    pub fn string_eq(
         &self,
-        value1: &z3::ast::String<'ctx>,
-        value2: &z3::ast::String<'ctx>,
+        lhs: &z3::ast::String<'ctx>,
+        rhs: &z3::ast::String<'ctx>,
     ) -> z3::ast::Bool<'ctx> {
-        value1._eq(value2)
+        lhs._eq(rhs)
     }
     /// Creates an uninterpreted boolean with the given variable name and adds it to the executor. This function can be
     /// used to model the bool arguments to a function.
@@ -128,32 +128,64 @@ impl<'ctx> SymExec<'ctx> {
         z3::ast::Bool::from_bool(self.context, value)
     }
     /// Creates a z3 bool expression from the negation of a z3 bool expression.
-    pub fn logical_not(&self, value: &z3::ast::Bool<'ctx>) -> z3::ast::Bool<'ctx> {
+    pub fn not(&self, value: &z3::ast::Bool<'ctx>) -> z3::ast::Bool<'ctx> {
         value.not()
     }
     /// Creates a z3 bool expression from the conjunction of two z3 bool expressions.
-    pub fn logical_and(
+    pub fn and(
         &self,
-        value1: &z3::ast::Bool<'ctx>,
-        value2: &z3::ast::Bool<'ctx>,
+        lhs: &z3::ast::Bool<'ctx>,
+        rhs: &z3::ast::Bool<'ctx>,
     ) -> z3::ast::Bool<'ctx> {
-        z3::ast::Bool::and(self.context, &[value1, value2])
+        z3::ast::Bool::and(self.context, &[lhs, rhs])
     }
     /// Creates a z3 bool expression from the disjunction of two z3 bool expressions.
-    pub fn logical_or(
+    pub fn or(
         &self,
-        value1: &z3::ast::Bool<'ctx>,
-        value2: &z3::ast::Bool<'ctx>,
+        lhs: &z3::ast::Bool<'ctx>,
+        rhs: &z3::ast::Bool<'ctx>,
     ) -> z3::ast::Bool<'ctx> {
-        z3::ast::Bool::or(self.context, &[value1, value2])
+        z3::ast::Bool::or(self.context, &[lhs, rhs])
     }
     /// Create a z3 bool expression from the equality of two z3 bool expressions.
-    pub fn bool_equals(
+    pub fn bool_eq(
         &self,
-        value1: &z3::ast::Bool<'ctx>,
-        value2: &z3::ast::Bool<'ctx>,
+        lhs: &z3::ast::Bool<'ctx>,
+        rhs: &z3::ast::Bool<'ctx>,
     ) -> z3::ast::Bool<'ctx> {
-        value1.iff(value2)
+        lhs._eq(rhs)
+    }
+    /// Create a z3 bool expression from the less than comparison of two z3 bool expressions.
+    pub fn bool_lt(
+        &self,
+        lhs: &z3::ast::Bool<'ctx>,
+        rhs: &z3::ast::Bool<'ctx>,
+    ) -> z3::ast::Bool<'ctx> {
+        self.and(&self.not(lhs), rhs)
+    }
+    /// Create a z3 bool expression from the less than or equal comparison of two z3 bool expressions.
+    pub fn bool_le(
+        &self,
+        lhs: &z3::ast::Bool<'ctx>,
+        rhs: &z3::ast::Bool<'ctx>,
+    ) -> z3::ast::Bool<'ctx> {
+        z3::ast::Bool::from_bool(&self.context, true)
+    }
+    /// Create a z3 bool expression from the greater than comparison of two z3 bool expressions.
+    pub fn bool_gt(
+        &self,
+        lhs: &z3::ast::Bool<'ctx>,
+        rhs: &z3::ast::Bool<'ctx>,
+    ) -> z3::ast::Bool<'ctx> {
+        self.and(rhs, &self.not(lhs))
+    }
+    /// Create a z3 bool expression from the greater than or equal comparison of two z3 bool expressions.
+    pub fn bool_ge(
+        &self,
+        lhs: &z3::ast::Bool<'ctx>,
+        rhs: &z3::ast::Bool<'ctx>,
+    ) -> z3::ast::Bool<'ctx> {
+        z3::ast::Bool::from_bool(&self.context, true)
     }
     /// Creates an uninterpreted integer with the given variable name and adds it to the executor. This function can be
     /// used to model the int arguments to a function.
@@ -180,81 +212,81 @@ impl<'ctx> SymExec<'ctx> {
     /// Creates a z3 int expression from the addition of two z3 int expressions.
     pub fn add(
         &self,
-        value1: &z3::ast::Int<'ctx>,
-        value2: &z3::ast::Int<'ctx>,
+        lhs: &z3::ast::Int<'ctx>,
+        rhs: &z3::ast::Int<'ctx>,
     ) -> z3::ast::Int<'ctx> {
-        z3::ast::Int::add(self.context, &[value1, value2])
+        z3::ast::Int::add(self.context, &[lhs, rhs])
     }
     /// Creates a z3 int expression from the subtraction of two z3 int expressions.
     pub fn subtract(
         &self,
-        value1: &z3::ast::Int<'ctx>,
-        value2: &z3::ast::Int<'ctx>,
+        lhs: &z3::ast::Int<'ctx>,
+        rhs: &z3::ast::Int<'ctx>,
     ) -> z3::ast::Int<'ctx> {
-        z3::ast::Int::sub(self.context, &[value1, value2])
+        z3::ast::Int::sub(self.context, &[lhs, rhs])
     }
     /// Creates a z3 int expression from the multiplication of two z3 int expressions.
     pub fn multiply(
         &self,
-        value1: &z3::ast::Int<'ctx>,
-        value2: &z3::ast::Int<'ctx>,
+        lhs: &z3::ast::Int<'ctx>,
+        rhs: &z3::ast::Int<'ctx>,
     ) -> z3::ast::Int<'ctx> {
-        z3::ast::Int::mul(self.context, &[value1, value2])
+        z3::ast::Int::mul(self.context, &[lhs, rhs])
     }
     /// Creates a z3 int expression from the division of two z3 int expressions.
     pub fn divide(
         &self,
-        value1: &z3::ast::Int<'ctx>,
-        value2: &z3::ast::Int<'ctx>,
+        lhs: &z3::ast::Int<'ctx>,
+        rhs: &z3::ast::Int<'ctx>,
     ) -> z3::ast::Int<'ctx> {
-        value1.div(value2)
+        lhs.div(rhs)
     }
     /// Creates a z3 int expression from the remainder division (modulo) of two z3 int expressions.
     pub fn modulo(
         &self,
-        value1: &z3::ast::Int<'ctx>,
-        value2: &z3::ast::Int<'ctx>,
+        lhs: &z3::ast::Int<'ctx>,
+        rhs: &z3::ast::Int<'ctx>,
     ) -> z3::ast::Int<'ctx> {
-        value1.rem(value2)
+        lhs.rem(rhs)
     }
     /// Creates a z3 bool expression from the less than comparison of two z3 int expressions.
-    pub fn less_than(
+    pub fn int_lt(
         &self,
-        value1: &z3::ast::Int<'ctx>,
-        value2: &z3::ast::Int<'ctx>,
+        lhs: &z3::ast::Int<'ctx>,
+        rhs: &z3::ast::Int<'ctx>,
     ) -> z3::ast::Bool<'ctx> {
-        value1.lt(value2)
+        lhs.lt(rhs)
     }
     /// Creates a z3 bool expression from the less than or equal comparison of two z3 int expressions.
-    pub fn less_than_or_equal(
+    pub fn int_le(
         &self,
-        value1: &z3::ast::Int<'ctx>,
-        value2: &z3::ast::Int<'ctx>,
+        lhs: &z3::ast::Int<'ctx>,
+        rhs: &z3::ast::Int<'ctx>,
     ) -> z3::ast::Bool<'ctx> {
-        value1.le(value2)
+        lhs.le(rhs)
     }
     /// Creates a z3 bool expression from the greater than comparison of two z3 int expressions.
-    pub fn greater_than(
+    pub fn int_gt(
         &self,
-        value1: &z3::ast::Int<'ctx>,
-        value2: &z3::ast::Int<'ctx>,
+        lhs: &z3::ast::Int<'ctx>,
+        rhs: &z3::ast::Int<'ctx>,
     ) -> z3::ast::Bool<'ctx> {
-        value1.gt(value2)
+        lhs.gt(rhs)
     }
     /// Creates a z3 bool expression from the greater than or equal comparison of two z3 int expressions.
-    pub fn greater_than_or_equal(
+    pub fn int_ge(
         &self,
-        value1: &z3::ast::Int<'ctx>,
-        value2: &z3::ast::Int<'ctx>,
+        lhs: &z3::ast::Int<'ctx>,
+        rhs: &z3::ast::Int<'ctx>,
     ) -> z3::ast::Bool<'ctx> {
-        value1.ge(value2)
+        lhs.ge(rhs)
     }
     /// Creates a z3 bool expression from the equality comparison of two z3 int expressions.
-    pub fn int_equals(
+    pub fn int_eq(
         &self,
-        value1: &z3::ast::Int<'ctx>,
-        value2: &z3::ast::Int<'ctx>,
+        lhs: &z3::ast::Int<'ctx>,
+        rhs: &z3::ast::Int<'ctx>,
     ) -> z3::ast::Bool<'ctx> {
-        value1._eq(value2)
+        lhs._eq(rhs)
     }
 }
