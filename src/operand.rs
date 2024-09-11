@@ -1,7 +1,5 @@
 use rustc_middle::mir::interpret::{AllocRange, ConstAllocation};
-use rustc_middle::mir::{
-    BasicBlock, CallSource, Const, ConstValue, Local, Place,
-};
+use rustc_middle::mir::{Const, ConstValue, Local, Place};
 use rustc_middle::ty::ScalarInt;
 use rustc_middle::ty::TyKind;
 
@@ -84,6 +82,7 @@ pub fn get_operand_const_string<'tcx>(operand: &Operand<'tcx>) -> Option<String>
     }
 }
 
+// Get the `Local` associated with an Operand if of Move variant
 pub fn get_operand_local<'tcx>(operand: &Operand<'tcx>) -> Option<usize> {
     match operand {
         Operand::Copy(_place) => {

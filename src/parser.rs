@@ -41,6 +41,36 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
         self.parse_bb(BasicBlock::from_usize(0))
     }
 
+    // Update SymExec state off of numeric BinOp
+    fn parse_int_bin_op(
+        self_curr: &mut SymExec<'ctx>,
+        op: BinOp,
+        local: &str,
+        lhs: &z3::ast::Int<'ctx>,
+        rhs: &z3::ast::Int<'ctx>,
+    ) {
+        match op {
+            // Logical 
+            BinOp::Eq => self_curr.assign_bool(local, self_curr.int_eq(lhs, rhs)),
+            BinOp::Ne => self_curr.assign_bool(local, self_curr.logical_not(&self_curr.int_eq(lhs, rhs))),
+            BinOp::Lt => self_curr.assign_bool(local, self_curr.int_lt(lhs, rhs)),
+            BinOp::Le => self_curr.assign_bool(local, self_curr.int_le(lhs, rhs)),
+            BinOp::Gt => self_curr.assign_bool(local, self_curr.int_gt(lhs, rhs)),
+            BinOp::Ge => self_curr.assign_bool(local, self_curr.int_ge(lhs, rhs)),
+            // TODO: BinOp::Cmp => 
+            // Arithmetic
+            BinOp::Add => self_curr.assign_int(local, self_curr.add(lhs, rhs)),
+            BinOp::Sub => self_curr.assign_int(local, self_curr.sub(lhs, rhs)),
+            BinOp::Mul => self_curr.assign_int(local, self_curr.mul(lhs, rhs)),
+            BinOp::Div => self_curr.assign_int(local, self_curr.div(lhs, rhs)),
+            BinOp::Rem => self_curr.assign_int(local, self_curr.rem(lhs, rhs)),
+            // TODO: Unchecked, WithOverflow variants
+            // TODO: BitXor, BitAnd, BitOr?
+            _ => println!("Unhandled BinOp.")
+        }
+    }
+
+    // TODO: Probably refactor into just general BinOp structure
     fn eq_op<'tcx>(
         self_curr: &mut SymExec<'ctx>,
         local: &str,
@@ -53,14 +83,16 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
                 match rhs {
                     Operand::Copy(place) | Operand::Move(place) => {
                         let right_local = place.local.as_usize().to_string();
+                        // BinOp of numerics
                         if let Some(var) = self_curr.get_int(left_local.as_str()) {
                             self_curr.assign_bool(
                                 local,
-                                self_curr.int_equals(
+                                self_curr.int_eq(
                                     var,
                                     self_curr.get_int(right_local.as_str()).unwrap(),
                                 ),
                             );
+                        // BinOp of bools
                         } else if let Some(var) = self_curr.get_bool(left_local.as_str()) {
                             self_curr.assign_bool(
                                 local,
@@ -69,6 +101,7 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
                                     self_curr.get_bool(right_local.as_str()).unwrap(),
                                 ),
                             );
+                        // BinOp of strings
                         } else if let Some(var) = self_curr.get_string(left_local.as_str()) {
                             self_curr.assign_bool(
                                 local,
@@ -87,7 +120,7 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
                                 Self::get_integer_constant(constant.try_to_scalar_int().unwrap());
                             self_curr.assign_bool(
                                 local,
-                                self_curr.int_equals(var, &self_curr.static_int(num)),
+                                self_curr.int_eq(var, &self_curr.static_int(num)),
                             );
                         } else if let Some(var) = self_curr.get_bool(left_local.as_str()) {
                             self_curr.assign_bool(
@@ -113,11 +146,12 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
                     }
                 }
             }
+            // Can BinOp(constant, constant) appear? Or is there constant evaluation in MIR?
             Operand::Constant(place) => {}
         }
     }
 
-    fn bin_op<'tcx>(
+    fn parse_binary_op<'tcx>(
         self_curr: &mut SymExec<'ctx>,
         local: &str,
         op: BinOp,
@@ -135,7 +169,8 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
         constant.to_int(constant.size()) as i64
     }
 
-    fn r#use<'tcx>(self_curr: &mut SymExec<'ctx>, local: &str, operand: Operand<'tcx>) {
+    // Handle StatementKind::Assign Use, simple a = Use(b)
+    fn parse_use<'tcx>(self_curr: &mut SymExec<'ctx>, local: &str, operand: Operand<'tcx>) {
         match operand {
             Operand::Copy(place) | Operand::Move(place) => {
                 let place = place.local.as_usize().to_string();
@@ -176,7 +211,7 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
         }
     }
 
-    fn assignment<'tcx>(
+    fn parse_assign<'tcx>(
         self_curr: &mut SymExec<'ctx>,
         val: Box<(Place<'tcx>, Rvalue<'tcx>)>,
     ) {
@@ -184,8 +219,8 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
         let binding = place.local.as_usize().to_string();
         let local = binding.as_str();
         match val {
-            Use(operand) => Self::r#use(self_curr, local, operand), // Ethan fix this :)
-            BinaryOp(op, operand) => Self::bin_op(self_curr, local, op, operand),
+            Use(operand) => Self::parse_use(self_curr, local, operand),
+            BinaryOp(op, operand) => Self::parse_binary_op(self_curr, local, op, operand),
            // _ => println!("unknown assignment operation"),
            _ => (),
         }
@@ -198,7 +233,7 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
                 // Statements
                 for statement in &bb_data.statements {
                     match &statement.kind {
-                        StatementKind::Assign(val) => Self::assignment(&mut self.curr, val.clone()),
+                        StatementKind::Assign(val) => Self::parse_assign(&mut self.curr, val.clone()),
                         //_ => println!("unknown statement..."),
                         _ => (),
                     }
@@ -243,7 +278,7 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
                     _ => {
                         println!("Encountered Unknown Terminator: Quitting...");
                         None
-                    } // TODO: Handle Assert
+                    } // TODO: Handle Assert, maybe we can just go down the success path?
                 }
             }
             // ERROR: Couldn't find the bb we were supposed to process.
