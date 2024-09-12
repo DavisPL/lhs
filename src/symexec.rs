@@ -218,7 +218,7 @@ impl<'ctx> SymExec<'ctx> {
         z3::ast::Int::add(self.context, &[lhs, rhs])
     }
     /// Creates a z3 int expression from the subtraction of two z3 int expressions.
-    pub fn subtract(
+    pub fn sub(
         &self,
         lhs: &z3::ast::Int<'ctx>,
         rhs: &z3::ast::Int<'ctx>,
@@ -226,7 +226,7 @@ impl<'ctx> SymExec<'ctx> {
         z3::ast::Int::sub(self.context, &[lhs, rhs])
     }
     /// Creates a z3 int expression from the multiplication of two z3 int expressions.
-    pub fn multiply(
+    pub fn mul(
         &self,
         lhs: &z3::ast::Int<'ctx>,
         rhs: &z3::ast::Int<'ctx>,
@@ -234,7 +234,7 @@ impl<'ctx> SymExec<'ctx> {
         z3::ast::Int::mul(self.context, &[lhs, rhs])
     }
     /// Creates a z3 int expression from the division of two z3 int expressions.
-    pub fn divide(
+    pub fn div(
         &self,
         lhs: &z3::ast::Int<'ctx>,
         rhs: &z3::ast::Int<'ctx>,
@@ -242,7 +242,7 @@ impl<'ctx> SymExec<'ctx> {
         lhs.div(rhs)
     }
     /// Creates a z3 int expression from the remainder division (modulo) of two z3 int expressions.
-    pub fn modulo(
+    pub fn rem(
         &self,
         lhs: &z3::ast::Int<'ctx>,
         rhs: &z3::ast::Int<'ctx>,

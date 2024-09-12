@@ -52,7 +52,7 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
         match op {
             // Logical 
             BinOp::Eq => self_curr.assign_bool(local, self_curr.int_eq(lhs, rhs)),
-            BinOp::Ne => self_curr.assign_bool(local, self_curr.logical_not(&self_curr.int_eq(lhs, rhs))),
+            BinOp::Ne => self_curr.assign_bool(local, self_curr.not(&self_curr.int_eq(lhs, rhs))),
             BinOp::Lt => self_curr.assign_bool(local, self_curr.int_lt(lhs, rhs)),
             BinOp::Le => self_curr.assign_bool(local, self_curr.int_le(lhs, rhs)),
             BinOp::Gt => self_curr.assign_bool(local, self_curr.int_gt(lhs, rhs)),
@@ -65,34 +65,35 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
             BinOp::Div => self_curr.assign_int(local, self_curr.div(lhs, rhs)),
             BinOp::Rem => self_curr.assign_int(local, self_curr.rem(lhs, rhs)),
             // TODO: Unchecked, WithOverflow variants
+            //      WithOverflow: outputs a tuple (bool, numeric), where bool signifies
+            //      whether there was an overflow or not, can we just always assume there isn't an overflow?
+            //      Maybe we only care about overflow when we  have a concrete abstract domain that we
+            //      we already evaluate to check if within the bounds.
+            //      Handling/predicting when UB happens?
             // TODO: BitXor, BitAnd, BitOr?
             _ => println!("Unhandled BinOp.")
         }
     }
 
-    // TODO: Probably refactor into just general BinOp structure
-    fn eq_op<'tcx>(
+    fn parse_bin_op<'tcx>(
         self_curr: &mut SymExec<'ctx>,
         local: &str,
-        lhs: Operand<'tcx>,
-        rhs: Operand<'tcx>,
+        op: BinOp,
+        operand: Box<(Operand<'tcx>, Operand<'tcx>)>,
     ) {
+        let (lhs, rhs): (Operand<'tcx>, Operand<'tcx>) = *operand;
         match lhs {
             Operand::Copy(place) | Operand::Move(place) => {
                 let left_local = place.local.as_usize().to_string();
                 match rhs {
                     Operand::Copy(place) | Operand::Move(place) => {
                         let right_local = place.local.as_usize().to_string();
-                        // BinOp of numerics
-                        if let Some(var) = self_curr.get_int(left_local.as_str()) {
-                            self_curr.assign_bool(
-                                local,
-                                self_curr.int_eq(
-                                    var,
-                                    self_curr.get_int(right_local.as_str()).unwrap(),
-                                ),
-                            );
-                        // BinOp of bools
+                        // BinOp(var, var) of numerics
+                        if let Some(left_var) = self_curr.get_int(left_local.as_str()) {
+                            if let Some(right_var) = self_curr.get_int(right_local.as_str()) {
+                                Self::parse_int_bin_op(self_curr, op, local, &left_var.clone(), &right_var.clone()); // How to do w/o cloning?
+                            }
+                        // BinOp(var, var) of bools
                         } else if let Some(var) = self_curr.get_bool(left_local.as_str()) {
                             self_curr.assign_bool(
                                 local,
@@ -101,7 +102,7 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
                                     self_curr.get_bool(right_local.as_str()).unwrap(),
                                 ),
                             );
-                        // BinOp of strings
+                        // BinOp(var, var) of strings
                         } else if let Some(var) = self_curr.get_string(left_local.as_str()) {
                             self_curr.assign_bool(
                                 local,
@@ -115,13 +116,12 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
                     Operand::Constant(ref constant) => {
                         let operand = constant.clone();
                         let constant = operand.const_;
-                        if let Some(var) = self_curr.get_int(left_local.as_str()) {
-                            let num =
-                                Self::get_integer_constant(constant.try_to_scalar_int().unwrap());
-                            self_curr.assign_bool(
-                                local,
-                                self_curr.int_eq(var, &self_curr.static_int(num)),
-                            );
+                        // BinOp(var, const) of numerics
+                        if let Some(left_var) = self_curr.get_int(left_local.as_str()) {
+                            let num = Self::get_integer_constant(constant.try_to_scalar_int().unwrap());
+                            let right_var = (&self_curr.static_int(num)).clone();
+                            Self::parse_int_bin_op(self_curr, op, local, &left_var.clone(), &right_var.clone()); // How to do w/o cloning?
+                        // BinOp(var, const) of bools
                         } else if let Some(var) = self_curr.get_bool(left_local.as_str()) {
                             self_curr.assign_bool(
                                 local,
@@ -130,6 +130,7 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
                                     &self_curr.static_bool(constant.try_to_bool().unwrap()),
                                 ),
                             );
+                        // BinOp(var, const) of strings
                         } else if let Some(var) = self_curr.get_string(left_local.as_str()) {
                             self_curr.assign_bool(
                                 local,
@@ -144,22 +145,8 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
                     }
                 }
             }
-            // Can BinOp(constant, constant) appear? Or is there constant evaluation in MIR?
+            // Can't BinOp(const, var) appear? Should BinOp(const, const) be handled or is there constant evaluation in `mir_built`?
             Operand::Constant(place) => {}
-        }
-    }
-
-    fn parse_binary_op<'tcx>(
-        self_curr: &mut SymExec<'ctx>,
-        local: &str,
-        op: BinOp,
-        operand: Box<(Operand<'tcx>, Operand<'tcx>)>,
-    ) {
-        let (lhs, rhs) = *operand;
-        match op {
-            BinOp::Eq => Self::eq_op(self_curr, local, lhs, rhs),
-            //_ => println!("unknown binary operation"),
-            _ => (),
         }
     }
 
@@ -206,13 +193,13 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
         }
     }
 
-    fn assignment<'tcx>(self_curr: &mut SymExec<'ctx>, val: Box<(Place<'tcx>, Rvalue<'tcx>)>) {
+    fn parse_assign<'tcx>(self_curr: &mut SymExec<'ctx>, val: Box<(Place<'tcx>, Rvalue<'tcx>)>) {
         let (place, val) = *val;
         let binding = place.local.as_usize().to_string();
         let local = binding.as_str();
         match val {
-            Use(operand) => Self::r#use(self_curr, local, operand), // Ethan fix this :)
-            BinaryOp(op, operand) => Self::bin_op(self_curr, local, op, operand),
+            Use(operand) => Self::parse_use(self_curr, local, operand), // Ethan fix this :)
+            BinaryOp(op, operand) => Self::parse_bin_op(self_curr, local, op, operand),
             // _ => println!("unknown assignment operation"),
             _ => (),
         }
@@ -270,7 +257,12 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
                     _ => {
                         println!("Encountered Unknown Terminator. Results may be incorrect.");
                         None
-                    } // TODO: Handle Assert, maybe we can just go down the success path?
+                    } 
+                    // TODO: Handle Assert, maybe we can just go down the success path?
+                    // TODO: When does Unreachable appear? ex5 contains `unreachable` in bb3
+                    //      Indicates a terminator that can never be reached.
+                    //      Executing this terminator is UB.
+                    
                 }
             }
             // ERROR: Couldn't find the bb we were supposed to process.
