@@ -19,14 +19,14 @@ use crate::symexec::SymExec;
 const DEF_ID_FS_WRITE: usize = 2345;
 
 pub struct MIRParser<'a, 'ctx> {
-    mir_body: MappedReadGuard<'a, Body<'a>>,
+    mir_body: &'a Body<'a>,
     pub curr: SymExec<'ctx>,
     stack: Vec<(SymExec<'ctx>, BasicBlock)>,
     path_count: u32,
 }
 
 impl<'a, 'ctx> MIRParser<'a, 'ctx> {
-    pub fn new(mir_body: MappedReadGuard<'a, Body<'a>>, z3: SymExec<'ctx>) -> Self {
+    pub fn new(mir_body: &'a Body<'a>, z3: SymExec<'ctx>) -> Self {
         MIRParser {
             mir_body,
             curr: z3,
@@ -50,14 +50,14 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
         rhs: &z3::ast::Int<'ctx>,
     ) {
         match op {
-            // Logical 
+            // Logical
             BinOp::Eq => self_curr.assign_bool(local, self_curr.int_eq(lhs, rhs)),
             BinOp::Ne => self_curr.assign_bool(local, self_curr.not(&self_curr.int_eq(lhs, rhs))),
             BinOp::Lt => self_curr.assign_bool(local, self_curr.int_lt(lhs, rhs)),
             BinOp::Le => self_curr.assign_bool(local, self_curr.int_le(lhs, rhs)),
             BinOp::Gt => self_curr.assign_bool(local, self_curr.int_gt(lhs, rhs)),
             BinOp::Ge => self_curr.assign_bool(local, self_curr.int_ge(lhs, rhs)),
-            // TODO: BinOp::Cmp => 
+            // TODO: BinOp::Cmp =>
             // Arithmetic
             BinOp::Add => self_curr.assign_int(local, self_curr.add(lhs, rhs)),
             BinOp::Sub => self_curr.assign_int(local, self_curr.sub(lhs, rhs)),
@@ -71,7 +71,7 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
             //      we already evaluate to check if within the bounds.
             //      Handling/predicting when UB happens?
             // TODO: BitXor, BitAnd, BitOr?
-            _ => println!("Unhandled BinOp.")
+            _ => println!("Unhandled BinOp."),
         }
     }
 
@@ -91,7 +91,13 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
                         // BinOp(var, var) of numerics
                         if let Some(left_var) = self_curr.get_int(left_local.as_str()) {
                             if let Some(right_var) = self_curr.get_int(right_local.as_str()) {
-                                Self::parse_int_bin_op(self_curr, op, local, &left_var.clone(), &right_var.clone()); // How to do w/o cloning?
+                                Self::parse_int_bin_op(
+                                    self_curr,
+                                    op,
+                                    local,
+                                    &left_var.clone(),
+                                    &right_var.clone(),
+                                ); // How to do w/o cloning?
                             }
                         // BinOp(var, var) of bools
                         } else if let Some(var) = self_curr.get_bool(left_local.as_str()) {
@@ -118,10 +124,17 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
                         let constant = operand.const_;
                         // BinOp(var, const) of numerics
                         if let Some(left_var) = self_curr.get_int(left_local.as_str()) {
-                            let num = Self::get_integer_constant(constant.try_to_scalar_int().unwrap());
+                            let num =
+                                Self::get_integer_constant(constant.try_to_scalar_int().unwrap());
                             let right_var = (&self_curr.static_int(num)).clone();
-                            Self::parse_int_bin_op(self_curr, op, local, &left_var.clone(), &right_var.clone()); // How to do w/o cloning?
-                        // BinOp(var, const) of bools
+                            Self::parse_int_bin_op(
+                                self_curr,
+                                op,
+                                local,
+                                &left_var.clone(),
+                                &right_var.clone(),
+                            ); // How to do w/o cloning?
+                               // BinOp(var, const) of bools
                         } else if let Some(var) = self_curr.get_bool(left_local.as_str()) {
                             self_curr.assign_bool(
                                 local,
@@ -212,7 +225,9 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
                 // Statements
                 for statement in &bb_data.statements {
                     match &statement.kind {
-                        StatementKind::Assign(val) => Self::parse_assign(&mut self.curr, val.clone()),
+                        StatementKind::Assign(val) => {
+                            Self::parse_assign(&mut self.curr, val.clone())
+                        }
                         //_ => println!("unknown statement..."),
                         _ => (),
                     }
@@ -257,12 +272,10 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
                     _ => {
                         println!("Encountered Unknown Terminator. Results may be incorrect.");
                         None
-                    } 
-                    // TODO: Handle Assert, maybe we can just go down the success path?
-                    // TODO: When does Unreachable appear? ex5 contains `unreachable` in bb3
-                    //      Indicates a terminator that can never be reached.
-                    //      Executing this terminator is UB.
-                    
+                    } // TODO: Handle Assert, maybe we can just go down the success path?
+                      // TODO: When does Unreachable appear? ex5 contains `unreachable` in bb3
+                      //      Indicates a terminator that can never be reached.
+                      //      Executing this terminator is UB.
                 }
             }
             // ERROR: Couldn't find the bb we were supposed to process.

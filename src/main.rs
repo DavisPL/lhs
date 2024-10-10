@@ -17,6 +17,8 @@ const DEF_ID_PATH_BUFF: usize = 5175;
 use lhs::parser::MIRParser;
 use lhs::symexec;
 
+use rustc_data_structures::steal::Steal;
+
 // -------------------- START RUSTC PORTION --------------------
 extern crate rustc_driver;
 extern crate rustc_error_codes;
@@ -135,9 +137,13 @@ pub fn get_mir_body(path: PathBuf, args: Args) {
                     if tcx.def_kind(local_def_id) == DefKind::Fn {
                         println!("MIR for function: {:?}", local_def_id);
                         // Construct mir_built body for function
-                        let mir_body = tcx.mir_built(local_def_id).borrow();
-                        // Print position of current function being analyzed using Span
-                        // let span_data = mir_body.span.data();
+                        let mir_body = tcx.optimized_mir(def_id); // tcx.mir_built(local_def_id).borrow();
+                                                                  // Print position of current function being analyzed using Span
+                                                                  // let span_data = mir_body.span.data();
+                                                                  // let needs_stealing = &Steal::new(optimized_mir);
+                                                                  // let mir_body = needs_stealing.clone().borrow();
+                                                                  // println!("{:#?}", mir_body);
+                                                                  // println!("{:#?}", mir_body.to_owned());
                         let source_map = tcx.sess.source_map();
                         let mir_string: String = source_map
                             .span_to_string(mir_body.span, FileNameDisplayPreference::Local); // Might not display nice with Local?
@@ -159,7 +165,7 @@ pub fn get_mir_body(path: PathBuf, args: Args) {
     });
 }
 
-pub fn trace_mir_body<'a>(mir_body: MappedReadGuard<'a, Body<'a>>) {
+pub fn trace_mir_body<'a>(mir_body: &'a Body<'a>) {
     // dbg!("{}", &mir_body);
     let cfg = z3::Config::new();
     let ctx = z3::Context::new(&cfg);
@@ -212,13 +218,13 @@ pub fn trace_mir_body<'a>(mir_body: MappedReadGuard<'a, Body<'a>>) {
     // println!("{:#?}", mir_parser.curr);
 }
 
-pub fn print_basic_blocks<'a>(mir_body: MappedReadGuard<'a, Body<'a>>) {
+pub fn print_basic_blocks<'a>(mir_body: &'a Body<'a>) {
     for (bb, data) in mir_body.basic_blocks.iter_enumerated() {
         println!("{:?}: {:#?}", bb, data);
     }
 }
 
-pub fn print_local_decls<'a>(mir_body: MappedReadGuard<'a, Body<'a>>) {
+pub fn print_local_decls<'a>(mir_body: &'a Body<'a>) {
     for (local, local_decl) in mir_body.local_decls.iter_enumerated() {
         println!("_{} = {}", local.as_usize(), local_decl.ty);
     }
