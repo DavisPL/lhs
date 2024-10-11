@@ -126,7 +126,7 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
                         if let Some(left_var) = self_curr.get_int(left_local.as_str()) {
                             let num =
                                 Self::get_integer_constant(constant.try_to_scalar_int().unwrap());
-                            let right_var = (&self_curr.static_int(num)).clone();
+                            let right_var = (&self_curr.static_int(num.into())).clone();
                             Self::parse_int_bin_op(
                                 self_curr,
                                 op,
@@ -189,7 +189,7 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
                 let constant = op.const_;
                 if let Some(var) = self_curr.get_int(local) {
                     let num = Self::get_integer_constant(constant.try_to_scalar_int().unwrap());
-                    self_curr.assign_int(local, self_curr.static_int(num));
+                    self_curr.assign_int(local, self_curr.static_int(num.into()));
                 } else if let Some(var) = self_curr.get_bool(local) {
                     self_curr.assign_bool(
                         local,

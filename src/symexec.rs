@@ -132,19 +132,11 @@ impl<'ctx> SymExec<'ctx> {
         value.not()
     }
     /// Creates a z3 bool expression from the conjunction of two z3 bool expressions.
-    pub fn and(
-        &self,
-        lhs: &z3::ast::Bool<'ctx>,
-        rhs: &z3::ast::Bool<'ctx>,
-    ) -> z3::ast::Bool<'ctx> {
+    pub fn and(&self, lhs: &z3::ast::Bool<'ctx>, rhs: &z3::ast::Bool<'ctx>) -> z3::ast::Bool<'ctx> {
         z3::ast::Bool::and(self.context, &[lhs, rhs])
     }
     /// Creates a z3 bool expression from the disjunction of two z3 bool expressions.
-    pub fn or(
-        &self,
-        lhs: &z3::ast::Bool<'ctx>,
-        rhs: &z3::ast::Bool<'ctx>,
-    ) -> z3::ast::Bool<'ctx> {
+    pub fn or(&self, lhs: &z3::ast::Bool<'ctx>, rhs: &z3::ast::Bool<'ctx>) -> z3::ast::Bool<'ctx> {
         z3::ast::Bool::or(self.context, &[lhs, rhs])
     }
     /// Create a z3 bool expression from the equality of two z3 bool expressions.
@@ -206,47 +198,56 @@ impl<'ctx> SymExec<'ctx> {
         self.int_variables.insert(variable_name.to_string(), value);
     }
     /// Creates a z3 int expression from an Rust int.
-    pub fn static_int(&self, value: i64) -> z3::ast::Int<'ctx> {
-        z3::ast::Int::from_i64(self.context, value)
+    pub fn static_int(&self, value: i128) -> z3::ast::Int<'ctx> {
+        if value > i64::MIN.into() && value < i64::MAX.into() {
+            z3::ast::Int::from_i64(self.context, value.try_into().unwrap())
+        } else {
+            let negative = if value < 0 { true } else { false };
+            let unsigned_value: u128 = value.abs() as u128;
+            let least_significant_bits: u64 = (unsigned_value & 0xFFFFFFFFFFFFFFFF) as u64;
+            let most_significant_bits: u64 = (unsigned_value >> 64) as u64;
+            let z3_least_significant_bits: z3::ast::Int<'_> =
+                z3::ast::Int::from_u64(self.context, least_significant_bits);
+            let z3_most_significant_bits: z3::ast::Int<'_> =
+                z3::ast::Int::from_u64(self.context, most_significant_bits);
+            let z3_two: z3::ast::Int<'_> = z3::ast::Int::from_u64(self.context, 2);
+            let z3_neg_1: z3::ast::Int<'_> = z3::ast::Int::from_i64(self.context, -1);
+            let z3_two_power_64: z3::ast::Int<'_> =
+                self.mul(&z3::ast::Int::from_u64(self.context, 2u64.pow(63)), &z3_two);
+            if negative {
+                self.mul(
+                    &z3_neg_1,
+                    &self.add(
+                        &self.mul(&z3_most_significant_bits, &z3_two_power_64),
+                        &z3_least_significant_bits,
+                    ),
+                )
+            } else {
+                self.add(
+                    &self.mul(&z3_most_significant_bits, &z3_two_power_64),
+                    &z3_least_significant_bits,
+                )
+            }
+        }
     }
     /// Creates a z3 int expression from the addition of two z3 int expressions.
-    pub fn add(
-        &self,
-        lhs: &z3::ast::Int<'ctx>,
-        rhs: &z3::ast::Int<'ctx>,
-    ) -> z3::ast::Int<'ctx> {
+    pub fn add(&self, lhs: &z3::ast::Int<'ctx>, rhs: &z3::ast::Int<'ctx>) -> z3::ast::Int<'ctx> {
         z3::ast::Int::add(self.context, &[lhs, rhs])
     }
     /// Creates a z3 int expression from the subtraction of two z3 int expressions.
-    pub fn sub(
-        &self,
-        lhs: &z3::ast::Int<'ctx>,
-        rhs: &z3::ast::Int<'ctx>,
-    ) -> z3::ast::Int<'ctx> {
+    pub fn sub(&self, lhs: &z3::ast::Int<'ctx>, rhs: &z3::ast::Int<'ctx>) -> z3::ast::Int<'ctx> {
         z3::ast::Int::sub(self.context, &[lhs, rhs])
     }
     /// Creates a z3 int expression from the multiplication of two z3 int expressions.
-    pub fn mul(
-        &self,
-        lhs: &z3::ast::Int<'ctx>,
-        rhs: &z3::ast::Int<'ctx>,
-    ) -> z3::ast::Int<'ctx> {
+    pub fn mul(&self, lhs: &z3::ast::Int<'ctx>, rhs: &z3::ast::Int<'ctx>) -> z3::ast::Int<'ctx> {
         z3::ast::Int::mul(self.context, &[lhs, rhs])
     }
     /// Creates a z3 int expression from the division of two z3 int expressions.
-    pub fn div(
-        &self,
-        lhs: &z3::ast::Int<'ctx>,
-        rhs: &z3::ast::Int<'ctx>,
-    ) -> z3::ast::Int<'ctx> {
+    pub fn div(&self, lhs: &z3::ast::Int<'ctx>, rhs: &z3::ast::Int<'ctx>) -> z3::ast::Int<'ctx> {
         lhs.div(rhs)
     }
     /// Creates a z3 int expression from the remainder division (modulo) of two z3 int expressions.
-    pub fn rem(
-        &self,
-        lhs: &z3::ast::Int<'ctx>,
-        rhs: &z3::ast::Int<'ctx>,
-    ) -> z3::ast::Int<'ctx> {
+    pub fn rem(&self, lhs: &z3::ast::Int<'ctx>, rhs: &z3::ast::Int<'ctx>) -> z3::ast::Int<'ctx> {
         lhs.rem(rhs)
     }
     /// Creates a z3 bool expression from the less than comparison of two z3 int expressions.
@@ -289,4 +290,20 @@ impl<'ctx> SymExec<'ctx> {
     ) -> z3::ast::Bool<'ctx> {
         lhs._eq(rhs)
     }
+}
+
+#[test]
+pub fn test_static_int() {
+    let cfg = z3::Config::new();
+    let ctx = z3::Context::new(&cfg);
+    let exec_struct = SymExec::new(&ctx);
+    let int1 = exec_struct.static_int(10);
+    let int2 = exec_struct.static_int(-10);
+    let int3 = exec_struct.static_int((i64::MAX - 5).into());
+    let int4 = exec_struct.static_int((i64::MIN + 5).into());
+    let int5 = exec_struct.add(&int1, &int3);
+    assert_eq!(int1.to_string(), "10");
+    assert_eq!(int2.to_string(), "(- 10)");
+    assert_eq!(int3.to_string(), "9223372036854775802");
+    assert!(exec_struct.check_constraint_sat(&exec_struct.int_lt(&int4, &int5)) == z3::SatResult::Sat);
 }

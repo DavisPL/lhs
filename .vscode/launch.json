@@ -1,0 +1,35 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Debug Unit Test",
+            "type": "cppdbg", 
+            "request": "launch",
+            "program": "${workspaceFolder}/target/debug/deps/<test-binary-name>",
+            "args": [],
+            "cwd": "${workspaceFolder}",
+            "environment": [
+                {
+                    "name": "LD_LIBRARY_PATH",
+                    "value": "${workspaceFolder}/target/debug/deps"
+                }
+            ],
+            "MIMode": "gdb", 
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ],
+            "externalConsole": false,
+            "stopAtEntry": false,
+            "preLaunchTask": "cargo build",
+            "miDebuggerPath": "/usr/bin/gdb",
+            "miDebuggerArgs": "",
+            "sourceFileMap": {
+                "/rustc/": "${env:HOME}/.rustup/toolchains/${rust:toolchain}/lib/rustlib/src/rust/"
+            },
+        }
+    ]
+}

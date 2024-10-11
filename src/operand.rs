@@ -137,4 +137,3 @@ pub fn get_operand_span(operand: &Operand) -> Option<rustc_span::Span> {
         }
     }
 }
-
