@@ -84,11 +84,11 @@ pub fn get_operand_const_string<'tcx>(operand: &Operand<'tcx>) -> Option<String>
 // Get the `Local` associated with an Operand if of Move variant
 pub fn get_operand_local<'tcx>(operand: &Operand<'tcx>) -> Option<usize> {
     match operand {
-        Operand::Copy(_place) => {
-            println!(
-                "get_operand_local: This should never happen, contact Hassnain if this is printed"
-            );
-            None
+        // In optimized MIR example 1 is a copy case, instead of a move case
+        Operand::Copy(place) => { 
+            let local = place.local;
+            let projection = place.projection;
+            Some(local.as_usize())
         }
         Operand::Move(place) => {
             let local = place.local;
