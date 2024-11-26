@@ -14,9 +14,9 @@ use std::path::{Path, PathBuf};
 
 const DEF_ID_PATH_BUF: usize = 5175;
 
+use lhs::callback::LCallback;
 use lhs::parser::MIRParser;
 use lhs::symexec;
-use lhs::callback::LCallback;
 
 // -------------------- START RUSTC PORTION --------------------
 extern crate rustc_driver;
@@ -29,8 +29,8 @@ extern crate rustc_session;
 extern crate rustc_span;
 
 extern crate rustc_data_structures;
-extern crate rustc_middle;
 extern crate rustc_metadata;
+extern crate rustc_middle;
 
 use std::{path, process, str, sync::Arc};
 
@@ -45,21 +45,23 @@ use rustc_data_structures::sync::{MappedReadGuard, ReadGuard, RwLock};
 use rustc_hir::def::DefKind;
 use rustc_middle::mir::Body;
 
-use rustc_session::search_paths::PathKind;
 use rustc_data_structures::sync::Lrc;
-use rustc_middle::util::Providers;
 use rustc_middle::query::LocalCrate;
+use rustc_middle::util::Providers;
+use rustc_session::search_paths::PathKind;
 // -------------------- END RUSTC PORTION --------------------
 
 fn main() {
-    let config = Args::parse();
-    // Attempt to make PathBuf and error if invalid filepath
-    let path: PathBuf = path::PathBuf::from(&config.source);
-    if config.action == Action::Callback {
-        get_callback_mir(config);
-    } else {
-        get_mir_body(path, config);
-    }
+    let args = std::env::args().collect::<Vec<String>>();
+    get_callback_mir(args);
+    // let config = Args::parse();
+    // // Attempt to make PathBuf and error if invalid filepath
+    // let path: PathBuf = path::PathBuf::from(&config.source);
+    // if config.action == Action::Callback {
+    //     get_callback_mir(config);
+    // } else {
+    //     get_mir_body(path, config);
+    // }
 }
 
 #[derive(Parser, Debug)]
@@ -89,24 +91,16 @@ pub enum Action {
     Callback,
 }
 
-fn get_callback_mir(args: Args) {
-    let out = process::Command::new("rustc")
-    .arg("--print=sysroot")
-    .current_dir(".")
-    .output()
-    .unwrap();
-    let sysroot = str::from_utf8(&out.stdout).unwrap().trim().to_string();
-    println!("Given input file: {}", args.source);
-    let rustc_args: Vec<String> = vec![
-        "rustc".to_string(),
-        args.source.clone(),
-        "--sysroot".to_string(),
-        sysroot,
-        "--emit=metadata".to_owned(),
-        "-Zalways-encode-mir".to_owned(),
-    ];
+fn get_callback_mir(args: Vec<String>) {
+    // let out = process::Command::new("rustc")
+    //     .arg("--print=sysroot")
+    //     .current_dir(".")
+    //     .output()
+    //     .unwrap();
+    // let sysroot = str::from_utf8(&out.stdout).unwrap().trim().to_string();
+    let rustc_args: Vec<String> = args;
 
-    let mut callbacks = LCallback::new(args.source);
+    let mut callbacks = LCallback::new();
     // let args = std::env::args().collect::<Vec<String>>();
     // args is a Vec<String>?
     rustc_driver::RunCompiler::new(&rustc_args, &mut callbacks)
@@ -174,7 +168,7 @@ pub fn get_mir_body(path: PathBuf, args: Args) {
     //         crate_source
     //     };
     // });
-    
+
     rustc_interface::run_compiler(config, |compiler| {
         // Run the compiler
         compiler.enter(|queries| {

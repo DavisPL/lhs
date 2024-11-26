@@ -1,39 +1,37 @@
 extern crate rustc_driver;
 extern crate rustc_interface;
-extern crate rustc_session;
 extern crate rustc_middle;
+extern crate rustc_session;
 extern crate rustc_span;
 
 extern crate rustc_data_structures;
 extern crate rustc_metadata;
 
 use rustc_driver::{Callbacks, Compilation};
+use rustc_hir::def::DefKind;
 use rustc_interface::{interface::Compiler, Queries};
+use rustc_middle::mir::Body;
 use rustc_middle::ty::{TyCtxt, TyKind};
 use rustc_span::FileNameDisplayPreference;
-use rustc_hir::def::DefKind;
-use rustc_middle::mir::Body;
 
 use rustc_data_structures::steal::Steal;
 use rustc_data_structures::sync::{MappedReadGuard, ReadGuard, RwLock};
 
-use rustc_session::search_paths::PathKind;
 use rustc_data_structures::sync::Lrc;
-use rustc_middle::util::Providers;
 use rustc_middle::query::LocalCrate;
+use rustc_middle::util::Providers;
+use rustc_session::search_paths::PathKind;
 
 use crate::parser::MIRParser;
 use crate::symexec;
 
 const DEF_ID_PATH_BUF: usize = 5175;
 
-pub struct LCallback {
-    src: String,
-}
+pub struct LCallback {}
 
 impl LCallback {
-    pub fn new(src: String) -> Self {
-        LCallback { src }
+    pub fn new() -> Self {
+        LCallback {}
     }
 }
 
@@ -52,7 +50,7 @@ impl Callbacks for LCallback {
     //         };
     //     });
     // }
-    
+
     fn after_analysis<'tcx>(
         &mut self,
         compiler: &Compiler,
@@ -67,8 +65,8 @@ impl Callbacks for LCallback {
                     println!("MIR for function: {:?}", local_def_id);
                     // let mir_body = tcx.optimized_mir(def_id);
                     let mir_body = tcx.optimized_mir(local_def_id); // This is a Steal<RwLock<Option>>
-                    // let mir_string = source_map.span_to_string(mir_body.span, FileNameDisplayPreference::Local);
-                    // println!("{mir_string}");
+                                                                    // let mir_string = source_map.span_to_string(mir_body.span, FileNameDisplayPreference::Local);
+                                                                    // println!("{mir_string}");
                     trace_mir_body(mir_body)
                 }
             }
@@ -82,7 +80,6 @@ impl Callbacks for LCallback {
         Compilation::Continue
     }
 }
-
 
 pub fn trace_mir_body<'a>(mir_body: &'a Body<'a>) {
     // dbg!("{}", &mir_body);
