@@ -3,6 +3,9 @@ name = "lhs"
 version = "0.1.0"
 edition = "2021"
 
+[package.metadata.rust-analyzer]
+rustc_private = true
+
 [dependencies]
 clap = { version = "4.5.13", features = ["derive"] }
 z3 = "0.12.1"
