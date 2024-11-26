@@ -1,1 +1,3 @@
 target/
+examples/sat/*.txt
+examples/unsat/*.txt

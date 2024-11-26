@@ -12,12 +12,11 @@ use std::fs::{File, FileType};
 use std::io::ErrorKind;
 use std::path::{Path, PathBuf};
 
-const DEF_ID_PATH_BUFF: usize = 5175;
+const DEF_ID_PATH_BUF: usize = 5175;
 
 use lhs::parser::MIRParser;
 use lhs::symexec;
-
-use rustc_data_structures::steal::Steal;
+use lhs::callback::LCallback;
 
 // -------------------- START RUSTC PORTION --------------------
 extern crate rustc_driver;
@@ -31,6 +30,7 @@ extern crate rustc_span;
 
 extern crate rustc_data_structures;
 extern crate rustc_middle;
+extern crate rustc_metadata;
 
 use std::{path, process, str, sync::Arc};
 
@@ -40,16 +40,26 @@ use rustc_middle::ty::{TyCtxt, TyKind};
 use rustc_session::config;
 use rustc_span::FileNameDisplayPreference;
 
+use rustc_data_structures::steal::Steal;
 use rustc_data_structures::sync::{MappedReadGuard, ReadGuard, RwLock};
 use rustc_hir::def::DefKind;
 use rustc_middle::mir::Body;
+
+use rustc_session::search_paths::PathKind;
+use rustc_data_structures::sync::Lrc;
+use rustc_middle::util::Providers;
+use rustc_middle::query::LocalCrate;
 // -------------------- END RUSTC PORTION --------------------
 
 fn main() {
     let config = Args::parse();
     // Attempt to make PathBuf and error if invalid filepath
     let path: PathBuf = path::PathBuf::from(&config.source);
-    get_mir_body(path, config);
+    if config.action == Action::Callback {
+        get_callback_mir(config);
+    } else {
+        get_mir_body(path, config);
+    }
 }
 
 #[derive(Parser, Debug)]
@@ -76,15 +86,42 @@ pub enum Action {
     Blocks,
     Local,
     Query,
+    Callback,
+}
+
+fn get_callback_mir(args: Args) {
+    let out = process::Command::new("rustc")
+    .arg("--print=sysroot")
+    .current_dir(".")
+    .output()
+    .unwrap();
+    let sysroot = str::from_utf8(&out.stdout).unwrap().trim().to_string();
+    println!("Given input file: {}", args.source);
+    let rustc_args: Vec<String> = vec![
+        "rustc".to_string(),
+        args.source.clone(),
+        "--sysroot".to_string(),
+        sysroot,
+        "--emit=metadata".to_owned(),
+        "-Zalways-encode-mir".to_owned(),
+    ];
+
+    let mut callbacks = LCallback::new(args.source);
+    // let args = std::env::args().collect::<Vec<String>>();
+    // args is a Vec<String>?
+    rustc_driver::RunCompiler::new(&rustc_args, &mut callbacks)
+        .run()
+        .unwrap();
 }
 
 // For now assuming there should only be one function in the Rust file
 pub fn get_mir_body(path: PathBuf, args: Args) {
     let out = process::Command::new("rustc")
-        .arg("--print=sysroot")
+        .args(["--print=sysroot", "--emit=metadata", "-Zalways-encode-mir"])
         .current_dir(".")
         .output()
         .unwrap();
+    println!("{:?}", out);
     let sysroot = str::from_utf8(&out.stdout).unwrap().trim();
     let config = rustc_interface::Config {
         // Command line options
@@ -123,13 +160,34 @@ pub fn get_mir_body(path: PathBuf, args: Args) {
         using_internal_features: Arc::default(),
     };
 
+    // // Use `config` to load external crates
+    // // Set the Config.override_queries
+    // config.override_queries = Some(|_, providers| {
+    //     providers.extern_queries.used_crate_source = |tcx, cnum| {
+    //         let mut providers = Providers::default();
+    //         rustc_metadata::provide(&mut providers);
+    //         let mut crate_source = (providers.extern_queries.used_crate_source)(tcx, cnum);
+    //         // HACK: rustc will emit "crate ... required to be available in rlib format, but
+    //         // was not found in this form" errors once we use `tcx.dependency_formats()` if
+    //         // there's no rlib provided, so setting a dummy path here to workaround those errors.
+    //         Lrc::make_mut(&mut crate_source).rlib = Some((PathBuf::new(), PathKind::All)); // TODO: maybe mutate the pathbuf in this, to accept
+    //         crate_source
+    //     };
+    // });
+    
     rustc_interface::run_compiler(config, |compiler| {
+        // Run the compiler
         compiler.enter(|queries| {
             // F: for<'tcx> FnOnce(&'tcx Queries<'tcx>) -> T
             // Parse the program and print the syntax tree.
             let parse = queries.parse().unwrap().get_mut().clone();
             // Analyze the program and inspect the types of definitions.
             queries.global_ctxt().unwrap().enter(|tcx| {
+                // if tcx.sess.opts.optimize != OptLevel::No {
+                //     tcx.dcx().warn("Miri does not support optimizations: the opt-level is ignored. The only effect \
+                //         of selecting a Cargo profile that enables optimizations (such as --release) is to apply \
+                //         its remaining settings, such as whether debug assertions and overflow checks are enabled.");
+                // }
                 let hir_map = tcx.hir();
                 // Get all LocalDefID's (DefID's local to current krate)
                 for local_def_id in tcx.hir().krate().owners.indices() {
@@ -144,7 +202,7 @@ pub fn get_mir_body(path: PathBuf, args: Args) {
                                                                   // let mir_body = needs_stealing.clone().borrow();
                                                                   // println!("{:#?}", mir_body);
                                                                   // println!("{:#?}", mir_body.to_owned());
-                        let source_map = tcx.sess.source_map();
+                        let source_map = tcx.sess.source_map(); // Can we move this outside and have the same functionality?
                         let mir_string: String = source_map
                             .span_to_string(mir_body.span, FileNameDisplayPreference::Local); // Might not display nice with Local?
                         println!("{mir_string}");
@@ -157,6 +215,7 @@ pub fn get_mir_body(path: PathBuf, args: Args) {
                             Action::Blocks => print_basic_blocks(mir_body),
                             Action::Local => print_local_decls(mir_body),
                             Action::Query => trace_mir_body(mir_body),
+                            _ => (),
                         }
                     }
                 }
@@ -190,7 +249,7 @@ pub fn trace_mir_body<'a>(mir_body: &'a Body<'a>) {
 
                 // Now you have a Vec containing all DefIds
                 for def_id in &def_ids {
-                    if def_id.index.as_usize() == DEF_ID_PATH_BUFF {
+                    if def_id.index.as_usize() == DEF_ID_PATH_BUF {
                         ev.create_uninterpreted_string(local.as_usize().to_string().as_str());
                         break;
                     }
