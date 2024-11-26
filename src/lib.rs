@@ -20,3 +20,4 @@ extern crate rustc_middle;
 pub mod operand;
 pub mod parser;
 pub mod symexec;
+pub mod callback;
