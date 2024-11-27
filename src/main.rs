@@ -52,7 +52,7 @@ use rustc_session::search_paths::PathKind;
 // -------------------- END RUSTC PORTION --------------------
 
 fn main() {
-    let args = std::env::args().collect::<Vec<String>>();
+    let args = std::env::args().skip(1).collect::<Vec<String>>();
     get_callback_mir(args);
     // let config = Args::parse();
     // // Attempt to make PathBuf and error if invalid filepath
@@ -98,12 +98,12 @@ fn get_callback_mir(args: Vec<String>) {
     //     .output()
     //     .unwrap();
     // let sysroot = str::from_utf8(&out.stdout).unwrap().trim().to_string();
-    let rustc_args: Vec<String> = args;
+    // let rustc_args: Vec<String> = args;
 
     let mut callbacks = LCallback::new();
     // let args = std::env::args().collect::<Vec<String>>();
     // args is a Vec<String>?
-    rustc_driver::RunCompiler::new(&rustc_args, &mut callbacks)
+    rustc_driver::RunCompiler::new(&args, &mut callbacks)
         .run()
         .unwrap();
 }

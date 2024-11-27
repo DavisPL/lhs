@@ -58,6 +58,25 @@ You can check that Z3 installed successfully using `z3 --version`.
 
 ## Usage
 
+**IMPROVEMENT!?**
+
+To run LHS, you need to have a downloaded project within a `cargo` directory. Then do the following:
+
+1. Compile and build LHS with `cargo build`.
+2. Add the following lines to the target project's `.cargo/config.toml` (the `.cargo` directory
+   should exist on the target project's root directory.
+   Make sure you put in your absolute path to the LHS project's `target/debug/lhs` binary.
+```toml
+[build]
+rustc-wrapper = "/absolute/path/to/this/repo/slash/target/debug/lhs"
+```
+3. Run `cargo build` at the project root directory. You should see output.
+
+*Note*: This is currently under development. It is *extremely* unstable and does not work on large
+crates with a lot of dependencies.
+
+**Old instructions**
+
 To run LHS you need to provide the path to Rust source file and action. 
 
 You can specify an action using the -a flag. We currently support three actions, 
