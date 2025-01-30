@@ -60,20 +60,232 @@ You can check that Z3 installed successfully using `z3 --version`.
 
 **IMPROVEMENT!?**
 
-To run LHS, you need to have a downloaded project within a `cargo` directory. Then do the following:
+(yes. Definitely an improvement)
 
-1. Compile and build LHS with `cargo build`.
-2. Add the following lines to the target project's `.cargo/config.toml` (the `.cargo` directory
+To run LHS, you need to have a downloaded project within a `cargo` directory. The following
+instructions will run LHS on ONLY the contents of the directory and NOT the dependencies.
+
+1. Compile and build LHS with `cargo build` (this repositiory).
+2. Compile and build the target project (the one for analyzing) within that project's directory with
+   `cargo build`.
+3. Run `cargo clean -p <package/crate name>` in that directory to remove all compiled objects except
+   for the dependencies.
+4. Add the following lines to the target project's `.cargo/config.toml` (the `.cargo` directory
    should exist on the target project's root directory.
    Make sure you put in your absolute path to the LHS project's `target/debug/lhs` binary.
 ```toml
 [build]
 rustc-wrapper = "/absolute/path/to/this/repo/slash/target/debug/lhs"
 ```
-3. Run `cargo build` at the project root directory. You should see output.
+5. Run `cargo build` at the project root directory. You should see output.
+
+Expected results from running LHS on this crate (LHS):
+```
+❯ cargo build
+   Compiling lhs v0.1.0 ([local path to repository])
+MIR for function: DefId(0:26 ~ lhs[c37b]::operand::get_operand_def_id)
+Unsupported Type: ()
+Unsupported Type: ()
+Unsupported Type: ()
+Unsupported Type: *const rustc_middle::mir::ConstOperand<'_>
+Unsupported Type: *const ()
+START: Path 0!
+        bb0
+        bb1
+Encountered Unknown Terminator. Results may be incorrect.
+No potential writes to `/proc/self/mem` detected!
+MIR for function: DefId(0:28 ~ lhs[c37b]::operand::get_operand_const_string)
+Unsupported Type: ()
+Unsupported Type: ()
+Unsupported Type: ()
+Unsupported Type: ()
+Unsupported Type: ()
+Unsupported Type: *const rustc_middle::mir::ConstOperand<'_>
+Unsupported Type: *const ()
+START: Path 0!
+        bb0
+        bb1
+Encountered Unknown Terminator. Results may be incorrect.
+No potential writes to `/proc/self/mem` detected!
+MIR for function: DefId(0:30 ~ lhs[c37b]::operand::get_operand_local)
+START: Path 0!
+        bb0
+        bb1
+Encountered Unknown Terminator. Results may be incorrect.
+No potential writes to `/proc/self/mem` detected!
+MIR for function: DefId(0:32 ~ lhs[c37b]::operand::extract_string_from_const)
+Unsupported Type: ()
+Unsupported Type: [core::fmt::rt::Argument<'_>; 1]
+Unsupported Type: ()
+Unsupported Type: [core::fmt::rt::Argument<'_>; 1]
+START: Path 0!
+        bb0
+        bb1
+        bb2
+        bb3
+        bb4
+        bb5
+        bb6
+        bb7
+        bb8
+        bb9
+        bb10
+        bb11
+        bb12
+        bb13
+No potential writes to `/proc/self/mem` detected!
+MIR for function: DefId(0:34 ~ lhs[c37b]::operand::get_operand_span)
+Unsupported Type: ()
+Unsupported Type: ()
+Unsupported Type: *const rustc_middle::mir::ConstOperand<'_>
+Unsupported Type: *const ()
+START: Path 0!
+        bb0
+        bb1
+Encountered Unknown Terminator. Results may be incorrect.
+No potential writes to `/proc/self/mem` detected!
+MIR for function: DefId(0:179 ~ lhs[c37b]::callback::trace_mir_body)
+Unsupported Type: ()
+Unsupported Type: ()
+Unsupported Type: ()
+Unsupported Type: ()
+Unsupported Type: [core::fmt::rt::Argument<'_>; 1]
+Unsupported Type: ()
+Unsupported Type: ()
+Unsupported Type: [core::fmt::rt::Argument<'_>; 1]
+Unsupported Type: [core::fmt::rt::Placeholder; 1]
+Unsupported Type: ()
+START: Path 0!
+        bb0
+        bb1
+        bb2
+        bb3
+        bb4
+        bb5
+        bb6
+        bb7
+        bb8
+        bb9
+Encountered Unknown Terminator. Results may be incorrect.
+No potential writes to `/proc/self/mem` detected!
+MIR for function: DefId(0:51 ~ lhs[7528]::main)
+Unsupported Type: ()
+Unsupported Type: ()
+START: Path 0!
+        bb0
+        bb1
+        bb2
+        bb3
+        bb4
+No potential writes to `/proc/self/mem` detected!
+MIR for function: DefId(0:52 ~ lhs[7528]::get_callback_mir)
+Unsupported Type: ()
+Unsupported Type: ()
+START: Path 0!
+        bb0
+        bb1
+        bb2
+        bb3
+        bb4
+        bb5
+        bb6
+No potential writes to `/proc/self/mem` detected!
+MIR for function: DefId(0:53 ~ lhs[7528]::get_mir_body)
+Unsupported Type: ()
+Unsupported Type: [&str; 3]
+Unsupported Type: ()
+Unsupported Type: [core::fmt::rt::Argument<'_>; 1]
+Unsupported Type: ()
+Unsupported Type: {closure@src/main.rs:172:43: 172:53}
+START: Path 0!
+        bb0
+        bb1
+        Data: ConstAllocation { .. }
+        Meta: 15
+        Data: ConstAllocation { .. }
+        Meta: 19
+        bb2
+        bb3
+        bb4
+        bb5
+        bb6
+        bb7
+        bb8
+        bb9
+        bb10
+        bb11
+        bb12
+        bb13
+        bb14
+        bb15
+        bb16
+        bb17
+        bb18
+        bb19
+        bb20
+        bb21
+        bb45
+        bb22
+        bb23
+        bb24
+No potential writes to `/proc/self/mem` detected!
+MIR for function: DefId(0:57 ~ lhs[7528]::trace_mir_body)
+Unsupported Type: ()
+Unsupported Type: ()
+Unsupported Type: ()
+Unsupported Type: ()
+Unsupported Type: [core::fmt::rt::Argument<'_>; 1]
+Unsupported Type: ()
+Unsupported Type: ()
+Unsupported Type: [core::fmt::rt::Argument<'_>; 1]
+Unsupported Type: [core::fmt::rt::Placeholder; 1]
+Unsupported Type: ()
+START: Path 0!
+        bb0
+        bb1
+        bb2
+        bb3
+        bb4
+        bb5
+        bb6
+        bb7
+        bb8
+        bb9
+Encountered Unknown Terminator. Results may be incorrect.
+No potential writes to `/proc/self/mem` detected!
+MIR for function: DefId(0:60 ~ lhs[7528]::print_basic_blocks)
+Unsupported Type: ()
+Unsupported Type: ()
+Unsupported Type: [core::fmt::rt::Argument<'_>; 2]
+Unsupported Type: [core::fmt::rt::Placeholder; 2]
+START: Path 0!
+        bb0
+        bb1
+        bb2
+        bb3
+        bb4
+        bb5
+        bb6
+Encountered Unknown Terminator. Results may be incorrect.
+No potential writes to `/proc/self/mem` detected!
+MIR for function: DefId(0:62 ~ lhs[7528]::print_local_decls)
+Unsupported Type: ()
+Unsupported Type: ()
+Unsupported Type: [core::fmt::rt::Argument<'_>; 2]
+START: Path 0!
+        bb0
+        bb1
+        bb2
+        bb3
+        bb4
+        bb5
+        bb6
+Encountered Unknown Terminator. Results may be incorrect.
+No potential writes to `/proc/self/mem` detected!
+```
 
 *Note*: This is currently under development. It is *extremely* unstable and does not work on large
-crates with a lot of dependencies.
+crates with a lot of dependencies. (NO LONGER THE CASE, hopefully)
 
 **Old instructions**
 
