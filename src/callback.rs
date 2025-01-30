@@ -90,6 +90,7 @@ pub fn trace_mir_body<'a>(mir_body: &'a Body<'a>) {
     for (local, local_decl) in mir_body.local_decls.iter_enumerated() {
         match local_decl.ty.kind() {
             TyKind::Int(_) => ev.create_int(local.as_usize().to_string().as_str()),
+            TyKind::Uint(_) => ev.create_int(local.as_usize().to_string().as_str()),
             TyKind::Str => ev.create_uninterpreted_string(local.as_usize().to_string().as_str()),
             TyKind::Char => ev.create_uninterpreted_string(local.as_usize().to_string().as_str()),
             TyKind::Ref(_, ty, _) => {
