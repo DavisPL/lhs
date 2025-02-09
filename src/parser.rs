@@ -318,8 +318,9 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
                         println!("\tIgnoring path @ bb{}", curr_bb.as_u32());
                     }
                 }
-                // Traverse `true` constraint
+                // push the "true" branch to the stack
                 self.curr.constraints.push(z3_bool.clone());
+                // traverse the "false" branch
                 self.parse_bb(targets.otherwise())
             }
             None => {
