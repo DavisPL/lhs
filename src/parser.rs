@@ -10,6 +10,8 @@ use rustc_middle::ty::ScalarInt;
 use rustc_middle::ty::TyKind;
 use rustc_session::config::OptLevel::Size;
 use std::collections::HashMap;
+use std::io::IsTerminal;
+use std::process::Termination;
 use std::sync::Arc;
 use z3::SatResult;
 
@@ -234,10 +236,21 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
                 }
                 // Terminator
                 match &bb_data.terminator().kind {
+                    // https://doc.rust-lang.org/beta/nightly-rustc/rustc_middle/mir/enum.TerminatorKind.html
                     TerminatorKind::Goto { target } => self.parse_bb(*target),
                     TerminatorKind::SwitchInt { discr, targets } => {
                         self.parse_switch_int(bb, discr.clone(), targets.clone())
                     }
+                    TerminatorKind::UnwindResume => self.parse_return(), //"like a return marks the end of this invocation of function"
+                    TerminatorKind::UnwindTerminate (..) => self.parse_return(), // "Indicates that the landing pad is finished and that the process should terminate." (untested)
+                    TerminatorKind::Return => self.parse_return(),
+                    TerminatorKind::Unreachable => self.parse_return(), //Indicates a terminator that can never be reached, executing this is undefined beahvior. therefore, we ignore it.
+                    TerminatorKind::Drop {
+                        place,
+                        target,
+                        unwind,
+                        replace,
+                    } => self.parse_bb(*target),
                     TerminatorKind::Call {
                         func,        // <Operand<'tcx>>
                         args,        //Box<[Spanned<Operand<'tcx>>]>
@@ -254,25 +267,56 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
                         unwind.clone(),
                         call_source.clone(),
                     ),
-                    TerminatorKind::Drop {
-                        place,
-                        target,
-                        unwind,
-                        replace,
-                    } => self.parse_bb(*target),
-                    TerminatorKind::FalseUnwind {
-                        real_target,
-                        unwind,
-                    } => self.parse_bb(*real_target), // untested
+                    TerminatorKind::TailCall {
+                        func, //Operand<'tcx>
+                        args,   // Box<[Spanned<Operand<'tcx>>]>
+                        fn_span, //Span
+                    } =>{
+                        unimplemented!("TailCall not implemented. The destination, target and unwind are not provided, they are to be taken from the current stazck frame.")
+                        // probably need to make changes to the struture of the stack to accomodate this. Possible soltion make an Enum for the stack frame, with variants for Call and TailCall and then have the stack be a vector of this enum. 
+                    },
+                    TerminatorKind::Assert{
+                        cond ,  // Operand<'tcx>,
+                        expected, // bool,
+                        msg , // Box<AssertMessage<'tcx>>,
+                        target, // BasicBlock,
+                        unwind, // UnwindAction,
+                    } => {
+                        unimplemented!("Assert not implemented")
+                    },
+                    TerminatorKind::Yield{
+                        value, // Operand<'tcx>,
+                        resume, // BasicBlock,
+                        resume_arg, //Place<'tcx>,
+                        drop, // Option<BasicBlock>,
+                    } => {
+                        unimplemented!("Yield not implemented")
+                    },
+                    TerminatorKind::CoroutineDrop{ 
+                    //Indicates the end of dropping a coroutine. Semantically just a return (from the coroutines drop glue). Only permitted in the same situations as yield. Documentation says , need clarification because it is not even really in the cutrent body and are there type system constraints on these terminators? should there be a 'block type' like cleanup blocks for them? 
+                    } => {
+                        unimplemented!("CoroutineDrop not implemented")
+                    },
                     TerminatorKind::FalseEdge {
                         real_target,
                         imaginary_target,
                     } => self.parse_bb(*real_target), // untested
-                    TerminatorKind::Return => self.parse_return(),
-                    _ => {
-                        println!("Encountered Unknown Terminator. Results may be incorrect.");
-                        None
-                    } // TODO: Handle Assert, maybe we can just go down the success path?
+                    TerminatorKind::FalseUnwind {
+                        real_target,
+                        unwind,
+                    } => self.parse_bb(*real_target), // untested
+                    TerminatorKind::InlineAsm {
+                        // asm_macro , //InlineAsmMacro - Documentation says this field should be here, but compiler complains when I add this one. 
+                        template , //&'tcx[InlineAsmTemplatePiece],
+                        operands, // Box<[InlineAsmOperand<'tcx>]>,
+                        options, //InlineAsmOptions,
+                        line_spans, //&'tcx[Span],
+                        targets , //Box<[BasicBlock]>,
+                        unwind, //UnwindAction,
+                    } =>{
+                        unimplemented!("InlineAsm not implemented");
+                    } 
+                    // TODO: Handle Assert, maybe we can just go down the success path?
                       // TODO: When does Unreachable appear? ex5 contains `unreachable` in bb3
                       //      Indicates a terminator that can never be reached.
                       //      Executing this terminator is UB.
