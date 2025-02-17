@@ -63,7 +63,7 @@ You can check that Z3 installed successfully using `z3 --version`.
 (yes. Definitely an improvement)
 
 To run LHS, you need to have a downloaded project within a `cargo` directory. The following
-instructions will run LHS on ONLY the contents of the directory and NOT the dependencies.
+instructions will run LHS on ONLY the contents of the directory and NOT the dependencies. 
 
 1. Compile and build LHS with `cargo build` (this repositiory).
 2. Compile and build the target project (the one for analyzing) within that project's directory with
@@ -78,6 +78,12 @@ instructions will run LHS on ONLY the contents of the directory and NOT the depe
 rustc-wrapper = "/absolute/path/to/this/repo/slash/target/debug/lhs"
 ```
 5. Run `cargo build` at the project root directory. You should see output.
+
+Note : If Step 5 gives a dynamic library not loaded error. Your RUSTC version that complied lhs at `target/debug/lhs` is 
+probably different than the RUSTC verison that is compiling the current crate.  You can fix this by running the following command: 
+```bash
+	rustup override set nightly-2024-07-22
+```
 
 Expected results from running LHS on this crate (LHS):
 ```
