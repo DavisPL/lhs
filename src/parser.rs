@@ -269,6 +269,7 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
                         imaginary_target,
                     } => self.parse_bb(*real_target), // untested
                     TerminatorKind::Return => self.parse_return(),
+                    TerminatorKind::Unreachable => self.parse_return(),
                     _ => {
                         println!("Encountered Unknown Terminator. Results may be incorrect.");
                         None
@@ -287,6 +288,10 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
         }
     }
 
+    // TODO: Detect cycle/loop
+    // TODO: Run loops twice, see if constraints change. Stop when constraints stop changing
+    
+    // Path Merging 
     pub fn parse_switch_int(
         &mut self,
         curr_bb: BasicBlock,
@@ -301,27 +306,49 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
             Operand::Constant(_) => return None, // don't know when constant is used yet? if (true)?
         }
 
-        // TODO: differentiate between local == bool and local != bool (2 >= args in switchInt)
+        
         match self.curr.get_bool(local.as_usize().to_string().as_str()) {
             Some(z3_bool) => {
+                // TODO: differentiate between local == bool and local != bool (2 >= args in switchInt, match statement)
+
                 // Bool variable -- only 2 arguments
+                // Note: The `iter()` does not contain the `otherwise` branch/else branch
+                let mut conjunction = self.curr.static_bool(true); // dummy to hold conjunction
                 for (value, target) in targets.iter() {
-                    // Get negation of bool z3 var
-                    let curr_constraint = self.curr.not(&z3_bool);
-                    // Check reachability of `false` constraint
-                    if self.curr.check_constraint_sat(&curr_constraint) == z3::SatResult::Sat {
-                        println!("\tCreating a clone @ bb{}", curr_bb.as_u32());
+                    // Check reachability of z3_bool == true
+                    if self.curr.check_constraint_sat(z3_bool) == z3::SatResult::Sat {
+                        println!("{} = true is reachable", local.as_usize().to_string().as_str());
                         let mut cloned_curr = self.curr.clone();
-                        cloned_curr.add_constraint(curr_constraint);
+                        cloned_curr.add_constraint(z3_bool.clone());
                         self.stack.push((cloned_curr, target));
                     } else {
-                        println!("\tIgnoring path @ bb{}", curr_bb.as_u32());
+                        println!("{} = true is NOT reachable", local.as_usize().to_string().as_str());
+                    }
+                    // Get negation of bool z3 var
+                    let not_z3_bool = self.curr.not(&z3_bool);
+                    conjunction = self.curr.and(&conjunction, &not_z3_bool);
+                }
+                // if/else on bool: [(true, bb1), (otherwise, bb3)]
+                // match on i32: [(1, bb3), (2, bb4), (otherwise, bb5)]
+
+                if self.curr.check_constraint_sat(&conjunction) == z3::SatResult::Sat {
+                    println!("otherwise/else is reachable");
+                    self.curr.add_constraint(conjunction);
+                    self.parse_bb(targets.otherwise())
+                } else {
+                    // Stolen from parse_return
+                    // TODO: Make a helper function with better naming to do this instead
+                    if let Some((next_curr, next_bb)) = self.stack.pop() {
+                        self.curr = next_curr; // Move popped stack value into self.curr
+                        // TODO: Probably better to have path_label instead of path_count
+                        self.path_count += 1;
+                        println!("START: Path {}!", self.path_count);
+                        self.parse_bb(next_bb)
+                    } else {
+                        // There are no more paths! The stack is empty
+                        None
                     }
                 }
-                // push the "true" branch to the stack
-                self.curr.constraints.push(z3_bool.clone());
-                // traverse the "false" branch
-                self.parse_bb(targets.otherwise())
             }
             None => {
                 // TODO: at least handle switchInts on numerics...
@@ -341,6 +368,7 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
         // dbg!("Debugging: {}", &self.curr);
         if let Some((next_curr, next_bb)) = self.stack.pop() {
             self.curr = next_curr; // Move popped stack value into self.curr
+            // TODO: Probably better to have path_label instead of path_count
             self.path_count += 1;
             println!("START: Path {}!", self.path_count);
             self.parse_bb(next_bb)
