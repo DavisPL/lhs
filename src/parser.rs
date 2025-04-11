@@ -175,6 +175,8 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
             Operand::Copy(place) | Operand::Move(place) => {
                 let local_case = place.local.as_usize().to_string();
                 let projection_case = place.projection;
+
+                dbg!("Local Use: {}", &local_case);
                 
                 if !projection_case.is_empty(){ // https://doc.rust-lang.org/stable/nightly-rustc/rustc_middle/mir/type.ProjectionKind.html
                     let projection_case = place.projection;
@@ -185,8 +187,8 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
                                 dbg!("Deref: {:?}", elem);
                             },
                             ProjectionElem::Field(fieldidx, ty) => {
-                                dbg!("Field: {:?}", fieldidx);
-                                dbg!("ProjectionElem: {:?}", ty);
+                                dbg!("Field: {:?}", fieldidx.as_usize().to_string());
+                                dbg!("ProjectionElem: {:?}", ty); //Ethan i think this is what you need
                             },
                             ProjectionElem::Index(local) => {
                                 dbg!("Index: {:?}", local);
@@ -217,9 +219,6 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
                         }
                     }
                 }
-               
-                dbg!{"Local Use: {}", &local_case};
-
 
                 if let Some(_) = self_curr.get_int(local) {
                     self_curr.assign_int(local, self_curr.get_int(local_case.as_str()).unwrap().clone());
