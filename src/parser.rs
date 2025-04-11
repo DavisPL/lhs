@@ -176,10 +176,10 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
                 let local_case = place.local.as_usize().to_string();
                 let projection_case = place.projection;
                 
-                if !projection_case.is_empty(){
+                if !projection_case.is_empty(){ // https://doc.rust-lang.org/stable/nightly-rustc/rustc_middle/mir/type.ProjectionKind.html
                     let projection_case = place.projection;
-                    dbg!{"Projection Use: {}", &projection_case};
-                    for elem in projection_case.iter(){
+                    dbg!{"Projection Use: {}", &projection_case}; 
+                    for elem in projection_case.iter(){ 
                         match elem {
                             ProjectionElem::Deref => {
                                 dbg!("Deref: {:?}", elem);
@@ -203,7 +203,7 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
                             },
                             ProjectionElem::Downcast(option_symbol, variantidx) => {
                                 dbg!("Option Symbol: {:?}", option_symbol);
-                                dbg!("Variant Index: {:?}", variantidx);
+                                dbg!("Variant Index: {:?}", variantidx.as_usize().to_string());
                             },
                             ProjectionElem::OpaqueCast(ty) => {
                                 dbg!("Opaque Cast: {:?}", ty);
