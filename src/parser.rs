@@ -3,7 +3,7 @@ use rustc_middle::mir::interpret::AllocRange;
 use rustc_middle::mir::interpret::ConstAllocation;
 use rustc_middle::mir::Rvalue::{self, BinaryOp, Use};
 use rustc_middle::mir::{
-    BasicBlock, CallSource, Const, ConstValue, Local, Place, SourceInfo, UnwindAction,
+    BasicBlock, CallSource, Const, ConstValue, Local, Place, SourceInfo, UnwindAction, ProjectionElem , ProjectionKind
 };
 use rustc_middle::mir::{BinOp, Body, Operand, StatementKind, SwitchTargets, TerminatorKind};
 use rustc_middle::ty::ScalarInt;
@@ -173,20 +173,70 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
     fn parse_use<'tcx>(self_curr: &mut SymExec<'ctx>, local: &str, operand: Operand<'tcx>) {
         match operand {
             Operand::Copy(place) | Operand::Move(place) => {
-                let place = place.local.as_usize().to_string();
+                let local_case = place.local.as_usize().to_string();
+                let projection_case = place.projection;
+                
+                if !projection_case.is_empty(){
+                    let projection_case = place.projection;
+                    dbg!{"Projection Use: {}", &projection_case};
+                    for elem in projection_case.iter(){
+                        match elem {
+                            ProjectionElem::Deref => {
+                                dbg!("Deref: {:?}", elem);
+                            },
+                            ProjectionElem::Field(fieldidx, ty) => {
+                                dbg!("Field: {:?}", fieldidx);
+                                dbg!("ProjectionElem: {:?}", ty);
+                            },
+                            ProjectionElem::Index(local) => {
+                                dbg!("Index: {:?}", local);
+                            },
+                            ProjectionElem::ConstantIndex{offset , min_length, from_end} => {
+                                dbg!("Offset: {:?}", offset);
+                                dbg!("Min Length: {:?}", min_length);
+                                dbg!("From End: {:?}", from_end);
+                            },
+                            ProjectionElem::Subslice{from, to, from_end} => {
+                                dbg!("From: {:?}", from);
+                                dbg!("To: {:?}", to);
+                                dbg!("From End: {:?}", from_end);
+                            },
+                            ProjectionElem::Downcast(option_symbol, variantidx) => {
+                                dbg!("Option Symbol: {:?}", option_symbol);
+                                dbg!("Variant Index: {:?}", variantidx);
+                            },
+                            ProjectionElem::OpaqueCast(ty) => {
+                                dbg!("Opaque Cast: {:?}", ty);
+                            },
+                            // ProjectionElem::UnwrapUnsafeBinder(ty) => {// the documentation says this is a thing, but compiler complains
+                            //     dbg!("Unwrap Unsafe Binder: {:?}", ty);
+                            // }
+                            ProjectionElem::Subtype(ty) => {
+                                dbg!("Subtype: {:?}", ty);
+                            }
+                        }
+                    }
+                }
+               
+                dbg!{"Local Use: {}", &local_case};
+
+
                 if let Some(_) = self_curr.get_int(local) {
-                    self_curr.assign_int(local, self_curr.get_int(place.as_str()).unwrap().clone());
+                    self_curr.assign_int(local, self_curr.get_int(local_case.as_str()).unwrap().clone());
                 } else if let Some(_) = self_curr.get_bool(local) {
                     self_curr
-                        .assign_bool(local, self_curr.get_bool(place.as_str()).unwrap().clone());
+                        .assign_bool(local, self_curr.get_bool(local_case.as_str()).unwrap().clone());
                 } else if let Some(_) = self_curr.get_string(local) {
                     self_curr.assign_string(
                         local,
-                        self_curr.get_string(place.as_str()).unwrap().clone(),
+                        self_curr.get_string(local_case.as_str()).unwrap().clone(),
                     );
                 }
             }
             Operand::Constant(ref constant) => {
+
+                dbg!{"Parsing Use: {}", &constant};
+                
                 let op = constant.clone();
                 let constant = op.const_;
                 if let Some(var) = self_curr.get_int(local) {
