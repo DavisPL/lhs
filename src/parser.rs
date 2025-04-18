@@ -173,12 +173,14 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
     fn parse_use<'tcx>(self_curr: &mut SymExec<'ctx>, local: &str, operand: Operand<'tcx>) {
         match operand {
             Operand::Copy(place) | Operand::Move(place) => {
+
                 let local_case = place.local.as_usize().to_string();
                 let projection_case = place.projection;
 
                 dbg!("Local Use: {}", &local_case);
                 
                 if !projection_case.is_empty(){ // https://doc.rust-lang.org/stable/nightly-rustc/rustc_middle/mir/type.ProjectionKind.html
+                    return;
                     let projection_case = place.projection;
                     dbg!{"Projection Use: {}", &projection_case}; 
                     for elem in projection_case.iter(){ 
@@ -189,6 +191,7 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
                             ProjectionElem::Field(fieldidx, ty) => {
                                 dbg!("Field: {:?}", fieldidx.as_usize().to_string());
                                 dbg!("ProjectionElem: {:?}", ty); //Ethan i think this is what you need
+                                // return ;
                             },
                             ProjectionElem::Index(local) => {
                                 dbg!("Index: {:?}", local);
@@ -206,6 +209,7 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
                             ProjectionElem::Downcast(option_symbol, variantidx) => {
                                 dbg!("Option Symbol: {:?}", option_symbol);
                                 dbg!("Variant Index: {:?}", variantidx.as_usize().to_string());
+                                // return None;
                             },
                             ProjectionElem::OpaqueCast(ty) => {
                                 dbg!("Opaque Cast: {:?}", ty);
