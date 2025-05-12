@@ -1,9 +1,8 @@
-use rustc_middle::mir::interpret::{AllocRange, ConstAllocation};
-use rustc_middle::mir::{Const, ConstValue, Local, Place};
+use rustc_middle::mir::interpret::{AllocRange, ConstAllocation, Scalar , GlobalAlloc , Pointer};
+use rustc_middle::mir::{Const, ConstValue, Local, Place, Operand};
 use rustc_middle::ty::ScalarInt;
-use rustc_middle::ty::TyKind;
-
-use rustc_middle::mir::Operand;
+use rustc_middle::ty::{ParamEnv, Ty, TyCtxt, TyKind};
+use rustc_abi::Size;
 
 // Get the DefID associated with a given Operand (function)
 pub fn get_operand_def_id<'tcx>(operand: &Operand<'tcx>) -> Option<usize> {
@@ -37,49 +36,45 @@ pub fn get_operand_def_id<'tcx>(operand: &Operand<'tcx>) -> Option<usize> {
     }
 }
 
-// Get the constant string from an Operand::Constant.const_ of type Const::Val
+// Extract the bytes of a `&'static str` literal embedded in an `Operand`.
+// Returns None when the operand is not a constant or its type is not
+// `&str`, or when the bytes are not valid UTF‑8.
 pub fn get_operand_const_string<'tcx>(operand: &Operand<'tcx>) -> Option<String> {
-    match operand {
-        Operand::Copy(_place) => {
-            println!(
-                "get_operand_const_string: This should never happen, contact Hassnain if this is printed"
-            );
-            None
-        }
-        Operand::Move(place) => {
-            println!(
-                "get_operand_const_string: This should never happen, contact Hassnain if this is printed"
-            );
-            None
-        }
-        Operand::Constant(place) => {
-            let constant = place.const_;
-            match constant {
-                Const::Ty(_ty, _const) => {
-                    println!("get_operand_const_string: This should never happen, contact Hassnain if this is printed");
-                    None
-                }
-                Const::Unevaluated(_unevaluated_const, _ty) => {
-                    println!("get_operand_const_string: This should never happen, contact Hassnain if this is printed");
-                    None
-                }
-                Const::Val(const_value, ty) => {
-                    match const_value {
-                        ConstValue::Slice { data, meta } => {
-                            if let Some(str_data) = extract_string_from_const(&data, meta) {
-                                return Some(str_data);
-                            }
-                        }
-                        _ => {
-                            println!("get_operand_const_string: This should never happen, contact Hassnain if this is printed");
-                        }
-                    }
-                    None
-                }
-            }
-        }
+    // is it an `Operand::Constant` 
+    let (val, ty): (ConstValue<'tcx>, Ty<'tcx>) = match operand {
+        Operand::Constant(c) => match c.const_ {
+            // Already‑evaluated constant
+            Const::Val(val, ty) => (val, ty),
+            // `Const::Unevaluated` and `Const::Ty` need tcx to resolve , skipping for now
+            _ => return None,
+        },
+        // Copy / Move refer to locals, not literals
+        _ => return None,
+    };
+
+    // is it `&str` ? 
+    match ty.kind() {
+        TyKind::Ref(_, inner, _) if matches!(inner.kind(), TyKind::Str) => {}
+        _ => return None,
     }
+
+    // can we get the raw bytes? 
+    let bytes = match val {
+        ConstValue::Slice { data, meta } => {
+            let range = AllocRange {
+                start: Size::from_bytes(0),
+                size:  Size::from_bytes(meta),
+            };
+            data.0.get_bytes_unchecked(range).to_vec()
+        }
+        // other `ConstValue`s (Scalar, ByRef, ZeroSized …) cannot encode a
+        // string literal on nightly‑2024‑07‑22, so just give up! 
+        _ => return None,
+    };
+
+    String::from_utf8(bytes).ok()
 }
+
 
 // Get the `Local` associated with an Operand if of Move variant
 pub fn get_operand_local<'tcx>(operand: &Operand<'tcx>) -> Option<usize> {
