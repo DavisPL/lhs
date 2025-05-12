@@ -320,36 +320,36 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
                         unwind.clone(),
                         call_source.clone(),
                     ),
-                    TerminatorKind::TailCall {
-                        func, //Operand<'tcx>
-                        args,   // Box<[Spanned<Operand<'tcx>>]>
-                        fn_span, //Span
-                    } =>{
-                        unimplemented!("TailCall not implemented. The destination, target and unwind are not provided, they are to be taken from the current stazck frame.")
-                        // probably need to make changes to the struture of the stack to accomodate this. Possible soltion make an Enum for the stack frame, with variants for Call and TailCall and then have the stack be a vector of this enum. 
-                    },
-                    TerminatorKind::Assert{
-                        cond ,  // Operand<'tcx>,
-                        expected, // bool,
-                        msg , // Box<AssertMessage<'tcx>>,
-                        target, // BasicBlock,
-                        unwind, // UnwindAction,
-                    } => {
-                        unimplemented!("Assert not implemented")
-                    },
-                    TerminatorKind::Yield{
-                        value, // Operand<'tcx>,
-                        resume, // BasicBlock,
-                        resume_arg, //Place<'tcx>,
-                        drop, // Option<BasicBlock>,
-                    } => {
-                        unimplemented!("Yield not implemented")
-                    },
-                    TerminatorKind::CoroutineDrop{ 
-                    //Indicates the end of dropping a coroutine. Semantically just a return (from the coroutines drop glue). Only permitted in the same situations as yield. Documentation says , need clarification because it is not even really in the cutrent body and are there type system constraints on these terminators? should there be a 'block type' like cleanup blocks for them? 
-                    } => {
-                        unimplemented!("CoroutineDrop not implemented")
-                    },
+                    // TerminatorKind::TailCall {
+                    //     func, //Operand<'tcx>
+                    //     args,   // Box<[Spanned<Operand<'tcx>>]>
+                    //     fn_span, //Span
+                    // } =>{
+                    //     unimplemented!("TailCall not implemented. The destination, target and unwind are not provided, they are to be taken from the current stazck frame.")
+                    //     // probably need to make changes to the struture of the stack to accomodate this. Possible soltion make an Enum for the stack frame, with variants for Call and TailCall and then have the stack be a vector of this enum. 
+                    // },
+                    // TerminatorKind::Assert{
+                    //     cond ,  // Operand<'tcx>,
+                    //     expected, // bool,
+                    //     msg , // Box<AssertMessage<'tcx>>,
+                    //     target, // BasicBlock,
+                    //     unwind, // UnwindAction,
+                    // } => {
+                    //     unimplemented!("Assert not implemented")
+                    // },
+                    // TerminatorKind::Yield{
+                    //     value, // Operand<'tcx>,
+                    //     resume, // BasicBlock,
+                    //     resume_arg, //Place<'tcx>,
+                    //     drop, // Option<BasicBlock>,
+                    // } => {
+                    //     unimplemented!("Yield not implemented")
+                    // },
+                    // TerminatorKind::CoroutineDrop{ 
+                    // //Indicates the end of dropping a coroutine. Semantically just a return (from the coroutines drop glue). Only permitted in the same situations as yield. Documentation says , need clarification because it is not even really in the cutrent body and are there type system constraints on these terminators? should there be a 'block type' like cleanup blocks for them? 
+                    // } => {
+                    //     unimplemented!("CoroutineDrop not implemented")
+                    // },
                     TerminatorKind::FalseEdge {
                         real_target,
                         imaginary_target,
@@ -358,17 +358,21 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
                         real_target,
                         unwind,
                     } => self.parse_bb(*real_target), // untested
-                    TerminatorKind::InlineAsm {
-                        // asm_macro , //InlineAsmMacro - Documentation says this field should be here, but compiler complains when I add this one. 
-                        template , //&'tcx[InlineAsmTemplatePiece],
-                        operands, // Box<[InlineAsmOperand<'tcx>]>,
-                        options, //InlineAsmOptions,
-                        line_spans, //&'tcx[Span],
-                        targets , //Box<[BasicBlock]>,
-                        unwind, //UnwindAction,
-                    } =>{
-                        unimplemented!("InlineAsm not implemented");
-                    } 
+                    // TerminatorKind::InlineAsm {
+                    //     // asm_macro , //InlineAsmMacro - Documentation says this field should be here, but compiler complains when I add this one. 
+                    //     template , //&'tcx[InlineAsmTemplatePiece],
+                    //     operands, // Box<[InlineAsmOperand<'tcx>]>,
+                    //     options, //InlineAsmOptions,
+                    //     line_spans, //&'tcx[Span],
+                    //     targets , //Box<[BasicBlock]>,
+                    //     unwind, //UnwindAction,
+                    // } =>{
+                    //     unimplemented!("InlineAsm not implemented");
+                    // } 
+                    _ => {
+                        println!("Unhandled terminator: {:?}", &bb_data.terminator().kind);
+                        None
+                    }
                     // TODO: Handle Assert, maybe we can just go down the success path?
                       // TODO: When does Unreachable appear? ex5 contains `unreachable` in bb3
                       //      Indicates a terminator that can never be reached.
@@ -523,7 +527,7 @@ impl<'a, 'ctx> MIRParser<'a, 'ctx> {
                     }
                 }
                 None => {
-                    println!(
+                    unreachable!(
                         "Parse Call: This should never happen, contact Hassnain if this is printed"
                     )
                 }
