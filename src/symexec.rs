@@ -9,6 +9,8 @@ pub struct SymExec<'ctx> {
     pub int_variables: HashMap<String, z3::ast::Int<'ctx>>,
     pub bool_variables: HashMap<String, z3::ast::Bool<'ctx>>,
     pub constraints: Vec<z3::ast::Bool<'ctx>>,
+
+    pub interval_map: HashMap<String, (Option<i128>, Option<i128>)>, // for narrowing down the range of values
 }
 
 impl<'ctx> SymExec<'ctx> {
@@ -20,6 +22,7 @@ impl<'ctx> SymExec<'ctx> {
             int_variables: HashMap::new(),
             bool_variables: HashMap::new(),
             constraints: Vec::new(),
+            interval_map: HashMap::new(),
         }
     }
     /// Checks if the constraints in the executor and the new constraint are satisfiable.
@@ -186,6 +189,7 @@ impl<'ctx> SymExec<'ctx> {
             variable_name.to_string(),
             z3::ast::Int::new_const(self.context, variable_name),
         );
+        self.interval_map.insert(variable_name.to_string(), (None, None));
     }
     /// Gets the z3 int expression with the given variable name from the executor. If the variable name is not
     /// present, None is returned.
@@ -196,6 +200,7 @@ impl<'ctx> SymExec<'ctx> {
     /// to replace the value of a int variable.
     pub fn assign_int(&mut self, variable_name: &str, value: z3::ast::Int<'ctx>) {
         self.int_variables.insert(variable_name.to_string(), value);
+        self.interval_map.insert(variable_name.to_string(), (None, None));
     }
     /// Creates a z3 int expression from an Rust int.
     pub fn static_int(&self, value: i128) -> z3::ast::Int<'ctx> {
@@ -290,6 +295,28 @@ impl<'ctx> SymExec<'ctx> {
     ) -> z3::ast::Bool<'ctx> {
         lhs._eq(rhs)
     }
+
+    pub fn int_interval(&self, var: &str) -> (Option<i128>, Option<i128>) {
+        self.interval_map.get(var).cloned().unwrap_or((None, None))
+    }
+
+    pub fn set_interval(&mut self, var: &str, lo: Option<i128>, hi: Option<i128>) {
+        self.interval_map.insert(var.to_string(), (lo, hi));
+    }
+
+    pub fn widen(
+        (l0, h0): (Option<i128>, Option<i128>),
+        (l1, h1): (Option<i128>, Option<i128>),
+    ) -> (Option<i128>, Option<i128>) {
+        (
+            match (l0, l1) { (Some(a), Some(b)) if a == b => Some(a), _ => None },
+            match (h0, h1) { (Some(a), Some(b)) if a == b => Some(a), _ => None },
+        )
+    }
+
+
+
+
 }
 
 #[test]

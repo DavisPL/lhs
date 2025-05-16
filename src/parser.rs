@@ -9,8 +9,11 @@ use crate::operand::{
     get_operand_const_string, get_operand_def_id, get_operand_local, get_operand_span,
 };
 use crate::symexec::SymExec;
+use std::collections::{HashMap, HashSet};
+use std::hash::Hash;
 
 const DEF_ID_FS_WRITE: usize = 2_345;
+const MAX_LOOP_ITER: u32 = 5; // after how many iterations should we cut off
 
 pub struct MIRParser<'mir, 'ctx> {
     mir_body:     &'mir Body<'mir>,
@@ -18,6 +21,7 @@ pub struct MIRParser<'mir, 'ctx> {
     stack:        Vec<(SymExec<'ctx>, BasicBlock)>,
     path_count:   u32,                      // counter for logs
     current_path: Vec<BasicBlock>,          // simple cycle detector
+    visit_counts: HashMap<BasicBlock, u32>, // this is to keep track how many times we have visited each bb
 }
 
 impl<'mir, 'ctx> MIRParser<'mir, 'ctx> {
@@ -29,6 +33,7 @@ impl<'mir, 'ctx> MIRParser<'mir, 'ctx> {
             stack: Vec::new(),
             path_count: 0,
             current_path: Vec::new(),
+            visit_counts: HashMap::new(),
         }
     }
 
@@ -61,14 +66,73 @@ impl<'mir, 'ctx> MIRParser<'mir, 'ctx> {
         key
     }
 
+    fn collect_written_vars(&self, bb: BasicBlock) -> HashSet<String> {
+        let mut vars = HashSet::new();
+        let data = &self.mir_body.basic_blocks[bb];
+        for stmt in &data.statements {
+            if let StatementKind::Assign(rval) = &stmt.kind {
+                let (place, _) = &**rval;
+                vars.insert(self.place_key(place));
+            }
+        }
+        vars
+    }
+
+    fn constraint_mentions(names:&HashSet<String>, c: &z3::ast::Bool<'ctx>) -> bool {
+        let txt = c.to_string();
+        names.iter().any(|name| txt.contains(name))
+
+    }
+
     // DFS traversal - exits if loop is detected
     fn parse_bb(&mut self, bb: BasicBlock) -> Option<rustc_span::Span> {
-        if self.current_path.contains(&bb) {
-            println!("\tbb{} revisited – loop cut‑off", bb.as_u32());
-            // return None; // do widening and narrowing here
-            // currently we just back‑track to previous decision point
-            return self.parse_return(); 
+        
+        let counter = self.visit_counts.entry(bb).or_insert(0);
+        *counter += 1;  
+
+        // we have visited more than required number of times, we can cut off and do the widening
+        if *counter > MAX_LOOP_ITER {
+            println!("\tbb{} exceeded max iterations limit {} – Performing widening and back tracking", bb.as_u32() , MAX_LOOP_ITER);
+            
+            // I should be clearing the constraints on those variables that they can be anything? 
+            // but this clear should only happen on the variables that are in the current path
+            self.curr.constraints.clear(); //check with anirudh
+            // do I really want to clear this , I should probably just be breaking?
+            // I think it makes sense to clear all the 'narrowed' constraints here, because we don't know what the loop might do in the next iterations and hence the variable can have any value. 
+            self.curr.interval_map.clear(); // shoudl I be clearing this too?
+
+            return self.parse_return();
         }
+
+        if self.current_path.contains(&bb) && *counter > 1 {
+            // this means we are visiting the same bb again, but we have not hit the limit yet
+            println!("\tbb{} revisited – iteration {} , Applying narrowing", bb.as_u32(), *counter);
+
+            // this should constrain the variables that are in the current path
+
+            // I do not know what to do here. 
+
+            let written_vars = self.collect_written_vars(bb); // i know now all the variables that are written in this bb
+    
+            // I should be narrowing the constraints on these variables?
+            self.curr
+            .constraints
+            .retain(|c| !Self::constraint_mentions(&written_vars, c));
+
+
+
+``
+
+        }
+
+        
+        // if self.current_path.contains(&bb) {
+        //     println!("\tbb{} revisited – loop cut‑off", bb.as_u32());
+        //     // return None; // do widening and narrowing here
+        //     // currently we just back‑track to previous decision point
+        //     return self.parse_return(); 
+        // }
+
         self.current_path.push(bb);
         println!("\tbb{}", bb.as_u32());
 
