@@ -2,7 +2,6 @@ use rustc_middle::mir::{
     BasicBlock, BinOp, Body, CallSource, Operand, Place, ProjectionElem, Rvalue, StatementKind,
     SwitchTargets, TerminatorKind, UnwindAction,
 };
-use rustc_middle::ty::ScalarInt;
 use z3::SatResult;
 
 use crate::operand::{
@@ -10,22 +9,21 @@ use crate::operand::{
 };
 use crate::symexec::SymExec;
 use std::collections::{HashMap, HashSet};
-use std::hash::Hash;
 
 const DEF_ID_FS_WRITE: usize = 2_345;
-const MAX_LOOP_ITER: u32 = 5; // after how many iterations should we cut off
+const MAX_LOOP_ITER: u32 = 5; // after how many visits we “widen”
 
 pub struct MIRParser<'mir, 'ctx> {
-    mir_body:     &'mir Body<'mir>,
-    pub curr:     SymExec<'ctx>,            // symbolic state for the active path
-    stack:        Vec<(SymExec<'ctx>, BasicBlock)>,
-    path_count:   u32,                      // counter for logs
-    current_path: Vec<BasicBlock>,          // simple cycle detector
-    visit_counts: HashMap<BasicBlock, u32>, // this is to keep track how many times we have visited each bb
+    mir_body: &'mir Body<'mir>,
+    pub curr: SymExec<'ctx>,
+
+    stack: Vec<(SymExec<'ctx>, BasicBlock)>,
+    path_count: u32,
+    current_path: Vec<BasicBlock>,
+    visit_counts: HashMap<BasicBlock, u32>,
 }
 
 impl<'mir, 'ctx> MIRParser<'mir, 'ctx> {
-    // Create a new parser around a MIR body and an empty SymExec 
     pub fn new(body: &'mir Body<'mir>, z3: SymExec<'ctx>) -> Self {
         Self {
             mir_body: body,
@@ -37,29 +35,24 @@ impl<'mir, 'ctx> MIRParser<'mir, 'ctx> {
         }
     }
 
-    // start by parsing from bb0
     pub fn parse(&mut self) -> Option<rustc_span::Span> {
-        println!("START: Path 0!");
+        println!("START: Path 0!");
         self.parse_bb(BasicBlock::from_usize(0))
     }
 
-    // Helper: convert any `Place` (+ projection) into a stable string key 
-    // this is written by GPT, seens to work
+    // Turn `Place` (+ projection) into a stable key
     fn place_key<'tcx>(&self, place: &Place<'tcx>) -> String {
-        // Example:  base 3, field 0, deref  →  "3.f0*"
         let mut key = place.local.as_usize().to_string();
         for elem in place.projection {
             use ProjectionElem::*;
             match elem {
                 Deref => key.push('*'),
-                Field(f, _)   => key.push_str(&format!(".f{}", f.as_usize())),
-                Index(l)      => key.push_str(&format!("[{}]", l.as_usize())),
-                ConstantIndex { offset, .. } =>
-                    key.push_str(&format!("[{}]", offset)),
-                Subslice { from, to, .. } =>
-                    key.push_str(&format!("[{}..{}]", from, to)),
+                Field(f, _) => key.push_str(&format!(".f{}", f.as_usize())),
+                Index(l) => key.push_str(&format!("[{}]", l.as_usize())),
+                ConstantIndex { offset, .. } => key.push_str(&format!("[{}]", offset)),
+                Subslice { from, to, .. } => key.push_str(&format!("[{}..{}]", from, to)),
                 Downcast(_, v) => key.push_str(&format!("::variant{}", v.as_usize())),
-                OpaqueCast(_)  => key.push_str("::opaque"),
+                OpaqueCast(_) => key.push_str("::opaque"),
                 ProjectionElem::Subtype(_) => key.push_str("::sub"),
             }
         }
@@ -68,83 +61,63 @@ impl<'mir, 'ctx> MIRParser<'mir, 'ctx> {
 
     fn collect_written_vars(&self, bb: BasicBlock) -> HashSet<String> {
         let mut vars = HashSet::new();
-        let data = &self.mir_body.basic_blocks[bb];
-        for stmt in &data.statements {
-            if let StatementKind::Assign(rval) = &stmt.kind {
-                let (place, _) = &**rval;
-                vars.insert(self.place_key(place));
+        for stmt in &self.mir_body.basic_blocks[bb].statements {
+            if let StatementKind::Assign(bx) = &stmt.kind {
+                vars.insert(self.place_key(&bx.0));
             }
         }
         vars
     }
 
-    fn constraint_mentions(names:&HashSet<String>, c: &z3::ast::Bool<'ctx>) -> bool {
+    fn constraint_mentions(names: &HashSet<String>, c: &z3::ast::Bool<'ctx>) -> bool {
         let txt = c.to_string();
-        names.iter().any(|name| txt.contains(name))
-
+        names.iter().any(|n| txt.contains(n))
     }
 
-    // DFS traversal - exits if loop is detected
-    fn parse_bb(&mut self, bb: BasicBlock) -> Option<rustc_span::Span> {
-        
-        let counter = self.visit_counts.entry(bb).or_insert(0);
-        *counter += 1;  
 
-        // we have visited more than required number of times, we can cut off and do the widening
+    fn parse_bb(&mut self, bb: BasicBlock) -> Option<rustc_span::Span> {
+
+        let counter = self.visit_counts.entry(bb).or_insert(0);
+        *counter += 1;
+
         if *counter > MAX_LOOP_ITER {
-            println!("\tbb{} exceeded max iterations limit {} – Performing widening and back tracking", bb.as_u32() , MAX_LOOP_ITER);
-            
-            // I should be clearing the constraints on those variables that they can be anything? 
-            // but this clear should only happen on the variables that are in the current path
-            self.curr.constraints.clear(); //check with anirudh
-            // do I really want to clear this , I should probably just be breaking?
-            // I think it makes sense to clear all the 'narrowed' constraints here, because we don't know what the loop might do in the next iterations and hence the variable can have any value. 
-            self.curr.interval_map.clear(); // shoudl I be clearing this too?
+            println!(
+                "\tbb{} exceeded limit {} — widening",
+                bb.as_u32(),
+                MAX_LOOP_ITER
+            );
+
+            // clear constraints on only those variables that are in this BB
+            let written = self.collect_written_vars(bb);
+
+            self.curr
+                .constraints
+                .retain(|c| !Self::constraint_mentions(&written, c));
+
+            for w in written {
+                self.curr.set_interval(&w, None, None);
+            }
 
             return self.parse_return();
         }
 
-        if self.current_path.contains(&bb) && *counter > 1 {
-            // this means we are visiting the same bb again, but we have not hit the limit yet
-            println!("\tbb{} revisited – iteration {} , Applying narrowing", bb.as_u32(), *counter);
-
-            // this should constrain the variables that are in the current path
-
-            // I do not know what to do here. 
-
-            let written_vars = self.collect_written_vars(bb); // i know now all the variables that are written in this bb
-    
-            // I should be narrowing the constraints on these variables?
-            self.curr
-            .constraints
-            .retain(|c| !Self::constraint_mentions(&written_vars, c));
-
-
-        }
-
-        
-        // if self.current_path.contains(&bb) {
-        //     println!("\tbb{} revisited – loop cut‑off", bb.as_u32());
-        //     // return None; // do widening and narrowing here
-        //     // currently we just back‑track to previous decision point
-        //     return self.parse_return(); 
+        // if self.current_path.contains(&bb) && *counter > 1 {
+        //     let written = self.collect_written_vars(bb);
+        //     self.curr
+        //         .constraints
+        //         .retain(|c| !Self::constraint_mentions(&written, c));
         // }
 
+        /* ── walk statements and terminator ── */
         self.current_path.push(bb);
-        println!("\tbb{}", bb.as_u32());
-
         let data = &self.mir_body.basic_blocks[bb];
 
-        for statement in &data.statements {
-            match &statement.kind{
-                StatementKind::Assign(val) => {
-                    self.parse_assign(val.clone());
-                },
-                _ => (), // other statement types are ignored , get to them someday??
+        for stmt in &data.statements {
+            if let StatementKind::Assign(val) = &stmt.kind {
+                self.parse_assign(val.clone());
             }
         }
 
-        //Terminator kinds
         let res = match &data.terminator().kind {
             TerminatorKind::Goto { target } => self.parse_bb(*target),
 
@@ -182,7 +155,7 @@ impl<'mir, 'ctx> MIRParser<'mir, 'ctx> {
                 unwind,
                 ..
             } => {
-                // split on assertion success / failure
+                
                 let idx = get_operand_local(cond).unwrap_or(0);
                 let pred = self
                     .curr
@@ -191,7 +164,11 @@ impl<'mir, 'ctx> MIRParser<'mir, 'ctx> {
                     .unwrap_or_else(|| self.curr.static_bool(true));
 
                 let mut ok = self.curr.clone();
-                ok.add_constraint(if *expected { pred.clone() } else { ok.not(&pred) });
+                ok.add_constraint(if *expected {
+                    pred.clone()
+                } else {
+                    ok.not(&pred)
+                });
                 self.stack.push((ok, *target));
 
                 if let UnwindAction::Cleanup(clean) = unwind {
@@ -211,8 +188,10 @@ impl<'mir, 'ctx> MIRParser<'mir, 'ctx> {
             }
             TerminatorKind::TailCall { .. } => self.parse_return(),
 
-            TerminatorKind::InlineAsm { targets, unwind, .. } => {
-                for &t in targets.iter() {
+            TerminatorKind::InlineAsm {
+                targets, unwind, ..
+            } => {
+                for &t in targets {
                     self.stack.push((self.curr.clone(), t));
                 }
                 if let UnwindAction::Cleanup(clean) = unwind {
@@ -237,20 +216,18 @@ impl<'mir, 'ctx> MIRParser<'mir, 'ctx> {
         res
     }
 
-    // handle assignment statements
+    
     fn parse_assign<'tcx>(&mut self, boxed: Box<(Place<'tcx>, Rvalue<'tcx>)>) {
         let (place, rhs) = *boxed;
-        let dst_key = self.place_key(&place);  // this call is by GPT, seems to work, audit later
+        let dst_key = self.place_key(&place);
 
         match rhs {
-            Rvalue::Use(op)                 => self.parse_use(dst_key.as_str(), &op),
-            Rvalue::BinaryOp(op, operands)  => self.parse_bin_op(dst_key.as_str(), op, &operands),
+            Rvalue::Use(op) => self.parse_use(dst_key.as_str(), &op),
+            Rvalue::BinaryOp(op, operands) => self.parse_bin_op(dst_key.as_str(), op, &operands),
             _ => {}
         }
     }
 
-    // Handles simple moves and constant loads
-    // – Limitation: pointer aliasing beyond a single `Deref` is not tracked
     fn parse_use<'tcx>(&mut self, dst: &str, op: &Operand<'tcx>) {
         match op {
             Operand::Copy(p) | Operand::Move(p) => {
@@ -266,11 +243,15 @@ impl<'mir, 'ctx> MIRParser<'mir, 'ctx> {
             Operand::Constant(c) => {
                 let k = &c.const_;
                 if let Some(si) = k.try_to_scalar_int() {
-                    self.curr.assign_int(dst, self.curr.static_int((si.to_int(si.size()) as i64).into()));
+                    self.curr.assign_int(
+                        dst,
+                        self.curr.static_int((si.to_int(si.size()) as i64).into()),
+                    );
                 } else if let Some(b) = k.try_to_bool() {
                     self.curr.assign_bool(dst, self.curr.static_bool(b));
                 } else if let Some(s) = get_operand_const_string(op) {
-                    self.curr.assign_string(dst, self.curr.static_string(s.as_str()));
+                    self.curr
+                        .assign_string(dst, self.curr.static_string(s.as_str()));
                 }
             }
         }
@@ -282,14 +263,15 @@ impl<'mir, 'ctx> MIRParser<'mir, 'ctx> {
         op: BinOp,
         (lhs, rhs): &(Operand<'tcx>, Operand<'tcx>),
     ) {
-        // helper: turn operand into optional z3::Int 
         let int_of = |o: &Operand<'tcx>, me: &Self| -> Option<z3::ast::Int<'ctx>> {
             match o {
-                Operand::Copy(p) | Operand::Move(p) =>
-                    me.curr.get_int(me.place_key(p).as_str()).cloned(),
-                Operand::Constant(c) =>
-                    c.const_.try_to_scalar_int()
-                        .map(|si| me.curr.static_int((si.to_int(si.size()) as i64).into())),
+                Operand::Copy(p) | Operand::Move(p) => {
+                    me.curr.get_int(me.place_key(p).as_str()).cloned()
+                }
+                Operand::Constant(c) => c
+                    .const_
+                    .try_to_scalar_int()
+                    .map(|si| me.curr.static_int((si.to_int(si.size()) as i64).into())),
             }
         };
         let lhs_i = int_of(lhs, self);
@@ -299,7 +281,9 @@ impl<'mir, 'ctx> MIRParser<'mir, 'ctx> {
             use BinOp::*;
             match op {
                 Eq => self.curr.assign_bool(dst, self.curr.int_eq(l, r)),
-                Ne => self.curr.assign_bool(dst, self.curr.not(&self.curr.int_eq(l, r))),
+                Ne => self
+                    .curr
+                    .assign_bool(dst, self.curr.not(&self.curr.int_eq(l, r))),
                 Lt => self.curr.assign_bool(dst, self.curr.int_lt(l, r)),
                 Le => self.curr.assign_bool(dst, self.curr.int_le(l, r)),
                 Gt => self.curr.assign_bool(dst, self.curr.int_gt(l, r)),
@@ -314,27 +298,34 @@ impl<'mir, 'ctx> MIRParser<'mir, 'ctx> {
             return;
         }
 
-        // string equality (== / !=)  
+        // string eq / ne
         if matches!(op, BinOp::Eq | BinOp::Ne) {
             let str_of = |o: &Operand<'tcx>, me: &Self| -> Option<z3::ast::String<'ctx>> {
                 match o {
-                    Operand::Copy(p) | Operand::Move(p) =>
-                        me.curr.get_string(me.place_key(p).as_str()).cloned(),
-                    Operand::Constant(_) =>
-                        get_operand_const_string(o).map(|s| me.curr.static_string(s.as_str())),
+                    Operand::Copy(p) | Operand::Move(p) => {
+                        me.curr.get_string(me.place_key(p).as_str()).cloned()
+                    }
+                    Operand::Constant(_) => {
+                        get_operand_const_string(o).map(|s| me.curr.static_string(s.as_str()))
+                    }
                 }
             };
             if let (Some(a), Some(b)) = (str_of(lhs, self), str_of(rhs, self)) {
                 let eq = self.curr.string_eq(&a, &b);
                 self.curr.assign_bool(
                     dst,
-                    if matches!(op, BinOp::Eq) { eq } else { self.curr.not(&eq) },
+                    if matches!(op, BinOp::Eq) {
+                        eq
+                    } else {
+                        self.curr.not(&eq)
+                    },
                 );
             }
         }
     }
 
-    // SwitchInt (works only when discr is boolean)
+    /* ─────── SwitchInt ─────── */
+
     fn parse_switch_int(
         &mut self,
         discr: Operand,
@@ -352,11 +343,14 @@ impl<'mir, 'ctx> MIRParser<'mir, 'ctx> {
         if let Some(pred) = sym {
             let (val0, bb0) = targets.iter().next().unwrap();
             let bb_else = targets.otherwise();
-            
-            // model both true and false branches
+
             let mut t = self.curr.clone();
             let mut f = self.curr.clone();
-            t.add_constraint(if val0 == 0 { t.not(&pred) } else { pred.clone() });
+            t.add_constraint(if val0 == 0 {
+                t.not(&pred)
+            } else {
+                pred.clone()
+            });
             f.add_constraint(if val0 == 0 { pred } else { f.not(&pred) });
 
             self.stack.push((t, bb0));
@@ -371,7 +365,6 @@ impl<'mir, 'ctx> MIRParser<'mir, 'ctx> {
         }
     }
 
-    // parse function calls
     fn parse_call<'tcx>(
         &mut self,
         func: Operand<'tcx>,
@@ -381,30 +374,36 @@ impl<'mir, 'ctx> MIRParser<'mir, 'ctx> {
         unwind: UnwindAction,
         _src: CallSource,
     ) -> Option<rustc_span::Span> {
-        // Detect potential write to /proc/self/mem 
-        if get_operand_def_id(&func) == Some(DEF_ID_FS_WRITE) {
-            let first = &args[0].node;
-            let sat = match get_operand_local(first) {
+        
+        let is_write_def = get_operand_def_id(&func) == Some(DEF_ID_FS_WRITE);
+
+        let mut write_is_dangerous = false;
+
+        if !args.is_empty() {
+            let path_operand = &args[0].node;
+            write_is_dangerous = match get_operand_local(path_operand) {
+
                 Some(0) => {
-                    let s = get_operand_const_string(first).unwrap();
-                    self.curr.is_write_safe(&self.curr.static_string(&s))
+                    let s = get_operand_const_string(path_operand).unwrap();
+                    s == "/proc/self/mem"
                 }
+                
                 Some(idx) => {
-                    let v = self
-                        .curr
-                        .get_string(idx.to_string().as_str())
-                        .unwrap()
-                        .clone();
-                    self.curr.is_write_safe(&v)
+                    if let Some(sym_str) = self.curr.get_string(idx.to_string().as_str()) {
+                        matches!(self.curr.is_write_safe(sym_str), Ok(SatResult::Sat))
+                    } else {
+                        false
+                    }
                 }
-                None => Ok(SatResult::Unsat),
+                None => false,
             };
-            if let Ok(SatResult::Sat) = sat {
-                return get_operand_span(&func);
-            }
         }
 
-        // control flow transfer
+        if (is_write_def || write_is_dangerous) && write_is_dangerous {
+            // report only if the path is "/proc/self/mem"
+            return get_operand_span(&func);
+        }
+
         if let Some(bb) = target {
             self.parse_bb(bb)
         } else if let UnwindAction::Cleanup(clean) = unwind {
@@ -414,12 +413,11 @@ impl<'mir, 'ctx> MIRParser<'mir, 'ctx> {
         }
     }
 
-    // pop the last state from the stack and continue parsing
     fn parse_return(&mut self) -> Option<rustc_span::Span> {
         if let Some((state, bb)) = self.stack.pop() {
             self.curr = state;
             self.path_count += 1;
-            println!("START: Path {}!", self.path_count);
+            println!("START: Path_{}!", self.path_count);
             self.parse_bb(bb)
         } else {
             None

@@ -189,7 +189,8 @@ impl<'ctx> SymExec<'ctx> {
             variable_name.to_string(),
             z3::ast::Int::new_const(self.context, variable_name),
         );
-        self.interval_map.insert(variable_name.to_string(), (None, None));
+        self.interval_map
+            .insert(variable_name.to_string(), (None, None));
     }
     /// Gets the z3 int expression with the given variable name from the executor. If the variable name is not
     /// present, None is returned.
@@ -200,7 +201,8 @@ impl<'ctx> SymExec<'ctx> {
     /// to replace the value of a int variable.
     pub fn assign_int(&mut self, variable_name: &str, value: z3::ast::Int<'ctx>) {
         self.int_variables.insert(variable_name.to_string(), value);
-        self.interval_map.insert(variable_name.to_string(), (None, None));
+        self.interval_map
+            .insert(variable_name.to_string(), (None, None));
     }
     /// Creates a z3 int expression from an Rust int.
     pub fn static_int(&self, value: i128) -> z3::ast::Int<'ctx> {
@@ -309,14 +311,16 @@ impl<'ctx> SymExec<'ctx> {
         (l1, h1): (Option<i128>, Option<i128>),
     ) -> (Option<i128>, Option<i128>) {
         (
-            match (l0, l1) { (Some(a), Some(b)) if a == b => Some(a), _ => None },
-            match (h0, h1) { (Some(a), Some(b)) if a == b => Some(a), _ => None },
+            match (l0, l1) {
+                (Some(a), Some(b)) if a == b => Some(a),
+                _ => None,
+            },
+            match (h0, h1) {
+                (Some(a), Some(b)) if a == b => Some(a),
+                _ => None,
+            },
         )
     }
-
-
-
-
 }
 
 #[test]
@@ -332,5 +336,7 @@ pub fn test_static_int() {
     assert_eq!(int1.to_string(), "10");
     assert_eq!(int2.to_string(), "(- 10)");
     assert_eq!(int3.to_string(), "9223372036854775802");
-    assert!(exec_struct.check_constraint_sat(&exec_struct.int_lt(&int4, &int5)) == z3::SatResult::Sat);
+    assert!(
+        exec_struct.check_constraint_sat(&exec_struct.int_lt(&int4, &int5)) == z3::SatResult::Sat
+    );
 }

@@ -1,8 +1,8 @@
-use rustc_middle::mir::interpret::{AllocRange, ConstAllocation, Scalar , GlobalAlloc , Pointer};
-use rustc_middle::mir::{Const, ConstValue, Local, Place, Operand};
+use rustc_abi::Size;
+use rustc_middle::mir::interpret::{AllocRange, ConstAllocation, GlobalAlloc, Pointer, Scalar};
+use rustc_middle::mir::{Const, ConstValue, Local, Operand, Place};
 use rustc_middle::ty::ScalarInt;
 use rustc_middle::ty::{ParamEnv, Ty, TyCtxt, TyKind};
-use rustc_abi::Size;
 
 // Get the DefID associated with a given Operand (function)
 pub fn get_operand_def_id<'tcx>(operand: &Operand<'tcx>) -> Option<usize> {
@@ -40,7 +40,7 @@ pub fn get_operand_def_id<'tcx>(operand: &Operand<'tcx>) -> Option<usize> {
 // Returns None when the operand is not a constant or its type is not
 // `&str`, or when the bytes are not valid UTF‑8.
 pub fn get_operand_const_string<'tcx>(operand: &Operand<'tcx>) -> Option<String> {
-    // is it an `Operand::Constant` 
+    // is it an `Operand::Constant`
     let (val, ty): (ConstValue<'tcx>, Ty<'tcx>) = match operand {
         Operand::Constant(c) => match c.const_ {
             // Already‑evaluated constant
@@ -52,35 +52,34 @@ pub fn get_operand_const_string<'tcx>(operand: &Operand<'tcx>) -> Option<String>
         _ => return None,
     };
 
-    // is it `&str` ? 
+    // is it `&str` ?
     match ty.kind() {
         TyKind::Ref(_, inner, _) if matches!(inner.kind(), TyKind::Str) => {}
         _ => return None,
     }
 
-    // can we get the raw bytes? 
+    // can we get the raw bytes?
     let bytes = match val {
         ConstValue::Slice { data, meta } => {
             let range = AllocRange {
                 start: Size::from_bytes(0),
-                size:  Size::from_bytes(meta),
+                size: Size::from_bytes(meta),
             };
             data.0.get_bytes_unchecked(range).to_vec()
         }
         // other `ConstValue`s (Scalar, ByRef, ZeroSized …) cannot encode a
-        // string literal on nightly‑2024‑07‑22, so just give up! 
+        // string literal on nightly‑2024‑07‑22, so just give up!
         _ => return None,
     };
 
     String::from_utf8(bytes).ok()
 }
 
-
 // Get the `Local` associated with an Operand if of Move variant
 pub fn get_operand_local<'tcx>(operand: &Operand<'tcx>) -> Option<usize> {
     match operand {
         // In optimized MIR example 1 is a copy case, instead of a move case
-        Operand::Copy(place) => { 
+        Operand::Copy(place) => {
             let local = place.local;
             let projection = place.projection;
             Some(local.as_usize())
