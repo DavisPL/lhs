@@ -8,10 +8,11 @@ use crate::operand::{
     get_operand_const_string, get_operand_def_id, get_operand_local, get_operand_span,
 };
 use crate::symexec::SymExec;
+use std::char::MAX;
 use std::collections::{HashMap, HashSet};
 
 const DEF_ID_FS_WRITE: usize = 2_345;
-const MAX_LOOP_ITER: u32 = 5; // after how many visits we “widen”
+const MAX_LOOP_ITER: u32 = 5 + 1; // after how many visits we “widen”
 
 pub struct MIRParser<'mir, 'ctx> {
     mir_body: &'mir Body<'mir>,
@@ -79,10 +80,15 @@ impl<'mir, 'ctx> MIRParser<'mir, 'ctx> {
 
         let counter = self.visit_counts.entry(bb).or_insert(0);
         *counter += 1;
-
+        
         if *counter > MAX_LOOP_ITER {
+           
+           return self.parse_return();
+        }
+
+        if *counter == MAX_LOOP_ITER {
             println!(
-                "\tbb{} exceeded limit {} — widening",
+                "\tbb{} exceeded limit {} — widening",
                 bb.as_u32(),
                 MAX_LOOP_ITER
             );
@@ -93,10 +99,6 @@ impl<'mir, 'ctx> MIRParser<'mir, 'ctx> {
             self.curr
                 .constraints
                 .retain(|c| !Self::constraint_mentions(&written, c));
-
-            for w in written {
-                self.curr.set_interval(&w, None, None);
-            }
 
             return self.parse_return();
         }
@@ -342,6 +344,7 @@ impl<'mir, 'ctx> MIRParser<'mir, 'ctx> {
 
         if let Some(pred) = sym {
             let (val0, bb0) = targets.iter().next().unwrap();
+
             let bb_else = targets.otherwise();
 
             let mut t = self.curr.clone();
@@ -384,8 +387,13 @@ impl<'mir, 'ctx> MIRParser<'mir, 'ctx> {
             write_is_dangerous = match get_operand_local(path_operand) {
 
                 Some(0) => {
-                    let s = get_operand_const_string(path_operand).unwrap();
-                    s == "/proc/self/mem"
+                    // let s = get_operand_const_string(path_operand).unwrap();
+                    if let Some(s) = get_operand_const_string(path_operand) {
+                        s == "/proc/self/mem"
+                    }else{
+                        eprint!("Error: Could not get string from constant operand.");
+                        false
+                    }
                 }
                 
                 Some(idx) => {
@@ -399,7 +407,7 @@ impl<'mir, 'ctx> MIRParser<'mir, 'ctx> {
             };
         }
 
-        if (is_write_def || write_is_dangerous) && write_is_dangerous {
+        if is_write_def && write_is_dangerous {
             // report only if the path is "/proc/self/mem"
             return get_operand_span(&func);
         }

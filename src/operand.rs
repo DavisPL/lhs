@@ -110,7 +110,15 @@ pub fn extract_string_from_const<'tcx>(
     };
     let allocation = &data.0.get_bytes_unchecked(range); //this is alignment
 
-    let a: String = String::from_utf8(allocation.to_vec()).unwrap();
+    // let a: String = String::from_utf8(allocation.to_vec()).unwrap();
+    // avoid unwrap, handle error
+    let a: String = match String::from_utf8(allocation.to_vec()) {
+        Ok(s) => s,
+        Err(_) => {
+            println!("extract_string_from_const: Failed to convert bytes to String");
+            return None;
+        }
+    };
 
     return Some(a);
 }

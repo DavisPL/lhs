@@ -129,7 +129,8 @@ pub fn trace_mir_body<'a>(mir_body: &'a Body<'a>) {
             // and show the arguments of function that can be malicious
             // (based on arg_count)
         }
-        None => println!("No potential writes to `/proc/self/mem` detected!"),
+        // None => println!("No potential writes to `/proc/self/mem` detected!"),
+        None =>{}
     }
 
     // println!("{:#?}", mir_parser.curr);

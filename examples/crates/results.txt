@@ -1,0 +1,96 @@
+Evaluation results:
+---------------------------
+Evaluating crate: example1
+This crate should be safe
+[ALERT] Found unexpected warning in SAFE crate.
+---------------------------
+   Compiling example1 v0.1.0 (/Users/hassnain/Desktop/LHS/lhs/examples/crates/safe/example1)
+warning: function `another_function` is never used
+  --> src/main.rs:15:4
+   |
+15 | fn another_function() {
+   |    ^^^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` on by default
+
+MIR for function: DefId(0:4 ~ example1[bfb7]::main)
+Unsupported Type: ()
+Unsupported Type: (i32, bool)
+Unsupported Type: ()
+Unsupported Type: ()
+START: Path 0!
+START: Path_1!
+START: Path_2!
+START: Path_3!
+WARNING: potential write to `/proc/self/mem`
+	src/main.rs:11:9: 11:18 (#0)
+MIR for function: DefId(0:5 ~ example1[bfb7]::another_function)
+Unsupported Type: ()
+Unsupported Type: ()
+START: Path 0!
+No potential writes to `/proc/self/mem` detected!
+warning: `example1` (bin "example1") generated 1 warning
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.51s
+---------------------------
+Evaluating crate: example2
+This crate should be safe
+[ALERT] Found unexpected warning in SAFE crate.
+---------------------------
+   Compiling example2 v0.1.0 (/Users/hassnain/Desktop/LHS/lhs/examples/crates/safe/example2)
+MIR for function: DefId(0:4 ~ example2[2a93]::get_random_bool)
+START: Path 0!
+START: Path_1!
+No potential writes to `/proc/self/mem` detected!
+MIR for function: DefId(0:5 ~ example2[2a93]::main)
+Unsupported Type: ()
+Unsupported Type: (i32, bool)
+Unsupported Type: (i32, bool)
+Unsupported Type: ()
+START: Path 0!
+START: Path_1!
+START: Path_2!
+START: Path_3!
+WARNING: potential write to `/proc/self/mem`
+	src/main.rs:17:9: 17:18 (#0)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.25s
+---------------------------
+Evaluating crate: example1
+This crate should be unsafe
+[RESULT] Results for the UNSAFE crate are as expected.
+---------------------------
+   Compiling example1 v0.1.0 (/Users/hassnain/Desktop/LHS/lhs/examples/crates/unsafe/example1)
+MIR for function: DefId(0:6 ~ example1[bfb7]::main)
+Unsupported Type: ()
+Unsupported Type: (u8, bool)
+Unsupported Type: (u8, bool)
+Unsupported Type: (u8, bool)
+Unsupported Type: (u8, bool)
+Unsupported Type: (u8, bool)
+Unsupported Type: (u8, bool)
+Unsupported Type: ()
+Unsupported Type: ()
+START: Path 0!
+START: Path_1!
+START: Path_2!
+START: Path_3!
+START: Path_4!
+START: Path_5!
+START: Path_6!
+START: Path_7!
+WARNING: potential write to `/proc/self/mem`
+	src/main.rs:7:9: 7:18 (#0)
+MIR for function: DefId(0:7 ~ example1[bfb7]::mystery_function)
+Unsupported Type: ()
+Unsupported Type: [u8; 1]
+Unsupported Type: ()
+START: Path 0!
+START: Path_1!
+START: Path_2!
+START: Path_3!
+START: Path_4!
+No potential writes to `/proc/self/mem` detected!
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.14s
+
+Summary:
+Safe crates accuracy: 0/2
+Unsafe crates accuracy: 1/1
