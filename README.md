@@ -58,10 +58,6 @@ You can check that Z3 installed successfully using `z3 --version`.
 
 ## Usage
 
-**IMPROVEMENT!?**
-
-(yes. Definitely an improvement)
-
 To run LHS, you need to have a downloaded project within a `cargo` directory. The following
 instructions will run LHS on ONLY the contents of the directory and NOT the dependencies. 
 
@@ -293,37 +289,6 @@ No potential writes to `/proc/self/mem` detected!
 *Note*: This is currently under development. It is *extremely* unstable and does not work on large
 crates with a lot of dependencies. (NO LONGER THE CASE, hopefully)
 
-**Old instructions**
-
-To run LHS you need to provide the path to Rust source file and action. 
-
-You can specify an action using the -a flag. We currently support three actions, 
-1) `Trace`: trace through function control flow and results
-2) `Blocks`: print basic blocks
-3) `Local`: print local declarations (variables)
-4) `Query`: provides the result of whether or not there is a potential write to `/proc/self/mem`
-
-An example output for the results:
-```bash
-❯ cargo run -- -s examples/ex1.rs -a query
-    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.10s
-     Running `target/debug/lhs -s examples/ex1.rs -a query`
-MIR for function: DefId(0:5 ~ ex1[6c4e]::write_to_file)
-examples/ex1.rs:4:1: 7:2
-Unsupported Type: ()
-Unsupported Type: !
-Unsupported Type: ()
-Unsupported Type: ()
-START: Path 0!
-	bb0
-	Found fs::write call
-Model:
-2 -> "/proc/self/./mem"
-
-WARNING: potential write to `/proc/self/mem`
-	examples/ex1.rs:5:5: 5:14 (#0)
-```
-
 ## Examples
 Please see the `inputoutput.md` file for input and output examples and expectations.
 All code snippets used can also be found in the `examples/` directory.
@@ -352,4 +317,3 @@ The authors of this project wish to thank the following projects and papers that
 - Cargo Scan [https://github.com/PLSysSec/cargo-scan](https://github.com/PLSysSec/cargo-scan)
 
 A portion of this project was funded by the NSF.
-
