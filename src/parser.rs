@@ -12,7 +12,7 @@ use std::char::MAX;
 use std::collections::{HashMap, HashSet};
 
 const DEF_ID_FS_WRITE: usize = 2_345;
-const MAX_LOOP_ITER: u32 = 5 + 1; // after how many visits we “widen”
+const MAX_LOOP_ITER: u32 = 5; // after how many visits we "widen"
 
 pub struct MIRParser<'mir, 'ctx> {
     mir_body: &'mir Body<'mir>,
@@ -20,7 +20,7 @@ pub struct MIRParser<'mir, 'ctx> {
 
     stack: Vec<(SymExec<'ctx>, BasicBlock)>,
     path_count: u32,
-    current_path: Vec<BasicBlock>,
+    // current_path: Vec<BasicBlock>,  // Not needed for iterative version
     visit_counts: HashMap<BasicBlock, u32>,
 }
 
@@ -31,17 +31,31 @@ impl<'mir, 'ctx> MIRParser<'mir, 'ctx> {
             curr: z3,
             stack: Vec::new(),
             path_count: 0,
-            current_path: Vec::new(),
+            // current_path: Vec::new(),  // Not needed for iterative version
             visit_counts: HashMap::new(),
         }
     }
 
     pub fn parse(&mut self) -> Option<rustc_span::Span> {
-        println!("START: Path 0!");
-        self.parse_bb(BasicBlock::from_usize(0))
+        println!("START: Path 0!");
+        //self.parse_bb(BasicBlock::from_usize(0)),
+
+        // Initialize with the entry block for iterative processing
+        self.stack.push((self.curr.clone(), BasicBlock::from_usize(0)));
+        
+        // Process iteratively instead of recursively
+        while let Some((state, bb)) = self.stack.pop() {
+            self.curr = state;
+            
+            if let Some(span) = self.parse_bb_iterative(bb) {
+                return Some(span);
+            }
+        }
+        
+        None
     }
 
-    // Turn `Place` (+ projection) into a stable key
+    // Turn `Place` (+ projection) into a stable key
     fn place_key<'tcx>(&self, place: &Place<'tcx>) -> String {
         let mut key = place.local.as_usize().to_string();
         for elem in place.projection {
@@ -75,15 +89,14 @@ impl<'mir, 'ctx> MIRParser<'mir, 'ctx> {
         names.iter().any(|n| txt.contains(n))
     }
 
+    // removed the 'parse_bb' function that was recursive - check github for backup if needed.
 
-    fn parse_bb(&mut self, bb: BasicBlock) -> Option<rustc_span::Span> {
-
+    fn parse_bb_iterative(&mut self, bb: BasicBlock) -> Option<rustc_span::Span> {
         let counter = self.visit_counts.entry(bb).or_insert(0);
         *counter += 1;
         
         if *counter > MAX_LOOP_ITER {
-           
-           return self.parse_return();
+            return None;
         }
 
         if *counter == MAX_LOOP_ITER {
@@ -100,18 +113,10 @@ impl<'mir, 'ctx> MIRParser<'mir, 'ctx> {
                 .constraints
                 .retain(|c| !Self::constraint_mentions(&written, c));
 
-            return self.parse_return();
+            return None;
         }
 
-        // if self.current_path.contains(&bb) && *counter > 1 {
-        //     let written = self.collect_written_vars(bb);
-        //     self.curr
-        //         .constraints
-        //         .retain(|c| !Self::constraint_mentions(&written, c));
-        // }
-
-        /* ── walk statements and terminator ── */
-        self.current_path.push(bb);
+        
         let data = &self.mir_body.basic_blocks[bb];
 
         for stmt in &data.statements {
@@ -120,17 +125,26 @@ impl<'mir, 'ctx> MIRParser<'mir, 'ctx> {
             }
         }
 
-        let res = match &data.terminator().kind {
-            TerminatorKind::Goto { target } => self.parse_bb(*target),
+        // Direct match without storing result
+        match &data.terminator().kind {
+            // Push to stack instead of recursive call
+            TerminatorKind::Goto { target } => {
+                self.stack.push((self.curr.clone(), *target));
+            }
 
             TerminatorKind::Return
             | TerminatorKind::Unreachable
             | TerminatorKind::CoroutineDrop
             | TerminatorKind::UnwindResume
-            | TerminatorKind::UnwindTerminate { .. } => self.parse_return(),
+            | TerminatorKind::UnwindTerminate { .. } => {
+                // Handle path counting here
+                self.path_count += 1;
+                println!("START: Path_{}!", self.path_count);
+            }
 
             TerminatorKind::SwitchInt { discr, targets } => {
-                self.parse_switch_int(discr.clone(), targets.clone())
+                // Call modified version that doesn't return spans
+                self.handle_switch_int(discr.clone(), targets.clone());
             }
 
             TerminatorKind::Call {
@@ -141,14 +155,19 @@ impl<'mir, 'ctx> MIRParser<'mir, 'ctx> {
                 unwind,
                 call_source,
                 ..
-            } => self.parse_call(
-                func.clone(),
-                args.clone(),
-                destination.clone(),
-                *target,
-                (*unwind).clone(),
-                call_source.clone(),
-            ),
+            } => {
+                // Call modified version and check for dangerous spans
+                if let Some(span) = self.handle_call(
+                    func.clone(),
+                    args.clone(),
+                    destination.clone(),
+                    *target,
+                    (*unwind).clone(),
+                    call_source.clone(),
+                ) {
+                    return Some(span);
+                }
+            }
 
             TerminatorKind::Assert {
                 cond,
@@ -157,7 +176,6 @@ impl<'mir, 'ctx> MIRParser<'mir, 'ctx> {
                 unwind,
                 ..
             } => {
-                
                 let idx = get_operand_local(cond).unwrap_or(0);
                 let pred = self
                     .curr
@@ -178,7 +196,7 @@ impl<'mir, 'ctx> MIRParser<'mir, 'ctx> {
                     bad.add_constraint(if *expected { bad.not(&pred) } else { pred });
                     self.stack.push((bad, *clean));
                 }
-                self.parse_return()
+                // No action needed, main loop continues - recursive version had parse_return()
             }
 
             TerminatorKind::Yield { resume, drop, .. } => {
@@ -186,9 +204,12 @@ impl<'mir, 'ctx> MIRParser<'mir, 'ctx> {
                 if let Some(d) = drop {
                     self.stack.push((self.curr.clone(), *d));
                 }
-                self.parse_return()
             }
-            TerminatorKind::TailCall { .. } => self.parse_return(),
+
+            TerminatorKind::TailCall { .. } => {
+                self.path_count += 1;
+                println!("START: Path_{}!", self.path_count);
+            }
 
             TerminatorKind::InlineAsm {
                 targets, unwind, ..
@@ -199,23 +220,26 @@ impl<'mir, 'ctx> MIRParser<'mir, 'ctx> {
                 if let UnwindAction::Cleanup(clean) = unwind {
                     self.stack.push((self.curr.clone(), *clean));
                 }
-                self.parse_return()
             }
 
+            // push to stack instead of recursive call
             TerminatorKind::Drop { target, unwind, .. } => {
                 self.stack.push((self.curr.clone(), *target));
                 if let UnwindAction::Cleanup(clean) = unwind {
                     self.stack.push((self.curr.clone(), *clean));
                 }
-                self.parse_return()
             }
 
-            TerminatorKind::FalseEdge { real_target, .. } => self.parse_bb(*real_target),
-            TerminatorKind::FalseUnwind { real_target, .. } => self.parse_bb(*real_target),
-        };
+            TerminatorKind::FalseEdge { real_target, .. } => {
+                self.stack.push((self.curr.clone(), *real_target));
+            }
 
-        self.current_path.pop();
-        res
+            TerminatorKind::FalseUnwind { real_target, .. } => {
+                self.stack.push((self.curr.clone(), *real_target));
+            }
+        }
+
+        None
     }
 
     
@@ -326,16 +350,17 @@ impl<'mir, 'ctx> MIRParser<'mir, 'ctx> {
         }
     }
 
-    /* ─────── SwitchInt ─────── */
 
-    fn parse_switch_int(
+    // removed the switch_int function that was recursive - check github for backup if needed.
+
+    fn handle_switch_int(
         &mut self,
         discr: Operand,
         targets: SwitchTargets,
-    ) -> Option<rustc_span::Span> {
+    ) {
         let local = match discr {
             Operand::Copy(p) | Operand::Move(p) => p.local,
-            Operand::Constant(_) => return self.parse_return(),
+            Operand::Constant(_) => return,
         };
         let sym = self
             .curr
@@ -344,7 +369,6 @@ impl<'mir, 'ctx> MIRParser<'mir, 'ctx> {
 
         if let Some(pred) = sym {
             let (val0, bb0) = targets.iter().next().unwrap();
-
             let bb_else = targets.otherwise();
 
             let mut t = self.curr.clone();
@@ -358,17 +382,18 @@ impl<'mir, 'ctx> MIRParser<'mir, 'ctx> {
 
             self.stack.push((t, bb0));
             self.stack.push((f, bb_else));
-            self.parse_return()
+            // No return needed, main loop continues
         } else {
             for (_, bb) in targets.iter() {
                 self.stack.push((self.curr.clone(), bb));
             }
             self.stack.push((self.curr.clone(), targets.otherwise()));
-            self.parse_return()
+            // No return needed, main loop continues
         }
     }
 
-    fn parse_call<'tcx>(
+    // removed the parse_call function that was recursive - check github for backup if needed.
+    fn handle_call<'tcx>(
         &mut self,
         func: Operand<'tcx>,
         args: Box<[rustc_span::source_map::Spanned<Operand<'tcx>>]>,
@@ -377,25 +402,20 @@ impl<'mir, 'ctx> MIRParser<'mir, 'ctx> {
         unwind: UnwindAction,
         _src: CallSource,
     ) -> Option<rustc_span::Span> {
-        
         let is_write_def = get_operand_def_id(&func) == Some(DEF_ID_FS_WRITE);
-
         let mut write_is_dangerous = false;
 
         if !args.is_empty() {
             let path_operand = &args[0].node;
             write_is_dangerous = match get_operand_local(path_operand) {
-
                 Some(0) => {
-                    // let s = get_operand_const_string(path_operand).unwrap();
                     if let Some(s) = get_operand_const_string(path_operand) {
                         s == "/proc/self/mem"
-                    }else{
-                        eprint!("Error: Could not get string from constant operand.");
+                    } else {
+                        eprintln!("Error: Could not get string from constant operand. {:?}", path_operand);
                         false
                     }
                 }
-                
                 Some(idx) => {
                     if let Some(sym_str) = self.curr.get_string(idx.to_string().as_str()) {
                         matches!(self.curr.is_write_safe(sym_str), Ok(SatResult::Sat))
@@ -412,23 +432,14 @@ impl<'mir, 'ctx> MIRParser<'mir, 'ctx> {
             return get_operand_span(&func);
         }
 
+        // Push to stack instead
         if let Some(bb) = target {
-            self.parse_bb(bb)
+            self.stack.push((self.curr.clone(), bb));
         } else if let UnwindAction::Cleanup(clean) = unwind {
-            self.parse_bb(clean)
-        } else {
-            self.parse_return()
+            self.stack.push((self.curr.clone(), clean));
         }
+
+        None
     }
 
-    fn parse_return(&mut self) -> Option<rustc_span::Span> {
-        if let Some((state, bb)) = self.stack.pop() {
-            self.curr = state;
-            self.path_count += 1;
-            println!("START: Path_{}!", self.path_count);
-            self.parse_bb(bb)
-        } else {
-            None
-        }
-    }
 }

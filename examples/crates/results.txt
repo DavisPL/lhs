@@ -5,6 +5,20 @@ This crate should be safe
 [ALERT] Found unexpected warning in SAFE crate.
 ---------------------------
    Compiling example1 v0.1.0 (/Users/hassnain/Desktop/LHS/lhs/examples/crates/safe/example1)
+warning: unused variable: `x`
+ --> src/main.rs:4:9
+  |
+4 |     let x = 5;
+  |         ^ help: if this is intentional, prefix it with an underscore: `_x`
+  |
+  = note: `#[warn(unused_variables)]` on by default
+
+warning: unused variable: `y`
+ --> src/main.rs:5:9
+  |
+5 |     let y = 10;
+  |         ^ help: if this is intentional, prefix it with an underscore: `_y`
+
 warning: function `another_function` is never used
   --> src/main.rs:15:4
    |
@@ -15,22 +29,19 @@ warning: function `another_function` is never used
 
 MIR for function: DefId(0:4 ~ example1[bfb7]::main)
 Unsupported Type: ()
-Unsupported Type: (i32, bool)
 Unsupported Type: ()
 Unsupported Type: ()
-START: Path 0!
+START: Path 0!
 START: Path_1!
-START: Path_2!
-START: Path_3!
 WARNING: potential write to `/proc/self/mem`
 	src/main.rs:11:9: 11:18 (#0)
 MIR for function: DefId(0:5 ~ example1[bfb7]::another_function)
 Unsupported Type: ()
 Unsupported Type: ()
-START: Path 0!
-No potential writes to `/proc/self/mem` detected!
-warning: `example1` (bin "example1") generated 1 warning
-    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.51s
+START: Path 0!
+START: Path_1!
+warning: `example1` (bin "example1") generated 3 warnings
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.35s
 ---------------------------
 Evaluating crate: example2
 This crate should be safe
@@ -38,21 +49,17 @@ This crate should be safe
 ---------------------------
    Compiling example2 v0.1.0 (/Users/hassnain/Desktop/LHS/lhs/examples/crates/safe/example2)
 MIR for function: DefId(0:4 ~ example2[2a93]::get_random_bool)
-START: Path 0!
+START: Path 0!
 START: Path_1!
-No potential writes to `/proc/self/mem` detected!
 MIR for function: DefId(0:5 ~ example2[2a93]::main)
 Unsupported Type: ()
 Unsupported Type: (i32, bool)
 Unsupported Type: (i32, bool)
 Unsupported Type: ()
-START: Path 0!
-START: Path_1!
-START: Path_2!
-START: Path_3!
+START: Path 0!
 WARNING: potential write to `/proc/self/mem`
 	src/main.rs:17:9: 17:18 (#0)
-    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.25s
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.22s
 ---------------------------
 Evaluating crate: example1
 This crate should be unsafe
@@ -69,27 +76,17 @@ Unsupported Type: (u8, bool)
 Unsupported Type: (u8, bool)
 Unsupported Type: ()
 Unsupported Type: ()
-START: Path 0!
-START: Path_1!
-START: Path_2!
-START: Path_3!
-START: Path_4!
-START: Path_5!
-START: Path_6!
-START: Path_7!
+START: Path 0!
 WARNING: potential write to `/proc/self/mem`
 	src/main.rs:7:9: 7:18 (#0)
 MIR for function: DefId(0:7 ~ example1[bfb7]::mystery_function)
 Unsupported Type: ()
 Unsupported Type: [u8; 1]
 Unsupported Type: ()
-START: Path 0!
+START: Path 0!
 START: Path_1!
 START: Path_2!
-START: Path_3!
-START: Path_4!
-No potential writes to `/proc/self/mem` detected!
-    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.14s
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.13s
 
 Summary:
 Safe crates accuracy: 0/2
