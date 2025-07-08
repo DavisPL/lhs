@@ -100,6 +100,20 @@ impl<'ctx> SymExec<'ctx> {
     ) -> z3::ast::String<'ctx> {
         z3::ast::String::concat(self.context, &[lhs, rhs])
     }
+
+    /// Creates a z3 string for path join operation (like Path::join or PathBuf::join)
+    pub fn path_join(
+        &self,
+        base: &z3::ast::String<'ctx>,
+        component: &z3::ast::String<'ctx>,
+    ) -> z3::ast::String<'ctx> {
+        // Create a "/" separator
+        let separator = self.static_string("/");
+        // Concatenate base + "/" + component
+        let with_sep = self.concat_strings(base, &separator);
+        self.concat_strings(&with_sep, component)
+    }
+
     /// Creates a z3 bool expression representing whether or not two strings are equivalent.
     pub fn string_eq(
         &self,
@@ -219,8 +233,10 @@ impl<'ctx> SymExec<'ctx> {
                 z3::ast::Int::from_u64(self.context, most_significant_bits);
             let z3_two: z3::ast::Int<'_> = z3::ast::Int::from_u64(self.context, 2);
             let z3_neg_1: z3::ast::Int<'_> = z3::ast::Int::from_i64(self.context, -1);
-            let z3_two_power_64: z3::ast::Int<'_> =
-                self.mul(&z3::ast::Int::from_u64(self.context, 2u64.pow(63)), &z3_two);
+            let z3_two_power_64: z3::ast::Int<'_> = self.mul(
+                &z3::ast::Int::from_u64(self.context, 2u64.pow(32)),
+                &z3::ast::Int::from_u64(self.context, 2u64.pow(32)),
+            );
             if negative {
                 self.mul(
                     &z3_neg_1,

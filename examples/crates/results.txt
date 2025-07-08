@@ -2,7 +2,7 @@ Evaluation results:
 ---------------------------
 Evaluating crate: example1
 This crate should be safe
-[ALERT] Found unexpected warning in SAFE crate.
+[RESULT] Results for the SAFE crate are as expected.
 ---------------------------
    Compiling example1 v0.1.0 (/Users/hassnain/Desktop/LHS/lhs/examples/crates/safe/example1)
 warning: unused variable: `x`
@@ -32,38 +32,27 @@ Unsupported Type: ()
 Unsupported Type: ()
 Unsupported Type: ()
 START: Path 0!
-START: Path_1!
-WARNING: potential write to `/proc/self/mem`
-	src/main.rs:11:9: 11:18 (#0)
-MIR for function: DefId(0:5 ~ example1[bfb7]::another_function)
-Unsupported Type: ()
-Unsupported Type: ()
-START: Path 0!
-START: Path_1!
+thread 'rustc' panicked at /rustc/92c6c03805408a1a261b98013304e9bbf59ee428/compiler/rustc_hir/src/definitions.rs:81:26:
+index out of bounds: the len is 6 but the index is 2345
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 warning: `example1` (bin "example1") generated 3 warnings
-    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.35s
+error: could not compile `example1` (bin "example1"); 3 warnings emitted
 ---------------------------
 Evaluating crate: example2
 This crate should be safe
-[ALERT] Found unexpected warning in SAFE crate.
+[RESULT] Results for the SAFE crate are as expected.
 ---------------------------
    Compiling example2 v0.1.0 (/Users/hassnain/Desktop/LHS/lhs/examples/crates/safe/example2)
 MIR for function: DefId(0:4 ~ example2[2a93]::get_random_bool)
 START: Path 0!
-START: Path_1!
-MIR for function: DefId(0:5 ~ example2[2a93]::main)
-Unsupported Type: ()
-Unsupported Type: (i32, bool)
-Unsupported Type: (i32, bool)
-Unsupported Type: ()
-START: Path 0!
-WARNING: potential write to `/proc/self/mem`
-	src/main.rs:17:9: 17:18 (#0)
-    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.22s
+thread 'rustc' panicked at /rustc/92c6c03805408a1a261b98013304e9bbf59ee428/compiler/rustc_hir/src/definitions.rs:81:26:
+index out of bounds: the len is 6 but the index is 952
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+error: could not compile `example2` (bin "example2")
 ---------------------------
 Evaluating crate: example1
 This crate should be unsafe
-[RESULT] Results for the UNSAFE crate are as expected.
+[ALERT] Missing expected warning in UNSAFE crate.
 ---------------------------
    Compiling example1 v0.1.0 (/Users/hassnain/Desktop/LHS/lhs/examples/crates/unsafe/example1)
 MIR for function: DefId(0:6 ~ example1[bfb7]::main)
@@ -77,17 +66,11 @@ Unsupported Type: (u8, bool)
 Unsupported Type: ()
 Unsupported Type: ()
 START: Path 0!
-WARNING: potential write to `/proc/self/mem`
-	src/main.rs:7:9: 7:18 (#0)
-MIR for function: DefId(0:7 ~ example1[bfb7]::mystery_function)
-Unsupported Type: ()
-Unsupported Type: [u8; 1]
-Unsupported Type: ()
-START: Path 0!
-START: Path_1!
-START: Path_2!
-    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.13s
+thread 'rustc' panicked at /rustc/92c6c03805408a1a261b98013304e9bbf59ee428/compiler/rustc_hir/src/definitions.rs:81:26:
+index out of bounds: the len is 9 but the index is 2345
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+error: could not compile `example1` (bin "example1")
 
 Summary:
-Safe crates accuracy: 0/2
-Unsafe crates accuracy: 1/1
+Safe crates accuracy: 2/2
+Unsafe crates accuracy: 0/1

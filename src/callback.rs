@@ -120,18 +120,31 @@ pub fn trace_mir_body<'a>(mir_body: &'a Body<'a>) {
     // println!("{:#?}", ev);
 
     let mut mir_parser = MIRParser::new(mir_body, ev);
-    let fs_write_span: Option<rustc_span::Span> = mir_parser.parse();
-    match fs_write_span {
-        Some(sp) => {
-            println!("WARNING: potential write to `/proc/self/mem`");
-            println!("\t{:#?}", sp);
-            // TODO: query solver model for the actual assignments,
-            // and show the arguments of function that can be malicious
-            // (based on arg_count)
+    // let fs_write_span: Option<rustc_span::Span> = mir_parser.parse();
+    let fs_write_spans: Vec<rustc_span::Span> = mir_parser.parse();
+    if !fs_write_spans.is_empty() {
+        println!(
+            "WARNING: {} potential write(s) to `/proc/self/mem` detected:",
+            fs_write_spans.len()
+        );
+        for (i, sp) in fs_write_spans.iter().enumerate() {
+            println!("\t{}. {:#?}", i + 1, sp);
         }
-        // None => println!("No potential writes to `/proc/self/mem` detected!"),
-        None =>{}
+    } else {
+        // println!("Empty : No potential writes to `/proc/self/mem` detected!");
     }
+
+    // match fs_write_span {
+    //     Some(sp) => {
+    //         println!("WARNING: potential write to `/proc/self/mem`");
+    //         println!("\t{:#?}", sp);
+    //         // TODO: query solver model for the actual assignments,
+    //         // and show the arguments of function that can be malicious
+    //         // (based on arg_count)
+    //     }
+    //     // None => println!("No potential writes to `/proc/self/mem` detected!"),
+    //     None =>{}
+    // }
 
     // println!("{:#?}", mir_parser.curr);
 }
