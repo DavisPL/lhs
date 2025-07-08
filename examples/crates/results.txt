@@ -20,25 +20,22 @@ Unsupported Type: ()
 Unsupported Type: ()
 === Starting MIR Analysis ===
 START: Path 0!
-Unsupported binary operation: AddWithOverflow
+    Skipping unsatisfiable true branch to bb4
+    Taking false branch to bb2
 START: Path_1!
-Found dangerous write at src/main.rs:11:9: 11:18 (#0)
-START: Path_2!
 
-Found 1 dangerous writes to /proc/self/mem
-  [1] src/main.rs:11:9: 11:18 (#0)
-WARNING: 1 potential write(s) to `/proc/self/mem` detected:
-	1. src/main.rs:11:9: 11:18 (#0)
+No dangerous writes detected
 MIR for function: DefId(0:5 ~ example1[bfb7]::another_function)
 Unsupported Type: ()
 Unsupported Type: ()
 === Starting MIR Analysis ===
 START: Path 0!
+    Could not assign constant to 3 - unrecognized type
 START: Path_1!
 
 No dangerous writes detected
 warning: `example1` (bin "example1") generated 1 warning
-    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.36s
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.42s
 ---------------------------
 Evaluating crate: example2
 This crate should be safe
@@ -48,6 +45,7 @@ This crate should be safe
 MIR for function: DefId(0:4 ~ example2[2a93]::get_random_bool)
 === Starting MIR Analysis ===
 START: Path 0!
+  Taking assertion success path to bb2
 START: Path_1!
 
 No dangerous writes detected
@@ -58,21 +56,16 @@ Unsupported Type: (i32, bool)
 Unsupported Type: ()
 === Starting MIR Analysis ===
 START: Path 0!
-Unsupported binary operation: AddWithOverflow
-Found dangerous write at src/main.rs:17:9: 17:18 (#0)
+    Taking true branch to bb4
+    Taking false branch to bb2
+    Taking true branch to bb9
+    Skipping unsatisfiable false branch to bb7
 START: Path_1!
+    Taking true branch to bb9
+    Skipping unsatisfiable false branch to bb7
 START: Path_2!
-Unsupported binary operation: AddWithOverflow
-Found dangerous write at src/main.rs:17:9: 17:18 (#0)
-START: Path_3!
-START: Path_4!
 
-Found 2 dangerous writes to /proc/self/mem
-  [1] src/main.rs:17:9: 17:18 (#0)
-  [2] src/main.rs:17:9: 17:18 (#0)
-WARNING: 2 potential write(s) to `/proc/self/mem` detected:
-	1. src/main.rs:17:9: 17:18 (#0)
-	2. src/main.rs:17:9: 17:18 (#0)
+No dangerous writes detected
     Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.26s
 ---------------------------
 Evaluating crate: example1
@@ -92,14 +85,11 @@ Unsupported Type: ()
 Unsupported Type: ()
 === Starting MIR Analysis ===
 START: Path 0!
-Unsupported binary operation: AddWithOverflow
-Unsupported binary operation: AddWithOverflow
-Unsupported binary operation: MulWithOverflow
-Unsupported binary operation: MulWithOverflow
-Unsupported binary operation: MulWithOverflow
-Unsupported binary operation: AddWithOverflow
+    Taking true branch to bb11
+    Taking false branch to bb9
 Found dangerous write at src/main.rs:7:9: 7:18 (#0)
 START: Path_1!
+    Could not assign constant to 20 - unrecognized type
 START: Path_2!
 
 Found 1 dangerous writes to /proc/self/mem
@@ -112,9 +102,11 @@ Unsupported Type: [u8; 1]
 Unsupported Type: ()
 === Starting MIR Analysis ===
 START: Path 0!
+    Could not assign constant to 3 - unrecognized type
 Unsupported Rvalue in assignment: [const 0_u8; 1]
+  Taking assertion success path to bb7
+  Skipping unsatisfiable assertion failure path to bb9
 START: Path_1!
-START: Path_2!
 
 No dangerous writes detected
     Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.14s

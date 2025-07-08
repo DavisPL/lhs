@@ -316,8 +316,14 @@ impl<'mir, 'ctx> MIRParser<'mir, 'ctx> {
         if let (Some(lhs_int), Some(rhs_int)) = (
             self.get_int_from_operand(lhs),
             self.get_int_from_operand(rhs)
-        ) {
+        ) {      
             self.handle_int_binary_op(dest_key, op, &lhs_int, &rhs_int);
+            
+            if let Some(result) = self.curr.get_int(dest_key) {
+                // println!("    Result: {} = {}", dest_key, result.to_string());
+            } else if let Some(result) = self.curr.get_bool(dest_key) {
+                // println!("    Result: {} = {}", dest_key, result.to_string());
+            }
             return;
         }
 
@@ -357,9 +363,29 @@ impl<'mir, 'ctx> MIRParser<'mir, 'ctx> {
             Div => self.curr.assign_int(dest_key, self.curr.div(lhs, rhs)),
             Rem => self.curr.assign_int(dest_key, self.curr.rem(lhs, rhs)),
             
+            // Handle overflow operations 
+            // These operations return tuples (result, overflow_flag) instead of just the result
+            AddWithOverflow | SubWithOverflow | MulWithOverflow => {
+                // For overflow operations, we create the arithmetic result and assume no overflow
+                let arithmetic_result = match op {
+                    AddWithOverflow => self.curr.add(lhs, rhs),
+                    SubWithOverflow => self.curr.sub(lhs, rhs),
+                    MulWithOverflow => self.curr.mul(lhs, rhs),
+                    _ => unreachable!(),
+                };
+                
+                // Store the arithmetic result in field 0 of the destination
+                let field0_key = format!("{}.f0", dest_key);
+                self.curr.assign_int(&field0_key, arithmetic_result);
+                
+                // Store false (no overflow) in field 1 of the destination  
+                let field1_key = format!("{}.f1", dest_key);
+                self.curr.assign_bool(&field1_key, self.curr.static_bool(false));
+        }
+            
             _ => {
                 println!("Unsupported binary operation: {:?}", op);
-            } // Other operations not implemented
+            }
         }
     }
 
@@ -404,22 +430,30 @@ impl<'mir, 'ctx> MIRParser<'mir, 'ctx> {
         // Try different constant types
         if let Some(scalar_int) = const_val.try_to_scalar_int() {
             let int_val = scalar_int.to_int(scalar_int.size()) as i64;
-            self.curr.assign_int(dest_key, self.curr.static_int(int_val.into()));
+            let z3_int = self.curr.static_int(int_val.into());
+            self.curr.assign_int(dest_key, z3_int);
         } else if let Some(bool_val) = const_val.try_to_bool() {
             self.curr.assign_bool(dest_key, self.curr.static_bool(bool_val));
         } else if let Some(string_val) = get_operand_const_string(&Operand::Constant(Box::new(constant.clone()))) {
             self.curr.assign_string(dest_key, self.curr.static_string(&string_val));
+        } else {
+            println!("    Could not assign constant to {} - unrecognized type", dest_key);
         }
     }
 
-    // Handle conditional branches (if/match statements)
+    // conditional branch handling with satisfiability checking
+    // prevents exploring unsatisfiable paths
     fn handle_switch_int(&mut self, discr: Operand, targets: SwitchTargets) {
         let local = match discr {
             Operand::Copy(place) | Operand::Move(place) => place.local,
             Operand::Constant(_) => return, // Can't branch on constant
         };
 
-        if let Some(bool_condition) = self.curr.get_bool(&local.as_usize().to_string()).cloned() {
+        let local_key = local.as_usize().to_string();
+        
+        if let Some(bool_condition) = self.curr.get_bool(&local_key).cloned() {
+            // println!("    Found boolean condition: {}", bool_condition.to_string());
+            
             // Boolean switch: create two paths with opposite constraints
             let (val0, bb0) = targets.iter().next().unwrap();
             let bb_else = targets.otherwise();
@@ -428,17 +462,31 @@ impl<'mir, 'ctx> MIRParser<'mir, 'ctx> {
             let mut false_state = self.curr.clone();
 
             // Add appropriate constraints based on the branch value
-            if val0 == 0 {
-                true_state.add_constraint(true_state.not(&bool_condition));
-                false_state.add_constraint(bool_condition);
+            let (true_constraint, false_constraint) = if val0 == 0 {
+                (true_state.not(&bool_condition), bool_condition.clone())
             } else {
-                true_state.add_constraint(bool_condition.clone());
-                false_state.add_constraint(false_state.not(&bool_condition));
+                (bool_condition.clone(), false_state.not(&bool_condition))
+            };
+
+            true_state.add_constraint(true_constraint);
+            if self.is_path_satisfiable(&true_state) {
+                println!("    Taking true branch to bb{}", bb0.as_u32());
+                self.stack.push((true_state, bb0));
+            } else {
+                println!("    Skipping unsatisfiable true branch to bb{}", bb0.as_u32());
             }
 
-            self.stack.push((true_state, bb0));
-            self.stack.push((false_state, bb_else));
+            // Check if the false branch is satisfiable before exploring it
+            false_state.add_constraint(false_constraint);
+            if self.is_path_satisfiable(&false_state) {
+                println!("    Taking false branch to bb{}", bb_else.as_u32());
+                self.stack.push((false_state, bb_else));
+            } else {
+                println!("    Skipping unsatisfiable false branch to bb{}", bb_else.as_u32());
+            }
         } else {
+            //  Debug when no boolean condition is found
+            println!("    No boolean condition found, exploring all branches");
             // Unknown condition: explore all branches
             for (_, bb) in targets.iter() {
                 self.stack.push((self.curr.clone(), bb));
@@ -447,29 +495,44 @@ impl<'mir, 'ctx> MIRParser<'mir, 'ctx> {
         }
     }
 
-    // Handle runtime assertions
-    // This creates separate execution paths for when assertions pass vs fail
+    // Enhanced runtime assertion handling with satisfiability checking
     fn handle_assert(&mut self, cond: Operand, expected: bool, target: BasicBlock, unwind: UnwindAction) {
         if let Some(local_idx) = get_operand_local(&cond) {
             if let Some(bool_condition) = self.curr.get_bool(&local_idx.to_string()).cloned() {
                 // Create success path with assertion constraint
                 let mut success_state = self.curr.clone();
-                success_state.add_constraint(if expected {
+                let success_constraint = if expected {
                     bool_condition.clone()
                 } else {
                     success_state.not(&bool_condition)
-                });
-                self.stack.push((success_state, target));
+                };
+                success_state.add_constraint(success_constraint);
+                
+                // Only explore the success path if it's satisfiable
+                if self.is_path_satisfiable(&success_state) {
+                    println!("  Taking assertion success path to bb{}", target.as_u32());
+                    self.stack.push((success_state, target));
+                } else {
+                    println!("  Skipping unsatisfiable assertion success path to bb{}", target.as_u32());
+                }
 
                 // Create failure path (if there's an unwind handler)
                 if let UnwindAction::Cleanup(cleanup_bb) = unwind {
                     let mut failure_state = self.curr.clone();
-                    failure_state.add_constraint(if expected {
+                    let failure_constraint = if expected {
                         failure_state.not(&bool_condition)
                     } else {
                         bool_condition
-                    });
-                    self.stack.push((failure_state, cleanup_bb));
+                    };
+                    failure_state.add_constraint(failure_constraint);
+                    
+                    // Only explore the failure path if it's satisfiable
+                    if self.is_path_satisfiable(&failure_state) {
+                        println!("  Taking assertion failure path to bb{}", cleanup_bb.as_u32());
+                        self.stack.push((failure_state, cleanup_bb));
+                    } else {
+                        println!("  Skipping unsatisfiable assertion failure path to bb{}", cleanup_bb.as_u32());
+                    }
                 }
             } else {
                 // Unknown condition: assume assertion passes
@@ -601,6 +664,34 @@ impl<'mir, 'ctx> MIRParser<'mir, 'ctx> {
                 c.const_.try_to_scalar_int().map(|si| {
                     self.curr.static_int((si.to_int(si.size()) as i64).into())
                 })
+            }
+        }
+    }
+
+    // Check if a given execution state has satisfiable constraints
+    fn is_path_satisfiable(&self, state: &SymExec<'ctx>) -> bool {
+        // Create a temporary solver to check satisfiability
+        let solver = z3::Solver::new(&state.context);
+        
+        // Add all constraints from the state
+        for constraint in &state.constraints {
+            solver.assert(constraint);
+        }
+        
+        // Check if the constraints are satisfiable
+        match solver.check() {
+            SatResult::Sat => {
+                // Path is satisfiable - we can explore it
+                true
+            }
+            SatResult::Unsat => {
+                // Path is unsatisfiable - skip it
+                false
+            }
+            SatResult::Unknown => {
+                // Can't determine - be conservative and explore it
+                println!("    Warning: Z3 returned Unknown for satisfiability check");
+                true
             }
         }
     }
