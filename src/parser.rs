@@ -65,7 +65,7 @@ impl<'mir, 'ctx> MIRParser<'mir, 'ctx> {
 
         // Report results
         if !self.dangerous_spans.is_empty() {
-            println!("\nFound {} dangerous writes to /proc/self/mem", self.dangerous_spans.len());
+            println!("WARNING: \nFound {} dangerous writes to /proc/self/mem", self.dangerous_spans.len());
             for (i, span) in self.dangerous_spans.iter().enumerate() {
                 println!("  [{}] {:?}", i + 1, span);
             }
