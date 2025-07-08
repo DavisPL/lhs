@@ -40,22 +40,30 @@ pub fn get_operand_def_id<'tcx>(operand: &Operand<'tcx>) -> Option<usize> {
 // Returns None when the operand is not a constant or its type is not
 // `&str`, or when the bytes are not valid UTF‑8.
 pub fn get_operand_const_string<'tcx>(operand: &Operand<'tcx>) -> Option<String> {
-    // is it an `Operand::Constant`
+    // is it an `Operand::Constant`
     let (val, ty): (ConstValue<'tcx>, Ty<'tcx>) = match operand {
         Operand::Constant(c) => match c.const_ {
             // Already‑evaluated constant
             Const::Val(val, ty) => (val, ty),
             // `Const::Unevaluated` and `Const::Ty` need tcx to resolve , skipping for now
-            _ => return None,
+            _ => {
+                return None
+            }
         },
         // Copy / Move refer to locals, not literals
-        _ => return None,
+        _ => {
+            return None
+        }
     };
 
     // is it `&str` ?
     match ty.kind() {
-        TyKind::Ref(_, inner, _) if matches!(inner.kind(), TyKind::Str) => {}
-        _ => return None,
+        TyKind::Ref(_, inner, _) if matches!(inner.kind(), TyKind::Str) => {
+            // Continue to byte extraction - don't return here
+        }
+        _ => {
+            return None
+        },
     }
 
     // can we get the raw bytes?
@@ -69,10 +77,19 @@ pub fn get_operand_const_string<'tcx>(operand: &Operand<'tcx>) -> Option<String>
         }
         // other `ConstValue`s (Scalar, ByRef, ZeroSized …) cannot encode a
         // string literal on nightly‑2024‑07‑22, so just give up!
-        _ => return None,
+        _ => {
+            return None
+        }
     };
 
-    String::from_utf8(bytes).ok()
+    match String::from_utf8(bytes) {
+        Ok(s) => {
+            Some(s)
+        }
+        Err(e) => {
+            None
+        }
+    }
 }
 
 // Get the `Local` associated with an Operand if of Move variant

@@ -5,20 +5,6 @@ This crate should be safe
 [RESULT] Results for the SAFE crate are as expected.
 ---------------------------
    Compiling example1 v0.1.0 (/Users/hassnain/Desktop/LHS/lhs/examples/crates/safe/example1)
-warning: unused variable: `x`
- --> src/main.rs:4:9
-  |
-4 |     let x = 5;
-  |         ^ help: if this is intentional, prefix it with an underscore: `_x`
-  |
-  = note: `#[warn(unused_variables)]` on by default
-
-warning: unused variable: `y`
- --> src/main.rs:5:9
-  |
-5 |     let y = 10;
-  |         ^ help: if this is intentional, prefix it with an underscore: `_y`
-
 warning: function `another_function` is never used
   --> src/main.rs:15:4
    |
@@ -29,14 +15,30 @@ warning: function `another_function` is never used
 
 MIR for function: DefId(0:4 ~ example1[bfb7]::main)
 Unsupported Type: ()
+Unsupported Type: (i32, bool)
 Unsupported Type: ()
 Unsupported Type: ()
+=== Starting MIR Analysis ===
 START: Path 0!
-thread 'rustc' panicked at /rustc/92c6c03805408a1a261b98013304e9bbf59ee428/compiler/rustc_hir/src/definitions.rs:81:26:
-index out of bounds: the len is 6 but the index is 2345
-note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
-warning: `example1` (bin "example1") generated 3 warnings
-error: could not compile `example1` (bin "example1"); 3 warnings emitted
+Unsupported binary operation: AddWithOverflow
+START: Path_1!
+Found dangerous write at src/main.rs:11:9: 11:18 (#0)
+START: Path_2!
+
+Found 1 dangerous writes to /proc/self/mem
+  [1] src/main.rs:11:9: 11:18 (#0)
+WARNING: 1 potential write(s) to `/proc/self/mem` detected:
+	1. src/main.rs:11:9: 11:18 (#0)
+MIR for function: DefId(0:5 ~ example1[bfb7]::another_function)
+Unsupported Type: ()
+Unsupported Type: ()
+=== Starting MIR Analysis ===
+START: Path 0!
+START: Path_1!
+
+No dangerous writes detected
+warning: `example1` (bin "example1") generated 1 warning
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.36s
 ---------------------------
 Evaluating crate: example2
 This crate should be safe
@@ -44,11 +46,34 @@ This crate should be safe
 ---------------------------
    Compiling example2 v0.1.0 (/Users/hassnain/Desktop/LHS/lhs/examples/crates/safe/example2)
 MIR for function: DefId(0:4 ~ example2[2a93]::get_random_bool)
+=== Starting MIR Analysis ===
 START: Path 0!
-thread 'rustc' panicked at /rustc/92c6c03805408a1a261b98013304e9bbf59ee428/compiler/rustc_hir/src/definitions.rs:81:26:
-index out of bounds: the len is 6 but the index is 952
-note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
-error: could not compile `example2` (bin "example2")
+START: Path_1!
+
+No dangerous writes detected
+MIR for function: DefId(0:5 ~ example2[2a93]::main)
+Unsupported Type: ()
+Unsupported Type: (i32, bool)
+Unsupported Type: (i32, bool)
+Unsupported Type: ()
+=== Starting MIR Analysis ===
+START: Path 0!
+Unsupported binary operation: AddWithOverflow
+Found dangerous write at src/main.rs:17:9: 17:18 (#0)
+START: Path_1!
+START: Path_2!
+Unsupported binary operation: AddWithOverflow
+Found dangerous write at src/main.rs:17:9: 17:18 (#0)
+START: Path_3!
+START: Path_4!
+
+Found 2 dangerous writes to /proc/self/mem
+  [1] src/main.rs:17:9: 17:18 (#0)
+  [2] src/main.rs:17:9: 17:18 (#0)
+WARNING: 2 potential write(s) to `/proc/self/mem` detected:
+	1. src/main.rs:17:9: 17:18 (#0)
+	2. src/main.rs:17:9: 17:18 (#0)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.26s
 ---------------------------
 Evaluating crate: example1
 This crate should be unsafe
@@ -65,11 +90,34 @@ Unsupported Type: (u8, bool)
 Unsupported Type: (u8, bool)
 Unsupported Type: ()
 Unsupported Type: ()
+=== Starting MIR Analysis ===
 START: Path 0!
-thread 'rustc' panicked at /rustc/92c6c03805408a1a261b98013304e9bbf59ee428/compiler/rustc_hir/src/definitions.rs:81:26:
-index out of bounds: the len is 9 but the index is 2345
-note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
-error: could not compile `example1` (bin "example1")
+Unsupported binary operation: AddWithOverflow
+Unsupported binary operation: AddWithOverflow
+Unsupported binary operation: MulWithOverflow
+Unsupported binary operation: MulWithOverflow
+Unsupported binary operation: MulWithOverflow
+Unsupported binary operation: AddWithOverflow
+Found dangerous write at src/main.rs:7:9: 7:18 (#0)
+START: Path_1!
+START: Path_2!
+
+Found 1 dangerous writes to /proc/self/mem
+  [1] src/main.rs:7:9: 7:18 (#0)
+WARNING: 1 potential write(s) to `/proc/self/mem` detected:
+	1. src/main.rs:7:9: 7:18 (#0)
+MIR for function: DefId(0:7 ~ example1[bfb7]::mystery_function)
+Unsupported Type: ()
+Unsupported Type: [u8; 1]
+Unsupported Type: ()
+=== Starting MIR Analysis ===
+START: Path 0!
+Unsupported Rvalue in assignment: [const 0_u8; 1]
+START: Path_1!
+START: Path_2!
+
+No dangerous writes detected
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.14s
 
 Summary:
 Safe crates accuracy: 2/2

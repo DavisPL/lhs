@@ -3,7 +3,7 @@ use std::fs;
 fn main() {
     let x = 5;
     let y = 10;
-    let z =11;
+    let z = x + y;
     if z > 10 {
         fs::write("output.txt", "Safe write").unwrap();
     }
