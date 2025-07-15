@@ -2,6 +2,12 @@ use rustc_middle::mir::{
     BasicBlock, BinOp, Body, CallSource, Operand, Place, ProjectionElem, Rvalue, StatementKind,
     SwitchTargets, TerminatorKind, UnwindAction,
 };
+
+use rustc_hir::def_id::DefId;
+use rustc_middle::ty::{data_structures::IndexMap, TyCtxt};
+
+use rustc_span::Span;
+
 use z3::ast::Ast;
 use z3::SatResult;
 
@@ -11,17 +17,21 @@ use crate::operand::{
 use crate::symexec::SymExec;
 use std::collections::{HashMap, HashSet};
 
-const DEF_ID_FS_WRITE: usize = 2_345; // std::fs::write
-const DEF_PATHBUF_FROM: usize = 3_072; // PathBuf::from - for PathBuf construction
-const DEF_PATHBUF_DEREF: usize = 3_557; // PathBuf::deref - for PathBuf to &Path conversion (apparently when we do a.join and if a .path is a PathBuf, .deref is called on a internally - this gave me a lot of trouble)
-const DEF_ID_JOIN: usize = 5_328; // Path::join - for path joining operations
-const DEF_ID_ENV_SET_VAR: usize = 1906; // env::set_var - for environment variable setting
+// const DEF_ID_FS_WRITE: usize = 2_345; // std::fs::write
+// const DEF_PATHBUF_FROM: usize = 3_072; // PathBuf::from - for PathBuf construction
+// const DEF_PATHBUF_DEREF: usize = 3_557; // PathBuf::deref - for PathBuf to &Path conversion (apparently when we do a.join and if a .path is a PathBuf, .deref is called on a internally - this gave me a lot of trouble)
+// const DEF_ID_JOIN: usize = 5_328; // Path::join - for path joining operations
+// const DEF_ID_ENV_SET_VAR: usize = 1906; // env::set_var - for environment variable setting
+
 const ENV_TO_TRACK: &str = "RUSTC"; // Environment variable to track
 
 const MAX_LOOP_ITER: u32 = 5; // Maximum loop iterations before widening
 
-pub struct MIRParser<'mir, 'ctx> {
-    mir_body: &'mir Body<'mir>,
+pub struct MIRParser<'tcx, 'mir, 'ctx>
+where
+    'mir: 'tcx,
+{
+    mir_body: &'mir Body<'tcx>,
     pub curr: SymExec<'ctx>,
 
     // Stack for iterative basic block processing
@@ -33,32 +43,58 @@ pub struct MIRParser<'mir, 'ctx> {
 
     // Collection of all dangerous write locations found during analysis
     dangerous_spans: Vec<rustc_span::Span>,
+
+    // registry of “interesting” callees → handler
+    handlers: IndexMap<String, CallHandler<'tcx, 'mir, 'ctx>>,
+    tcx: TyCtxt<'tcx>,
 }
 
-impl<'mir, 'ctx> MIRParser<'mir, 'ctx> {
-    pub fn new(body: &'mir Body<'mir>, z3: SymExec<'ctx>) -> Self {
-        Self {
+impl<'tcx, 'mir, 'ctx> MIRParser<'tcx, 'mir, 'ctx>
+where
+    'mir: 'tcx, // this means tcx outlives the mir
+{
+    pub fn new(tcx: TyCtxt<'tcx>, body: &'mir Body<'tcx>, z3: SymExec<'ctx>) -> Self {
+        let mut p = Self {
+            tcx,
             mir_body: body,
             curr: z3,
+            handlers: IndexMap::default(),
             stack: Vec::new(),
             path_count: 0,
             visit_counts: HashMap::new(),
             dangerous_spans: Vec::new(),
-        }
+        };
+
+        // built-ins we always want
+        p.add_builtin_handlers();
+        p
+    }
+
+    pub fn register_handler<S: Into<String>>(
+        &mut self,
+        path: S,
+        handler: CallHandler<'tcx, 'mir, 'ctx>,
+    ) {
+        self.handlers.insert(path.into(), handler);
+    }
+
+    fn add_builtin_handlers(&mut self) {
+        self.register_handler("std::fs::write", handle_fs_write);
+        self.register_handler("std::env::set_var", handle_env_set_var);
+        self.register_handler("std::path::PathBuf::from", handle_pathbuf_from);
+        self.register_handler("std::path::PathBuf::deref", handle_pathbuf_deref);
+        self.register_handler("std::path::Path::join", handle_path_join);
     }
 
     // Main entry point: analyze the MIR and return all dangerous write locations
-    pub fn parse(&mut self) -> Vec<rustc_span::Span> {
+    pub fn parse(&mut self) -> Vec<Span> {
         println!("=== Starting MIR Analysis ===");
-        // Start symbolic execution from the entry block (bb0)
         self.stack
             .push((self.curr.clone(), BasicBlock::from_usize(0)));
         println!("START: Path 0!");
 
-        // Process all execution paths iteratively
         while let Some((state, bb)) = self.stack.pop() {
             self.curr = state;
-
             if let Some(is_terminal) = self.parse_bb_iterative(bb) {
                 if is_terminal {
                     self.path_count += 1;
@@ -67,25 +103,28 @@ impl<'mir, 'ctx> MIRParser<'mir, 'ctx> {
             }
         }
 
-        // Report results
         if !self.dangerous_spans.is_empty() {
             println!(
-                "WARNING: \nFound {} dangerous writes to /proc/self/mem",
+                "WARNING: found {} dangerous writes to /proc/self/mem",
                 self.dangerous_spans.len()
             );
             for (i, span) in self.dangerous_spans.iter().enumerate() {
                 println!("  [{}] {:?}", i + 1, span);
             }
         } else {
-            println!("\nNo dangerous writes detected");
+            println!("No dangerous writes detected");
         }
 
         self.dangerous_spans.clone()
     }
 
+    fn def_path_str(&self, def_id: DefId) -> String {
+        self.tcx.def_path_str(def_id)
+    }
+
     // Convert a Place (memory location + projections) into a stable string key
     // Example: _1.field[2] becomes "1.f0[2]"
-    fn place_key<'tcx>(&self, place: &Place<'tcx>) -> String {
+    fn place_key(&self, place: &Place<'tcx>) -> String {
         let mut key = place.local.as_usize().to_string();
         for elem in place.projection {
             use ProjectionElem::*;
@@ -172,7 +211,7 @@ impl<'mir, 'ctx> MIRParser<'mir, 'ctx> {
     }
 
     // Handle different types of control flow terminators
-    fn handle_terminator(&mut self, terminator: &TerminatorKind) {
+    fn handle_terminator(&mut self, terminator: &TerminatorKind<'tcx>) {
         match terminator {
             // Simple jump to another block
             TerminatorKind::Goto { target } => {
@@ -201,7 +240,6 @@ impl<'mir, 'ctx> MIRParser<'mir, 'ctx> {
                 destination,
                 target,
                 unwind,
-                call_source,
                 ..
             } => {
                 self.handle_function_call(
@@ -210,7 +248,6 @@ impl<'mir, 'ctx> MIRParser<'mir, 'ctx> {
                     destination.clone(),
                     *target,
                     (*unwind).clone(),
-                    call_source.clone(),
                 );
             }
 
@@ -263,7 +300,7 @@ impl<'mir, 'ctx> MIRParser<'mir, 'ctx> {
 
     // Parse assignment statements: `destination = rvalue`
     // This is expanded to handle more assignment types beyond just Use and BinaryOp
-    fn parse_assignment<'tcx>(&mut self, assignment: Box<(Place<'tcx>, Rvalue<'tcx>)>) {
+    fn parse_assignment(&mut self, assignment: Box<(Place<'tcx>, Rvalue<'tcx>)>) {
         let (destination, rvalue) = *assignment;
         let dest_key = self.place_key(&destination);
 
@@ -315,7 +352,7 @@ impl<'mir, 'ctx> MIRParser<'mir, 'ctx> {
     }
 
     // Handle simple copy/move operations
-    fn handle_use_operation<'tcx>(&mut self, dest_key: &str, operand: &Operand<'tcx>) {
+    fn handle_use_operation(&mut self, dest_key: &str, operand: &Operand<'tcx>) {
         match operand {
             // Copy from another variable: `x = y`
             Operand::Copy(place) | Operand::Move(place) => {
@@ -331,7 +368,7 @@ impl<'mir, 'ctx> MIRParser<'mir, 'ctx> {
     }
 
     // Handle binary operations like addition, comparison, etc.
-    fn handle_binary_operation<'tcx>(
+    fn handle_binary_operation(
         &mut self,
         dest_key: &str,
         op: BinOp,
@@ -427,14 +464,14 @@ impl<'mir, 'ctx> MIRParser<'mir, 'ctx> {
 
     // Handle reference operations: `x = &y`
     // This is important for tracking when PathBuf objects are borrowed as &Path
-    fn handle_reference_operation<'tcx>(&mut self, dest_key: &str, place: &Place<'tcx>) {
+    fn handle_reference_operation(&mut self, dest_key: &str, place: &Place<'tcx>) {
         let src_key = self.place_key(place);
         self.copy_variable_value(&src_key, dest_key);
     }
 
     // Handle cast operations: `x = y as T`
     // Needed for various type conversions in path operations
-    fn handle_cast_operation<'tcx>(&mut self, dest_key: &str, operand: &Operand<'tcx>) {
+    fn handle_cast_operation(&mut self, dest_key: &str, operand: &Operand<'tcx>) {
         if let Operand::Copy(place) | Operand::Move(place) = operand {
             let src_key = self.place_key(place);
             self.copy_variable_value(&src_key, dest_key);
@@ -443,7 +480,7 @@ impl<'mir, 'ctx> MIRParser<'mir, 'ctx> {
 
     // Handle copy for dereference operations
     // Used in some compiler optimizations
-    fn handle_copy_for_deref<'tcx>(&mut self, dest_key: &str, place: &Place<'tcx>) {
+    fn handle_copy_for_deref(&mut self, dest_key: &str, place: &Place<'tcx>) {
         let src_key = self.place_key(place);
         self.copy_variable_value(&src_key, dest_key);
     }
@@ -460,7 +497,7 @@ impl<'mir, 'ctx> MIRParser<'mir, 'ctx> {
     }
 
     // Assign a constant value to a variable
-    fn assign_constant_value<'tcx>(
+    fn assign_constant_value(
         &mut self,
         dest_key: &str,
         constant: &rustc_middle::mir::ConstOperand<'tcx>,
@@ -613,107 +650,43 @@ impl<'mir, 'ctx> MIRParser<'mir, 'ctx> {
     }
 
     // Handle function calls - this is completely rewritten to detect path operations
-    fn handle_function_call<'tcx>(
+    fn handle_function_call(
         &mut self,
         func: Operand<'tcx>,
         args: Box<[rustc_span::source_map::Spanned<Operand<'tcx>>]>,
-        destination: Place<'tcx>,
+        dest: Place<'tcx>,
         target: Option<BasicBlock>,
         unwind: UnwindAction,
-        _call_source: CallSource,
     ) {
-        let def_id = get_operand_def_id(&func);
-        let dest_key = self.place_key(&destination);
+        if let Some(def_id) = get_operand_def_id(&func) {
+            let path = self.def_path_str(def_id);
+            if let Some(handler) = self.handlers.get(&path) {
+                // materialise the Vec that Call owns
+                let arg_vec: Vec<Operand<'tcx>> = args.iter().map(|s| s.node.clone()).collect();
 
-        match def_id {
-            // PathBuf::from(string) -> PathBuf
-            // This creates a PathBuf from a string literal or variable
-            Some(DEF_PATHBUF_FROM) if !args.is_empty() => {
-                if let Some(input_str) = self.get_string_from_operand(&args[0].node) {
-                    self.curr.assign_string(&dest_key, input_str);
-                }
-            }
-
-            // PathBuf::deref(&self) -> &Path
-            // This converts a PathBuf reference to a Path reference
-            Some(DEF_PATHBUF_DEREF) if !args.is_empty() => {
-                if let Some(pathbuf_str) = self.get_string_from_operand(&args[0].node) {
-                    self.curr.assign_string(&dest_key, pathbuf_str);
-                }
-            }
-
-            // Path::join(&self, component) -> PathBuf
-            // This is the key operation that creates complex paths like "base/component"
-            Some(DEF_ID_JOIN) if args.len() >= 2 => {
-                let base_str = self.get_string_from_operand(&args[0].node);
-                let component_str = self.get_string_from_operand(&args[1].node);
-
-                if let (Some(base), Some(component)) = (base_str, component_str) {
-                    // Using the path_join function from SymExec to create symbolic path
-                    let joined_path = self.curr.path_join(&base, &component);
-                    self.curr.assign_string(&dest_key, joined_path);
-                }
-            }
-
-            // fs::write(path, contents)
-            Some(DEF_ID_FS_WRITE) if !args.is_empty() => {
-                let is_dangerous = self.check_write_safety(&args[0].node);
-
-                if is_dangerous {
-                    // Collect the span instead of returning immediately
-                    if let Some(span) = get_operand_span(&func) {
-                        println!("Found dangerous write at {:?}", span);
-                        self.dangerous_spans.push(span);
-                    }
-                }
-            }
-
-            Some(DEF_ID_ENV_SET_VAR) if args.len() >= 2 => {
-                //get the key and value from the arguments
-                let key_str = self
-                    .get_string_from_operand(&args[0].node)
-                    .map(|s| s.to_string().trim_matches('"').to_owned());
-                let val_str = self
-                    .get_string_from_operand(&args[1].node)
-                    .map(|s| s.to_string().trim_matches('"').to_owned());
-
-                // println!("env::set_var seen: key={:?} val={:?}", key_str, val_str);
-
-                // 2. Checking for critical env variable writes
-                if self.operand_matches_literal(&args[0].node, ENV_TO_TRACK) {
-                    if let Some(span) = get_operand_span(&func) {
-                        println!(
-                            "CRITICAL: env::set_var called for {} at {:?}",
-                            ENV_TO_TRACK, span
-                        );
-                        // self.dangerous_spans.push(span);
-                    }
-                } else if let Some(span) = get_operand_span(&func) {
-                    // self.dangerous_spans.push(span);
-                    println!(
-                        "WARNING: env::set_var called with key={} at {:?}",
-                        key_str.unwrap_or_default(),
-                        span
-                    );
-                }
-            }
-
-            _ => {
-                // Unhandled function calls
+                handler(
+                    self,
+                    Call {
+                        func_def_id: def_id,
+                        args: arg_vec,
+                        dest,
+                        span: get_operand_span(&func),
+                    },
+                );
             }
         }
 
-        // Continue execution to the next block
-        if let Some(next_bb) = target {
-            self.stack.push((self.curr.clone(), next_bb));
-        } else if let UnwindAction::Cleanup(cleanup_bb) = unwind {
-            self.stack.push((self.curr.clone(), cleanup_bb));
+        // control‑flow plumbing unchanged
+        if let Some(next) = target {
+            self.stack.push((self.curr.clone(), next));
+        } else if let UnwindAction::Cleanup(clean) = unwind {
+            self.stack.push((self.curr.clone(), clean));
         }
     }
 
     // Extracted function to check if a write operation is dangerous
     // This separates the safety checking logic from the main function call handler
-    fn check_write_safety<'tcx>(&self, path_operand: &Operand<'tcx>) -> bool {
+    fn check_write_safety(&self, path_operand: &Operand<'tcx>) -> bool {
         match get_operand_local(path_operand) {
             // Case 1: Direct constant string (local index 0 means it's a constant)
             Some(0) => {
@@ -738,10 +711,7 @@ impl<'mir, 'ctx> MIRParser<'mir, 'ctx> {
     }
 
     // Extract string value from an operand (constant or symbolic)
-    fn get_string_from_operand<'tcx>(
-        &self,
-        operand: &Operand<'tcx>,
-    ) -> Option<z3::ast::String<'ctx>> {
+    fn get_string_from_operand(&self, operand: &Operand<'tcx>) -> Option<z3::ast::String<'ctx>> {
         match operand {
             Operand::Copy(place) | Operand::Move(place) => {
                 let key = self.place_key(place);
@@ -755,7 +725,7 @@ impl<'mir, 'ctx> MIRParser<'mir, 'ctx> {
 
     // Extract integer value from an operand
     // Helper function for binary operations
-    fn get_int_from_operand<'tcx>(&self, operand: &Operand<'tcx>) -> Option<z3::ast::Int<'ctx>> {
+    fn get_int_from_operand(&self, operand: &Operand<'tcx>) -> Option<z3::ast::Int<'ctx>> {
         match operand {
             Operand::Copy(place) | Operand::Move(place) => {
                 let key = self.place_key(place);
@@ -796,7 +766,7 @@ impl<'mir, 'ctx> MIRParser<'mir, 'ctx> {
         }
     }
 
-    fn operand_matches_literal<'tcx>(&self, op: &Operand<'tcx>, lit: &str) -> bool {
+    fn operand_matches_literal(&self, op: &Operand<'tcx>, lit: &str) -> bool {
         if let Some(sym) = self.get_string_from_operand(op) {
             // Ask Z3: can `sym == lit` be satisfied under current constraints?
             let eq = sym._eq(&self.curr.static_string(lit));
@@ -804,5 +774,83 @@ impl<'mir, 'ctx> MIRParser<'mir, 'ctx> {
         } else {
             false
         }
+    }
+}
+
+pub struct Call<'tcx> {
+    pub func_def_id: DefId, // DEF ID of the function being called
+    pub dest: Place<'tcx>, // Where the call return value is stored , i.e, _5 in MIR
+    pub span: Option<Span>, // location of the call in the source code
+    pub args: Vec<Operand<'tcx>>, // arguments to the function call
+}
+
+type CallHandler<'tcx, 'mir, 'ctx> = fn(&mut MIRParser<'tcx, 'mir, 'ctx>, Call<'tcx>);
+
+fn handle_fs_write<'tcx, 'mir, 'ctx>(this: &mut MIRParser<'tcx, 'mir, 'ctx>, call: Call<'tcx>) {
+    if call.args.is_empty() {
+        return;
+    }
+    if this.check_write_safety(&call.args[0]) {
+        if let Some(span) = call.span {
+            println!("Found dangerous write at {:?}", span);
+            this.dangerous_spans.push(span);
+        }
+    }
+}
+
+fn handle_env_set_var<'tcx, 'mir, 'ctx>(this: &mut MIRParser<'tcx, 'mir, 'ctx>, call: Call<'tcx>) {
+    if call.args.len() < 2 {
+        return;
+    }
+    if this.operand_matches_literal(&call.args[0], ENV_TO_TRACK) {
+        if let Some(span) = call.span {
+            println!("CRITICAL: env::set_var({}) at {:?}", ENV_TO_TRACK, span);
+            //this.dangerous_spans.push(span); // currnelty the span is exptected to contain lcoations for std::fs::write , so addingn these will confuse the user, we need to update the span vector handling logic
+        }
+    }
+    
+    // also print if you see some other env variable being set
+    else if let Some(env_var) = this.get_string_from_operand(&call.args[0]) {
+        if let Some(span) = call.span {
+            println!("WARNING : Setting environment variable: {} at {:?}", env_var, span);
+            // this.dangerous_spans.push(span);
+        }
+    }
+}
+
+fn handle_pathbuf_from<'tcx, 'mir, 'ctx>(this: &mut MIRParser<'tcx, 'mir, 'ctx>, call: Call<'tcx>) {
+    if call.args.is_empty() {
+        return;
+    }
+    if let Some(s) = this.get_string_from_operand(&call.args[0]) {
+        let key = this.place_key(&call.dest);
+        this.curr.assign_string(&key, s);
+    }
+}
+
+fn handle_pathbuf_deref<'tcx, 'mir, 'ctx>(
+    this: &mut MIRParser<'tcx, 'mir, 'ctx>,
+    call: Call<'tcx>,
+) {
+    if call.args.is_empty() {
+        return;
+    }
+    if let Some(s) = this.get_string_from_operand(&call.args[0]) {
+        let key = this.place_key(&call.dest);
+        this.curr.assign_string(&key, s);
+    }
+}
+
+fn handle_path_join<'tcx, 'mir, 'ctx>(this: &mut MIRParser<'tcx, 'mir, 'ctx>, call: Call<'tcx>) {
+    if call.args.len() < 2 {
+        return;
+    }
+    if let (Some(base), Some(comp)) = (
+        this.get_string_from_operand(&call.args[0]),
+        this.get_string_from_operand(&call.args[1]),
+    ) {
+        let joined = this.curr.path_join(&base, &comp);
+        let key = this.place_key(&call.dest);
+        this.curr.assign_string(&key, joined);
     }
 }

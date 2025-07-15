@@ -1,38 +1,27 @@
 use rustc_abi::Size;
+use rustc_hir::def_id::DefId;
 use rustc_middle::mir::interpret::{AllocRange, ConstAllocation, GlobalAlloc, Pointer, Scalar};
 use rustc_middle::mir::{Const, ConstValue, Local, Operand, Place};
 use rustc_middle::ty::ScalarInt;
 use rustc_middle::ty::{ParamEnv, Ty, TyCtxt, TyKind};
 
 // Get the DefID associated with a given Operand (function)
-pub fn get_operand_def_id<'tcx>(operand: &Operand<'tcx>) -> Option<usize> {
+pub fn get_operand_def_id<'tcx>(operand: &Operand<'tcx>) -> Option<DefId> {
     match operand {
-        Operand::Copy(_place) => {
-            println!(
-                "get_operand_def_id: This should never happen, contact Hassnain if this is printed"
-            );
+        Operand::Constant(c) => {
+            match &c.const_ {
+                // Only `Const::Val` can hold a fully‑evaluated constant with its Ty.
+                Const::Val(_val, ty) => {
+                    if let TyKind::FnDef(def_id, _generic_args) = ty.kind() {
+                        return Some(*def_id); // Preserve the full `DefId`
+                    }
+                }
+                _ => {}
+            }
             None
         }
-        Operand::Move(place) => None,
-        Operand::Constant(place) => {
-            let constant = place.const_;
-            match constant {
-                Const::Ty(_ty, _const) => {
-                    println!("get_operand_def_id: This should never happen, contact Hassnain if this is printed");
-                    None
-                }
-                Const::Unevaluated(_unevaluated_const, _ty) => {
-                    println!("get_operand_def_id: This should never happen, contact Hassnain if this is printed");
-                    None
-                }
-                Const::Val(const_value, ty) => {
-                    if let TyKind::FnDef(def_id, idk) = ty.kind() {
-                        return Some(def_id.index.as_usize());
-                    }
-                    None
-                }
-            }
-        }
+        // `Copy` and `Move` operands can’t be `FnDef`s.
+        Operand::Copy(_) | Operand::Move(_) => None,
     }
 }
 

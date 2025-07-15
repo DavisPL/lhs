@@ -67,7 +67,7 @@ impl Callbacks for LCallback {
                     let mir_body = tcx.optimized_mir(local_def_id); // This is a Steal<RwLock<Option>>
                                                                     // let mir_string = source_map.span_to_string(mir_body.span, FileNameDisplayPreference::Local);
                                                                     // println!("{mir_string}");
-                    trace_mir_body(mir_body)
+                    trace_mir_body(tcx, mir_body)
                 }
             }
 
@@ -81,7 +81,7 @@ impl Callbacks for LCallback {
     }
 }
 
-pub fn trace_mir_body<'a>(mir_body: &'a Body<'a>) {
+pub fn trace_mir_body<'tcx>(tcx: TyCtxt<'tcx>, mir_body: &'tcx Body<'tcx>) {
     // dbg!("{}", &mir_body);
     let cfg = z3::Config::new();
     let ctx = z3::Context::new(&cfg);
@@ -119,7 +119,8 @@ pub fn trace_mir_body<'a>(mir_body: &'a Body<'a>) {
 
     // println!("{:#?}", ev);
 
-    let mut mir_parser = MIRParser::new(mir_body, ev);
+    // let mut mir_parser = MIRParser::new(mir_body, ev);
+    let mut mir_parser = MIRParser::new(tcx, mir_body, ev);
     // let fs_write_span: Option<rustc_span::Span> = mir_parser.parse();
     let fs_write_spans: Vec<rustc_span::Span> = mir_parser.parse();
     if !fs_write_spans.is_empty() {
