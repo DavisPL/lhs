@@ -46,14 +46,10 @@ pub fn get_operand_const_string<'tcx>(operand: &Operand<'tcx>) -> Option<String>
             // Already‑evaluated constant
             Const::Val(val, ty) => (val, ty),
             // `Const::Unevaluated` and `Const::Ty` need tcx to resolve , skipping for now
-            _ => {
-                return None
-            }
+            _ => return None,
         },
         // Copy / Move refer to locals, not literals
-        _ => {
-            return None
-        }
+        _ => return None,
     };
 
     // is it `&str` ?
@@ -61,9 +57,7 @@ pub fn get_operand_const_string<'tcx>(operand: &Operand<'tcx>) -> Option<String>
         TyKind::Ref(_, inner, _) if matches!(inner.kind(), TyKind::Str) => {
             // Continue to byte extraction - don't return here
         }
-        _ => {
-            return None
-        },
+        _ => return None,
     }
 
     // can we get the raw bytes?
@@ -77,18 +71,12 @@ pub fn get_operand_const_string<'tcx>(operand: &Operand<'tcx>) -> Option<String>
         }
         // other `ConstValue`s (Scalar, ByRef, ZeroSized …) cannot encode a
         // string literal on nightly‑2024‑07‑22, so just give up!
-        _ => {
-            return None
-        }
+        _ => return None,
     };
 
     match String::from_utf8(bytes) {
-        Ok(s) => {
-            Some(s)
-        }
-        Err(e) => {
-            None
-        }
+        Ok(s) => Some(s),
+        Err(e) => None,
     }
 }
 

@@ -2,6 +2,7 @@ use rustc_middle::mir::{
     BasicBlock, BinOp, Body, CallSource, Operand, Place, ProjectionElem, Rvalue, StatementKind,
     SwitchTargets, TerminatorKind, UnwindAction,
 };
+use z3::ast::Ast;
 use z3::SatResult;
 
 use crate::operand::{
@@ -10,24 +11,26 @@ use crate::operand::{
 use crate::symexec::SymExec;
 use std::collections::{HashMap, HashSet};
 
-const DEF_ID_FS_WRITE: usize = 2_345;       // std::fs::write
-const DEF_PATHBUF_FROM: usize = 3_072;      // PathBuf::from - for PathBuf construction
-const DEF_PATHBUF_DEREF: usize = 3_557;     // PathBuf::deref - for PathBuf to &Path conversion (apparently when we do a.join and if a .path is a PathBuf, .deref is called on a internally - this gave me a lot of trouble) 
-const DEF_ID_JOIN: usize = 5_328;           // Path::join - for path joining operations
+const DEF_ID_FS_WRITE: usize = 2_345; // std::fs::write
+const DEF_PATHBUF_FROM: usize = 3_072; // PathBuf::from - for PathBuf construction
+const DEF_PATHBUF_DEREF: usize = 3_557; // PathBuf::deref - for PathBuf to &Path conversion (apparently when we do a.join and if a .path is a PathBuf, .deref is called on a internally - this gave me a lot of trouble)
+const DEF_ID_JOIN: usize = 5_328; // Path::join - for path joining operations
+const DEF_ID_ENV_SET_VAR: usize = 1906; // env::set_var - for environment variable setting
+const ENV_TO_TRACK: &str = "RUSTC"; // Environment variable to track
 
 const MAX_LOOP_ITER: u32 = 5; // Maximum loop iterations before widening
 
 pub struct MIRParser<'mir, 'ctx> {
     mir_body: &'mir Body<'mir>,
     pub curr: SymExec<'ctx>,
-    
+
     // Stack for iterative basic block processing
     stack: Vec<(SymExec<'ctx>, BasicBlock)>,
     path_count: u32,
-    
+
     // Loop handling: track how many times we've visited each basic block
     visit_counts: HashMap<BasicBlock, u32>,
-    
+
     // Collection of all dangerous write locations found during analysis
     dangerous_spans: Vec<rustc_span::Span>,
 }
@@ -48,7 +51,8 @@ impl<'mir, 'ctx> MIRParser<'mir, 'ctx> {
     pub fn parse(&mut self) -> Vec<rustc_span::Span> {
         println!("=== Starting MIR Analysis ===");
         // Start symbolic execution from the entry block (bb0)
-        self.stack.push((self.curr.clone(), BasicBlock::from_usize(0)));
+        self.stack
+            .push((self.curr.clone(), BasicBlock::from_usize(0)));
         println!("START: Path 0!");
 
         // Process all execution paths iteratively
@@ -65,7 +69,10 @@ impl<'mir, 'ctx> MIRParser<'mir, 'ctx> {
 
         // Report results
         if !self.dangerous_spans.is_empty() {
-            println!("WARNING: \nFound {} dangerous writes to /proc/self/mem", self.dangerous_spans.len());
+            println!(
+                "WARNING: \nFound {} dangerous writes to /proc/self/mem",
+                self.dangerous_spans.len()
+            );
             for (i, span) in self.dangerous_spans.iter().enumerate() {
                 println!("  [{}] {:?}", i + 1, span);
             }
@@ -77,7 +84,7 @@ impl<'mir, 'ctx> MIRParser<'mir, 'ctx> {
     }
 
     // Convert a Place (memory location + projections) into a stable string key
-    // Example: _1.field[2] becomes "1.f0[2]"  
+    // Example: _1.field[2] becomes "1.f0[2]"
     fn place_key<'tcx>(&self, place: &Place<'tcx>) -> String {
         let mut key = place.local.as_usize().to_string();
         for elem in place.projection {
@@ -124,11 +131,17 @@ impl<'mir, 'ctx> MIRParser<'mir, 'ctx> {
         }
 
         if *counter == MAX_LOOP_ITER {
-            println!("bb{} exceeded limit {} — applying widening", bb.as_u32(), MAX_LOOP_ITER);
-            
+            println!(
+                "bb{} exceeded limit {} — applying widening",
+                bb.as_u32(),
+                MAX_LOOP_ITER
+            );
+
             // Widening: remove constraints on variables modified in this block
             let written_vars = self.collect_written_vars(bb);
-            self.curr.constraints.retain(|c| !Self::constraint_mentions(&written_vars, c));
+            self.curr
+                .constraints
+                .retain(|c| !Self::constraint_mentions(&written_vars, c));
             return None;
         }
 
@@ -183,11 +196,17 @@ impl<'mir, 'ctx> MIRParser<'mir, 'ctx> {
 
             // Function calls - the most important case for our analysis
             TerminatorKind::Call {
-                func, args, destination, target, unwind, call_source, ..
+                func,
+                args,
+                destination,
+                target,
+                unwind,
+                call_source,
+                ..
             } => {
                 self.handle_function_call(
                     func.clone(),
-                    args.clone(), 
+                    args.clone(),
                     destination.clone(),
                     *target,
                     (*unwind).clone(),
@@ -196,7 +215,13 @@ impl<'mir, 'ctx> MIRParser<'mir, 'ctx> {
             }
 
             // Runtime assertions
-            TerminatorKind::Assert { cond, expected, target, unwind, .. } => {
+            TerminatorKind::Assert {
+                cond,
+                expected,
+                target,
+                unwind,
+                ..
+            } => {
                 self.handle_assert(cond.clone(), *expected, *target, (*unwind).clone());
             }
 
@@ -215,7 +240,9 @@ impl<'mir, 'ctx> MIRParser<'mir, 'ctx> {
                 }
             }
 
-            TerminatorKind::InlineAsm { targets, unwind, .. } => {
+            TerminatorKind::InlineAsm {
+                targets, unwind, ..
+            } => {
                 for &t in targets {
                     self.stack.push((self.curr.clone(), t));
                 }
@@ -315,10 +342,10 @@ impl<'mir, 'ctx> MIRParser<'mir, 'ctx> {
         // Try to get integer operands
         if let (Some(lhs_int), Some(rhs_int)) = (
             self.get_int_from_operand(lhs),
-            self.get_int_from_operand(rhs)
-        ) {      
+            self.get_int_from_operand(rhs),
+        ) {
             self.handle_int_binary_op(dest_key, op, &lhs_int, &rhs_int);
-            
+
             if let Some(result) = self.curr.get_int(dest_key) {
                 // println!("    Result: {} = {}", dest_key, result.to_string());
             } else if let Some(result) = self.curr.get_bool(dest_key) {
@@ -331,7 +358,7 @@ impl<'mir, 'ctx> MIRParser<'mir, 'ctx> {
         if matches!(op, BinOp::Eq | BinOp::Ne) {
             if let (Some(lhs_str), Some(rhs_str)) = (
                 self.get_string_from_operand(lhs),
-                self.get_string_from_operand(rhs)
+                self.get_string_from_operand(rhs),
             ) {
                 let eq_result = self.curr.string_eq(&lhs_str, &rhs_str);
                 let final_result = if matches!(op, BinOp::Eq) {
@@ -345,25 +372,33 @@ impl<'mir, 'ctx> MIRParser<'mir, 'ctx> {
     }
 
     // Handle integer binary operations
-    fn handle_int_binary_op(&mut self, dest_key: &str, op: BinOp, lhs: &z3::ast::Int<'ctx>, rhs: &z3::ast::Int<'ctx>) {
+    fn handle_int_binary_op(
+        &mut self,
+        dest_key: &str,
+        op: BinOp,
+        lhs: &z3::ast::Int<'ctx>,
+        rhs: &z3::ast::Int<'ctx>,
+    ) {
         use BinOp::*;
         match op {
             // Comparisons return booleans
             Eq => self.curr.assign_bool(dest_key, self.curr.int_eq(lhs, rhs)),
-            Ne => self.curr.assign_bool(dest_key, self.curr.not(&self.curr.int_eq(lhs, rhs))),
+            Ne => self
+                .curr
+                .assign_bool(dest_key, self.curr.not(&self.curr.int_eq(lhs, rhs))),
             Lt => self.curr.assign_bool(dest_key, self.curr.int_lt(lhs, rhs)),
             Le => self.curr.assign_bool(dest_key, self.curr.int_le(lhs, rhs)),
             Gt => self.curr.assign_bool(dest_key, self.curr.int_gt(lhs, rhs)),
             Ge => self.curr.assign_bool(dest_key, self.curr.int_ge(lhs, rhs)),
-            
+
             // Arithmetic operations return integers
             Add => self.curr.assign_int(dest_key, self.curr.add(lhs, rhs)),
             Sub => self.curr.assign_int(dest_key, self.curr.sub(lhs, rhs)),
             Mul => self.curr.assign_int(dest_key, self.curr.mul(lhs, rhs)),
             Div => self.curr.assign_int(dest_key, self.curr.div(lhs, rhs)),
             Rem => self.curr.assign_int(dest_key, self.curr.rem(lhs, rhs)),
-            
-            // Handle overflow operations 
+
+            // Handle overflow operations
             // These operations return tuples (result, overflow_flag) instead of just the result
             AddWithOverflow | SubWithOverflow | MulWithOverflow => {
                 // For overflow operations, we create the arithmetic result and assume no overflow
@@ -373,16 +408,17 @@ impl<'mir, 'ctx> MIRParser<'mir, 'ctx> {
                     MulWithOverflow => self.curr.mul(lhs, rhs),
                     _ => unreachable!(),
                 };
-                
+
                 // Store the arithmetic result in field 0 of the destination
                 let field0_key = format!("{}.f0", dest_key);
                 self.curr.assign_int(&field0_key, arithmetic_result);
-                
-                // Store false (no overflow) in field 1 of the destination  
+
+                // Store false (no overflow) in field 1 of the destination
                 let field1_key = format!("{}.f1", dest_key);
-                self.curr.assign_bool(&field1_key, self.curr.static_bool(false));
-        }
-            
+                self.curr
+                    .assign_bool(&field1_key, self.curr.static_bool(false));
+            }
+
             _ => {
                 println!("Unsupported binary operation: {:?}", op);
             }
@@ -424,20 +460,31 @@ impl<'mir, 'ctx> MIRParser<'mir, 'ctx> {
     }
 
     // Assign a constant value to a variable
-    fn assign_constant_value<'tcx>(&mut self, dest_key: &str, constant: &rustc_middle::mir::ConstOperand<'tcx>) {
+    fn assign_constant_value<'tcx>(
+        &mut self,
+        dest_key: &str,
+        constant: &rustc_middle::mir::ConstOperand<'tcx>,
+    ) {
         let const_val = &constant.const_;
-        
+
         // Try different constant types
         if let Some(scalar_int) = const_val.try_to_scalar_int() {
             let int_val = scalar_int.to_int(scalar_int.size()) as i64;
             let z3_int = self.curr.static_int(int_val.into());
             self.curr.assign_int(dest_key, z3_int);
         } else if let Some(bool_val) = const_val.try_to_bool() {
-            self.curr.assign_bool(dest_key, self.curr.static_bool(bool_val));
-        } else if let Some(string_val) = get_operand_const_string(&Operand::Constant(Box::new(constant.clone()))) {
-            self.curr.assign_string(dest_key, self.curr.static_string(&string_val));
+            self.curr
+                .assign_bool(dest_key, self.curr.static_bool(bool_val));
+        } else if let Some(string_val) =
+            get_operand_const_string(&Operand::Constant(Box::new(constant.clone())))
+        {
+            self.curr
+                .assign_string(dest_key, self.curr.static_string(&string_val));
         } else {
-            println!("    Could not assign constant to {} - unrecognized type", dest_key);
+            println!(
+                "    Could not assign constant to {} - unrecognized type",
+                dest_key
+            );
         }
     }
 
@@ -450,10 +497,10 @@ impl<'mir, 'ctx> MIRParser<'mir, 'ctx> {
         };
 
         let local_key = local.as_usize().to_string();
-        
+
         if let Some(bool_condition) = self.curr.get_bool(&local_key).cloned() {
             // println!("    Found boolean condition: {}", bool_condition.to_string());
-            
+
             // Boolean switch: create two paths with opposite constraints
             let (val0, bb0) = targets.iter().next().unwrap();
             let bb_else = targets.otherwise();
@@ -473,7 +520,10 @@ impl<'mir, 'ctx> MIRParser<'mir, 'ctx> {
                 println!("    Taking true branch to bb{}", bb0.as_u32());
                 self.stack.push((true_state, bb0));
             } else {
-                println!("    Skipping unsatisfiable true branch to bb{}", bb0.as_u32());
+                println!(
+                    "    Skipping unsatisfiable true branch to bb{}",
+                    bb0.as_u32()
+                );
             }
 
             // Check if the false branch is satisfiable before exploring it
@@ -482,7 +532,10 @@ impl<'mir, 'ctx> MIRParser<'mir, 'ctx> {
                 println!("    Taking false branch to bb{}", bb_else.as_u32());
                 self.stack.push((false_state, bb_else));
             } else {
-                println!("    Skipping unsatisfiable false branch to bb{}", bb_else.as_u32());
+                println!(
+                    "    Skipping unsatisfiable false branch to bb{}",
+                    bb_else.as_u32()
+                );
             }
         } else {
             //  Debug when no boolean condition is found
@@ -496,7 +549,13 @@ impl<'mir, 'ctx> MIRParser<'mir, 'ctx> {
     }
 
     // Enhanced runtime assertion handling with satisfiability checking
-    fn handle_assert(&mut self, cond: Operand, expected: bool, target: BasicBlock, unwind: UnwindAction) {
+    fn handle_assert(
+        &mut self,
+        cond: Operand,
+        expected: bool,
+        target: BasicBlock,
+        unwind: UnwindAction,
+    ) {
         if let Some(local_idx) = get_operand_local(&cond) {
             if let Some(bool_condition) = self.curr.get_bool(&local_idx.to_string()).cloned() {
                 // Create success path with assertion constraint
@@ -507,13 +566,16 @@ impl<'mir, 'ctx> MIRParser<'mir, 'ctx> {
                     success_state.not(&bool_condition)
                 };
                 success_state.add_constraint(success_constraint);
-                
+
                 // Only explore the success path if it's satisfiable
                 if self.is_path_satisfiable(&success_state) {
                     println!("  Taking assertion success path to bb{}", target.as_u32());
                     self.stack.push((success_state, target));
                 } else {
-                    println!("  Skipping unsatisfiable assertion success path to bb{}", target.as_u32());
+                    println!(
+                        "  Skipping unsatisfiable assertion success path to bb{}",
+                        target.as_u32()
+                    );
                 }
 
                 // Create failure path (if there's an unwind handler)
@@ -525,13 +587,19 @@ impl<'mir, 'ctx> MIRParser<'mir, 'ctx> {
                         bool_condition
                     };
                     failure_state.add_constraint(failure_constraint);
-                    
+
                     // Only explore the failure path if it's satisfiable
                     if self.is_path_satisfiable(&failure_state) {
-                        println!("  Taking assertion failure path to bb{}", cleanup_bb.as_u32());
+                        println!(
+                            "  Taking assertion failure path to bb{}",
+                            cleanup_bb.as_u32()
+                        );
                         self.stack.push((failure_state, cleanup_bb));
                     } else {
-                        println!("  Skipping unsatisfiable assertion failure path to bb{}", cleanup_bb.as_u32());
+                        println!(
+                            "  Skipping unsatisfiable assertion failure path to bb{}",
+                            cleanup_bb.as_u32()
+                        );
                     }
                 }
             } else {
@@ -566,7 +634,7 @@ impl<'mir, 'ctx> MIRParser<'mir, 'ctx> {
                 }
             }
 
-            // PathBuf::deref(&self) -> &Path  
+            // PathBuf::deref(&self) -> &Path
             // This converts a PathBuf reference to a Path reference
             Some(DEF_PATHBUF_DEREF) if !args.is_empty() => {
                 if let Some(pathbuf_str) = self.get_string_from_operand(&args[0].node) {
@@ -590,13 +658,43 @@ impl<'mir, 'ctx> MIRParser<'mir, 'ctx> {
             // fs::write(path, contents)
             Some(DEF_ID_FS_WRITE) if !args.is_empty() => {
                 let is_dangerous = self.check_write_safety(&args[0].node);
-                
+
                 if is_dangerous {
                     // Collect the span instead of returning immediately
                     if let Some(span) = get_operand_span(&func) {
                         println!("Found dangerous write at {:?}", span);
                         self.dangerous_spans.push(span);
                     }
+                }
+            }
+
+            Some(DEF_ID_ENV_SET_VAR) if args.len() >= 2 => {
+                //get the key and value from the arguments
+                let key_str = self
+                    .get_string_from_operand(&args[0].node)
+                    .map(|s| s.to_string().trim_matches('"').to_owned());
+                let val_str = self
+                    .get_string_from_operand(&args[1].node)
+                    .map(|s| s.to_string().trim_matches('"').to_owned());
+
+                // println!("env::set_var seen: key={:?} val={:?}", key_str, val_str);
+
+                // 2. Checking for critical env variable writes
+                if self.operand_matches_literal(&args[0].node, ENV_TO_TRACK) {
+                    if let Some(span) = get_operand_span(&func) {
+                        println!(
+                            "CRITICAL: env::set_var called for {} at {:?}",
+                            ENV_TO_TRACK, span
+                        );
+                        // self.dangerous_spans.push(span);
+                    }
+                } else if let Some(span) = get_operand_span(&func) {
+                    // self.dangerous_spans.push(span);
+                    println!(
+                        "WARNING: env::set_var called with key={} at {:?}",
+                        key_str.unwrap_or_default(),
+                        span
+                    );
                 }
             }
 
@@ -640,7 +738,10 @@ impl<'mir, 'ctx> MIRParser<'mir, 'ctx> {
     }
 
     // Extract string value from an operand (constant or symbolic)
-    fn get_string_from_operand<'tcx>(&self, operand: &Operand<'tcx>) -> Option<z3::ast::String<'ctx>> {
+    fn get_string_from_operand<'tcx>(
+        &self,
+        operand: &Operand<'tcx>,
+    ) -> Option<z3::ast::String<'ctx>> {
         match operand {
             Operand::Copy(place) | Operand::Move(place) => {
                 let key = self.place_key(place);
@@ -660,11 +761,10 @@ impl<'mir, 'ctx> MIRParser<'mir, 'ctx> {
                 let key = self.place_key(place);
                 self.curr.get_int(&key).cloned()
             }
-            Operand::Constant(c) => {
-                c.const_.try_to_scalar_int().map(|si| {
-                    self.curr.static_int((si.to_int(si.size()) as i64).into())
-                })
-            }
+            Operand::Constant(c) => c
+                .const_
+                .try_to_scalar_int()
+                .map(|si| self.curr.static_int((si.to_int(si.size()) as i64).into())),
         }
     }
 
@@ -672,12 +772,12 @@ impl<'mir, 'ctx> MIRParser<'mir, 'ctx> {
     fn is_path_satisfiable(&self, state: &SymExec<'ctx>) -> bool {
         // Create a temporary solver to check satisfiability
         let solver = z3::Solver::new(&state.context);
-        
+
         // Add all constraints from the state
         for constraint in &state.constraints {
             solver.assert(constraint);
         }
-        
+
         // Check if the constraints are satisfiable
         match solver.check() {
             SatResult::Sat => {
@@ -693,6 +793,16 @@ impl<'mir, 'ctx> MIRParser<'mir, 'ctx> {
                 println!("    Warning: Z3 returned Unknown for satisfiability check");
                 true
             }
+        }
+    }
+
+    fn operand_matches_literal<'tcx>(&self, op: &Operand<'tcx>, lit: &str) -> bool {
+        if let Some(sym) = self.get_string_from_operand(op) {
+            // Ask Z3: can `sym == lit` be satisfied under current constraints?
+            let eq = sym._eq(&self.curr.static_string(lit));
+            matches!(self.curr.check_constraint_sat(&eq), SatResult::Sat)
+        } else {
+            false
         }
     }
 }

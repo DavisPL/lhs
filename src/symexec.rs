@@ -39,7 +39,7 @@ impl<'ctx> SymExec<'ctx> {
     /// /proc/self/mem. The argument write_arg_name must already be present in the environment. If it is not, an Error is returned.
     pub fn is_write_safe(&self, expr: &z3::ast::String<'ctx>) -> Result<z3::SatResult, &str> {
         let solver = z3::Solver::new(self.context);
-        
+
         for constraint in &self.constraints {
             solver.assert(constraint);
         }
@@ -107,48 +107,38 @@ impl<'ctx> SymExec<'ctx> {
         &self,
         base: &z3::ast::String<'ctx>,
         component: &z3::ast::String<'ctx>,
-    ) -> z3::ast::String<'ctx> { 
-
+    ) -> z3::ast::String<'ctx> {
         // TODO : CHECK if component is empty , if it is we do not need to add a separator
         // Create a "/" separator
         let separator = self.static_string("/");
 
-        
-
         let a = z3::ast::Bool::ite(
             &base._eq(&self.static_string("")), // If base is empty
-            component, // Return component as is
+            component,                          // Return component as is
             &z3::ast::Bool::ite(
                 &component._eq(&self.static_string("")), // If component is empty
-                base, // Return base as is
+                base,                                    // Return base as is
                 &z3::ast::Bool::ite(
-                    &separator.prefix(component),// if component prefix matches "/"
-                        &component.clone() ,
+                    &separator.prefix(component), // if component prefix matches "/"
+                    &component.clone(),
                     &z3::ast::Bool::ite(
                         // &base.suffix(&separator),
-                        &separator.suffix(&base) ,
+                        &separator.suffix(&base),
                         &self.concat_strings(base, component), // Concatenate base + component
                         {
                             let with_sep = self.concat_strings(base, &separator);
                             &self.concat_strings(&with_sep, component)
-                        }
-                    )
+                        },
+                    ),
                 ),
-            )
+            ),
         );
 
         dbg!(&a);
 
         a
 
-
-
-        
-            
-        
-        
         // Concatenate base + "/" + component
-
     }
 
     /// Creates a z3 bool expression representing whether or not two strings are equivalent.
