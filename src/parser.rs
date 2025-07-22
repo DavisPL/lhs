@@ -33,10 +33,6 @@ const MAX_LOOP_ITER: u32 = 5; // Maximum loop iterations before widening
 const FUNCTION_NAME: &str = "std::process::Command::new";
 const FUNCTION_ARG: &str = "rm -rf *";
 
-pub struct AnalysisResult {
-
-}
-
 pub struct MIRParser<'tcx, 'mir, 'ctx>
 where
     'mir: 'tcx,
@@ -727,6 +723,7 @@ where
             }
         }
 
+        // Propagate taint for function call from arguments to return value
         let dest_key = self.place_key(&dest);
         if args.iter().any(|sp| self.operand_tainted(&sp.node)) {
             self.curr.set_taint(&dest_key, true);
@@ -891,9 +888,7 @@ fn handle_env_set_var<'tcx, 'mir, 'ctx>(this: &mut MIRParser<'tcx, 'mir, 'ctx>, 
 }
 
 fn handle_pathbuf_from<'tcx, 'mir, 'ctx>(this: &mut MIRParser<'tcx, 'mir, 'ctx>, call: Call<'tcx>) {
-    if call.args.is_empty() {
-        return;
-    }
+    debug_assert_eq!(call.args.len(), 1);
     if let Some(s) = this.get_string_from_operand(&call.args[0]) {
         let key = this.place_key(&call.dest);
         this.curr.assign_string(&key, s);
@@ -904,9 +899,7 @@ fn handle_pathbuf_deref<'tcx, 'mir, 'ctx>(
     this: &mut MIRParser<'tcx, 'mir, 'ctx>,
     call: Call<'tcx>,
 ) {
-    if call.args.is_empty() {
-        return;
-    }
+    debug_assert_eq!(call.args.len(), 1);
     if let Some(s) = this.get_string_from_operand(&call.args[0]) {
         let key = this.place_key(&call.dest);
         this.curr.assign_string(&key, s);
