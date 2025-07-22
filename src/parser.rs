@@ -14,7 +14,8 @@ use z3::SatResult;
 use crate::operand::{
     get_operand_const_string, get_operand_def_id, get_operand_local, get_operand_span,
 };
-use crate::symexec::SymExec;
+// use crate::symexec::SymExec;
+use crate::symexec_new::SymExecBool as SymExec;
 use std::collections::{HashMap, HashSet};
 
 // const DEF_ID_FS_WRITE: usize = 2_345; // std::fs::write
@@ -84,6 +85,18 @@ where
         self.register_handler("std::path::PathBuf::from", handle_pathbuf_from);
         self.register_handler("std::path::PathBuf::deref", handle_pathbuf_deref);
         self.register_handler("std::path::Path::join", handle_path_join);
+
+        self.register_handler("std::env::args", handle_env_args);
+        self.register_handler("std::env::args_os", handle_env_args);
+        self.register_handler("std::env::var", handle_env_var);
+        self.register_handler("std::env::var_os", handle_env_var);
+    }
+
+    fn operand_tainted(&self, op: &Operand<'tcx>) -> bool {
+        match op {
+            Operand::Copy(p) | Operand::Move(p) => self.curr.is_tainted(&self.place_key(p)),
+            Operand::Constant(_) => false, // literals/constants are clean
+        }
     }
 
     // Main entry point: analyze the MIR and return all dangerous write locations
@@ -406,6 +419,9 @@ where
                 self.curr.assign_bool(dest_key, final_result);
             }
         }
+        if self.operand_tainted(lhs) || self.operand_tainted(rhs) {
+            self.curr.set_taint(dest_key, true);
+        }
     }
 
     // Handle integer binary operations
@@ -467,6 +483,7 @@ where
     fn handle_reference_operation(&mut self, dest_key: &str, place: &Place<'tcx>) {
         let src_key = self.place_key(place);
         self.copy_variable_value(&src_key, dest_key);
+        self.curr.propagate_taint(&src_key, dest_key);
     }
 
     // Handle cast operations: `x = y as T`
@@ -475,6 +492,7 @@ where
         if let Operand::Copy(place) | Operand::Move(place) = operand {
             let src_key = self.place_key(place);
             self.copy_variable_value(&src_key, dest_key);
+            self.curr.propagate_taint(&src_key, dest_key);
         }
     }
 
@@ -494,6 +512,7 @@ where
         } else if let Some(bool_val) = self.curr.get_bool(src_key).cloned() {
             self.curr.assign_bool(dest_key, bool_val);
         }
+        self.curr.propagate_taint(src_key, dest_key);
     }
 
     // Assign a constant value to a variable
@@ -676,6 +695,12 @@ where
             }
         }
 
+        let dest_key = self.place_key(&dest);
+        if args.iter().any(|sp| self.operand_tainted(&sp.node)) {
+            //                              ^^^^^── unwrap the `Spanned`
+            self.curr.set_taint(&dest_key, true);
+        }
+
         // control‑flow plumbing unchanged
         if let Some(next) = target {
             self.stack.push((self.curr.clone(), next));
@@ -778,9 +803,9 @@ where
 }
 
 pub struct Call<'tcx> {
-    pub func_def_id: DefId, // DEF ID of the function being called
-    pub dest: Place<'tcx>, // Where the call return value is stored , i.e, _5 in MIR
-    pub span: Option<Span>, // location of the call in the source code
+    pub func_def_id: DefId,       // DEF ID of the function being called
+    pub dest: Place<'tcx>,        // Where the call return value is stored , i.e, _5 in MIR
+    pub span: Option<Span>,       // location of the call in the source code
     pub args: Vec<Operand<'tcx>>, // arguments to the function call
 }
 
@@ -796,6 +821,20 @@ fn handle_fs_write<'tcx, 'mir, 'ctx>(this: &mut MIRParser<'tcx, 'mir, 'ctx>, cal
             this.dangerous_spans.push(span);
         }
     }
+    let path_key = match &call.args[0] {
+        Operand::Copy(p) | Operand::Move(p) => Some(this.place_key(p)),
+        Operand::Constant(_) => None, // literal string
+    };
+    if let Some(ref key) = path_key {
+        dbg!(key, this.curr.is_tainted(key));
+        if this.curr.is_tainted(key) {
+            println!(
+                "TAINT WARNING: user data reaches fs::write at {:?}",
+                call.span
+            );
+        }
+    }
+    this.curr.dump_taint();
 }
 
 fn handle_env_set_var<'tcx, 'mir, 'ctx>(this: &mut MIRParser<'tcx, 'mir, 'ctx>, call: Call<'tcx>) {
@@ -808,11 +847,13 @@ fn handle_env_set_var<'tcx, 'mir, 'ctx>(this: &mut MIRParser<'tcx, 'mir, 'ctx>, 
             //this.dangerous_spans.push(span); // currnelty the span is exptected to contain lcoations for std::fs::write , so addingn these will confuse the user, we need to update the span vector handling logic
         }
     }
-    
     // also print if you see some other env variable being set
     else if let Some(env_var) = this.get_string_from_operand(&call.args[0]) {
         if let Some(span) = call.span {
-            println!("WARNING : Setting environment variable: {} at {:?}", env_var, span);
+            println!(
+                "WARNING : Setting environment variable: {} at {:?}",
+                env_var, span
+            );
             // this.dangerous_spans.push(span);
         }
     }
@@ -853,4 +894,14 @@ fn handle_path_join<'tcx, 'mir, 'ctx>(this: &mut MIRParser<'tcx, 'mir, 'ctx>, ca
         let key = this.place_key(&call.dest);
         this.curr.assign_string(&key, joined);
     }
+}
+
+fn handle_env_args<'tcx, 'mir, 'ctx>(this: &mut MIRParser<'tcx, 'mir, 'ctx>, call: Call<'tcx>) {
+    let key = this.place_key(&call.dest);
+    this.curr.set_taint(&key, true); // tainted source
+}
+
+fn handle_env_var<'tcx, 'mir, 'ctx>(this: &mut MIRParser<'tcx, 'mir, 'ctx>, call: Call<'tcx>) {
+    let key = this.place_key(&call.dest);
+    this.curr.set_taint(&key, true); // tainted source
 }

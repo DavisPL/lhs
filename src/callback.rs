@@ -23,7 +23,8 @@ use rustc_middle::util::Providers;
 use rustc_session::search_paths::PathKind;
 
 use crate::parser::MIRParser;
-use crate::symexec;
+// use crate::symexec;
+use crate::symexec_new::SymExecBool as SymExec;
 
 const DEF_ID_PATH_BUF: usize = 5175;
 
@@ -85,7 +86,7 @@ pub fn trace_mir_body<'tcx>(tcx: TyCtxt<'tcx>, mir_body: &'tcx Body<'tcx>) {
     // dbg!("{}", &mir_body);
     let cfg = z3::Config::new();
     let ctx = z3::Context::new(&cfg);
-    let mut ev = symexec::SymExec::new(&ctx);
+    let mut ev = SymExec::new(&ctx);
 
     for (local, local_decl) in mir_body.local_decls.iter_enumerated() {
         match local_decl.ty.kind() {
