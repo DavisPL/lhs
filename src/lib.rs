@@ -21,4 +21,3 @@ pub mod callback;
 pub mod operand;
 pub mod parser;
 pub mod symexec;
-pub mod symexec_new;

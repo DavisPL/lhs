@@ -24,7 +24,7 @@ use rustc_session::search_paths::PathKind;
 
 use crate::parser::MIRParser;
 // use crate::symexec;
-use crate::symexec_new::SymExecBool as SymExec;
+use crate::symexec::SymExecBool as SymExec;
 
 const DEF_ID_PATH_BUF: usize = 5175;
 

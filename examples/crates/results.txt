@@ -4,7 +4,7 @@ Evaluating crate: command1
 This crate should be safe
 [RESULT] Results for the SAFE crate are as expected.
 ---------------------------
-    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.32s
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.37s
 ---------------------------
 Evaluating crate: example1
 This crate should be safe
@@ -29,12 +29,12 @@ START: Path 0!
     Skipping unsatisfiable true branch to bb4
     Taking false branch to bb2
 ─── TAINT STATUS ───
-int  1  tainted=false
-int  4.f0  tainted=false
 int  2  tainted=false
 int  3  tainted=false
-bool 5  tainted=false
+int  1  tainted=false
+int  4.f0  tainted=false
 bool 4.f1  tainted=false
+bool 5  tainted=false
 ────────────────────
 START: Path_1!
 No dangerous writes detected
@@ -47,7 +47,7 @@ START: Path 0!
 START: Path_1!
 No dangerous writes detected
 warning: `example1` (bin "example1") generated 1 warning
-    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.10s
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.13s
 ---------------------------
 Evaluating crate: example2
 This crate should be safe
@@ -76,13 +76,13 @@ START: Path_1!
     Skipping unsatisfiable false branch to bb7
 START: Path_2!
 No dangerous writes detected
-    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.16s
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.17s
 ---------------------------
 Evaluating crate: command1
 This crate should be unsafe
 [ALERT] Missing expected warning in UNSAFE crate.
 ---------------------------
-    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.02s
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.03s
 ---------------------------
 Evaluating crate: command2
 This crate should be unsafe
@@ -94,7 +94,7 @@ Evaluating crate: command3
 This crate should be unsafe
 [ALERT] Missing expected warning in UNSAFE crate.
 ---------------------------
-    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.02s
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.03s
 ---------------------------
 Evaluating crate: example1
 This crate should be unsafe
@@ -117,27 +117,27 @@ START: Path 0!
     Taking false branch to bb9
 Found dangerous write at src/main.rs:7:9: 7:18 (#0)
 ─── TAINT STATUS ───
-int  4  tainted=false
-int  5  tainted=false
-int  10  tainted=false
-int  15.f0  tainted=false
-int  11  tainted=false
-int  6.f0  tainted=false
 int  13  tainted=false
-int  1  tainted=false
 int  8.f0  tainted=false
-int  2  tainted=false
-int  14.f0  tainted=false
+int  11  tainted=false
 int  12.f0  tainted=false
+int  1  tainted=false
+int  10  tainted=false
+int  14.f0  tainted=false
+int  15.f0  tainted=false
+int  2  tainted=false
 int  9.f0  tainted=false
+int  5  tainted=false
+int  4  tainted=false
+int  6.f0  tainted=false
 int  7  tainted=false
-bool 3  tainted=false
-bool 12.f1  tainted=false
 bool 14.f1  tainted=false
-bool 6.f1  tainted=false
-bool 15.f1  tainted=false
+bool 12.f1  tainted=false
+bool 3  tainted=false
 bool 8.f1  tainted=false
 bool 9.f1  tainted=false
+bool 6.f1  tainted=false
+bool 15.f1  tainted=false
 ────────────────────
 START: Path_1!
     Could not assign constant to 20 - unrecognized type

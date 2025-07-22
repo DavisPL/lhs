@@ -15,7 +15,7 @@ use crate::operand::{
     get_operand_const_string, get_operand_def_id, get_operand_local, get_operand_span,
 };
 // use crate::symexec::SymExec;
-use crate::symexec_new::SymExecBool as SymExec;
+use crate::symexec::SymExecBool as SymExec;
 use std::collections::{HashMap, HashSet};
 
 // const DEF_ID_FS_WRITE: usize = 2_345; // std::fs::write
