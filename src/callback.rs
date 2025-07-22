@@ -126,8 +126,10 @@ pub fn trace_mir_body<'tcx>(tcx: TyCtxt<'tcx>, mir_body: &'tcx Body<'tcx>) {
     let fs_write_spans: Vec<rustc_span::Span> = mir_parser.parse();
     if !fs_write_spans.is_empty() {
         println!(
-            "WARNING: {} potential write(s) to `/proc/self/mem` detected:",
+            // TODO: potential call to {SINK FUNCTION} with arg {arg}
+            "WARNING: Potential call to sink function: {} potential write(s) to `/proc/self/mem` detected:",
             fs_write_spans.len()
+            // TODO: can we also save this to a results.csv file?
         );
         for (i, sp) in fs_write_spans.iter().enumerate() {
             println!("\t{}. {:#?}", i + 1, sp);

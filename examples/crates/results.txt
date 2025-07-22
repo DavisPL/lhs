@@ -1,10 +1,16 @@
 Evaluation results:
 ---------------------------
+Evaluating crate: command1
+This crate should be safe
+[RESULT] Results for the SAFE crate are as expected.
+---------------------------
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.32s
+---------------------------
 Evaluating crate: example1
 This crate should be safe
 [RESULT] Results for the SAFE crate are as expected.
 ---------------------------
-   Compiling example1 v0.1.0 (/Users/hassnain/Desktop/LHS/lhs/examples/crates/safe/example1)
+   Compiling example1 v0.1.0 (/Users/caleb/git/research/RustSec/lhs/examples/crates/safe/example1)
 warning: function `another_function` is never used
   --> src/main.rs:15:4
    |
@@ -22,8 +28,15 @@ Unsupported Type: ()
 START: Path 0!
     Skipping unsatisfiable true branch to bb4
     Taking false branch to bb2
+─── TAINT STATUS ───
+int  1  tainted=false
+int  4.f0  tainted=false
+int  2  tainted=false
+int  3  tainted=false
+bool 5  tainted=false
+bool 4.f1  tainted=false
+────────────────────
 START: Path_1!
-
 No dangerous writes detected
 MIR for function: DefId(0:5 ~ example1[bfb7]::another_function)
 Unsupported Type: ()
@@ -32,22 +45,20 @@ Unsupported Type: ()
 START: Path 0!
     Could not assign constant to 3 - unrecognized type
 START: Path_1!
-
 No dangerous writes detected
 warning: `example1` (bin "example1") generated 1 warning
-    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.42s
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.10s
 ---------------------------
 Evaluating crate: example2
 This crate should be safe
 [RESULT] Results for the SAFE crate are as expected.
 ---------------------------
-   Compiling example2 v0.1.0 (/Users/hassnain/Desktop/LHS/lhs/examples/crates/safe/example2)
+   Compiling example2 v0.1.0 (/Users/caleb/git/research/RustSec/lhs/examples/crates/safe/example2)
 MIR for function: DefId(0:4 ~ example2[2a93]::get_random_bool)
 === Starting MIR Analysis ===
 START: Path 0!
   Taking assertion success path to bb2
 START: Path_1!
-
 No dangerous writes detected
 MIR for function: DefId(0:5 ~ example2[2a93]::main)
 Unsupported Type: ()
@@ -64,15 +75,32 @@ START: Path_1!
     Taking true branch to bb9
     Skipping unsatisfiable false branch to bb7
 START: Path_2!
-
 No dangerous writes detected
-    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.26s
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.16s
 ---------------------------
-Evaluating crate: example1
+Evaluating crate: command1
 This crate should be unsafe
 [ALERT] Missing expected warning in UNSAFE crate.
 ---------------------------
-   Compiling example1 v0.1.0 (/Users/hassnain/Desktop/LHS/lhs/examples/crates/unsafe/example1)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.02s
+---------------------------
+Evaluating crate: command2
+This crate should be unsafe
+[ALERT] Missing expected warning in UNSAFE crate.
+---------------------------
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.02s
+---------------------------
+Evaluating crate: command3
+This crate should be unsafe
+[ALERT] Missing expected warning in UNSAFE crate.
+---------------------------
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.02s
+---------------------------
+Evaluating crate: example1
+This crate should be unsafe
+[RESULT] Results for the UNSAFE crate are as expected.
+---------------------------
+   Compiling example1 v0.1.0 (/Users/caleb/git/research/RustSec/lhs/examples/crates/unsafe/example1)
 MIR for function: DefId(0:6 ~ example1[bfb7]::main)
 Unsupported Type: ()
 Unsupported Type: (u8, bool)
@@ -88,13 +116,35 @@ START: Path 0!
     Taking true branch to bb11
     Taking false branch to bb9
 Found dangerous write at src/main.rs:7:9: 7:18 (#0)
+─── TAINT STATUS ───
+int  4  tainted=false
+int  5  tainted=false
+int  10  tainted=false
+int  15.f0  tainted=false
+int  11  tainted=false
+int  6.f0  tainted=false
+int  13  tainted=false
+int  1  tainted=false
+int  8.f0  tainted=false
+int  2  tainted=false
+int  14.f0  tainted=false
+int  12.f0  tainted=false
+int  9.f0  tainted=false
+int  7  tainted=false
+bool 3  tainted=false
+bool 12.f1  tainted=false
+bool 14.f1  tainted=false
+bool 6.f1  tainted=false
+bool 15.f1  tainted=false
+bool 8.f1  tainted=false
+bool 9.f1  tainted=false
+────────────────────
 START: Path_1!
     Could not assign constant to 20 - unrecognized type
 START: Path_2!
-
-Found 1 dangerous writes to /proc/self/mem
+WARNING: found 1 dangerous writes to /proc/self/mem
   [1] src/main.rs:7:9: 7:18 (#0)
-WARNING: 1 potential write(s) to `/proc/self/mem` detected:
+WARNING: Potential call to sink function: 1 potential write(s) to `/proc/self/mem` detected:
 	1. src/main.rs:7:9: 7:18 (#0)
 MIR for function: DefId(0:7 ~ example1[bfb7]::mystery_function)
 Unsupported Type: ()
@@ -107,10 +157,66 @@ Unsupported Rvalue in assignment: [const 0_u8; 1]
   Taking assertion success path to bb7
   Skipping unsatisfiable assertion failure path to bb9
 START: Path_1!
-
 No dangerous writes detected
-    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.14s
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.11s
+---------------------------
+Evaluating crate: pathbuff1
+This crate should be unsafe
+[ALERT] Missing expected warning in UNSAFE crate.
+---------------------------
+   Compiling pathbuff1 v0.1.0 (/Users/caleb/git/research/RustSec/lhs/examples/crates/unsafe/pathbuff1)
+error[E0433]: failed to resolve: use of undeclared crate or module `fs`
+ --> src/main.rs:6:5
+  |
+6 |     fs::write(b, "Hello, world!").expect("Unable to write file");
+  |     ^^ use of undeclared crate or module `fs`
+  |
+help: consider importing this module
+  |
+1 + use std::fs;
+  |
+
+For more information about this error, try `rustc --explain E0433`.
+error: could not compile `pathbuff1` (bin "pathbuff1") due to 1 previous error
+---------------------------
+Evaluating crate: pathbuff2
+This crate should be unsafe
+[ALERT] Missing expected warning in UNSAFE crate.
+---------------------------
+   Compiling pathbuff2 v0.1.0 (/Users/caleb/git/research/RustSec/lhs/examples/crates/unsafe/pathbuff2)
+error[E0433]: failed to resolve: use of undeclared crate or module `fs`
+ --> src/main.rs:6:5
+  |
+6 |     fs::write(b, "Hello, world!").expect("Unable to write file");
+  |     ^^ use of undeclared crate or module `fs`
+  |
+help: consider importing this module
+  |
+1 + use std::fs;
+  |
+
+For more information about this error, try `rustc --explain E0433`.
+error: could not compile `pathbuff2` (bin "pathbuff2") due to 1 previous error
+---------------------------
+Evaluating crate: pathbuff3
+This crate should be unsafe
+[ALERT] Missing expected warning in UNSAFE crate.
+---------------------------
+   Compiling pathbuff3 v0.1.0 (/Users/caleb/git/research/RustSec/lhs/examples/crates/unsafe/pathbuff3)
+error[E0433]: failed to resolve: use of undeclared crate or module `fs`
+ --> src/main.rs:6:5
+  |
+6 |     fs::write(b, "Hello, world!").expect("Unable to write file");
+  |     ^^ use of undeclared crate or module `fs`
+  |
+help: consider importing this module
+  |
+1 + use std::fs;
+  |
+
+For more information about this error, try `rustc --explain E0433`.
+error: could not compile `pathbuff3` (bin "pathbuff3") due to 1 previous error
 
 Summary:
-Safe crates accuracy: 2/2
-Unsafe crates accuracy: 0/1
+Safe crates accuracy: 3/3
+Unsafe crates accuracy: 1/7

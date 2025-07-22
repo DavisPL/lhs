@@ -1,3 +1,4 @@
 target/
 examples/sat/*.txt
 examples/unsat/*.txt
+.DS_Store

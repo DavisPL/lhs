@@ -5,7 +5,8 @@ ROOT_DIR="$(cd "$(dirname $0)/../.." && pwd)"
 EXAMPLES_DIR="$ROOT_DIR/examples/crates"
 RESULTS_FILE="$EXAMPLES_DIR/results.txt"
 LHS="$ROOT_DIR/target/debug/lhs"
-WARNING_STRING="WARNING: potential write to \`/proc/self/mem\`"
+# WARNING_STRING="WARNING: potential write to \`/proc/self/mem\`"
+WARNING_STRING="WARNING: Potential call to sink function:"
 
 # Counters
 SAFE_COUNT=0
@@ -15,7 +16,7 @@ UNSAFE_TOTAL=0
 
 # Build lhs binary
 printf "[INFO] Building LHS...\n"
-cargo build --manifest-path "$ROOT_DIR/Cargo.toml" > /dev/null 2>&1 
+cargo build --manifest-path "$ROOT_DIR/Cargo.toml" > /dev/null 2>&1
 
 # Prepare results file
 printf "Evaluation results:\n" > "$RESULTS_FILE"
@@ -49,7 +50,7 @@ evaluate_crates() {
         if [ "$1" = "safe" ]; then
             if printf "%s\n" "$BUILD_OUTPUT" | grep -q "$WARNING_STRING"; then
                 printf "[ALERT] Found unexpected warning in SAFE crate.\n" | tee -a "$RESULTS_FILE"
-            else 
+            else
                 printf "[RESULT] Results for the SAFE crate are as expected.\n" | tee -a "$RESULTS_FILE"
                 SAFE_COUNT=$((SAFE_COUNT + 1))
             fi
@@ -58,7 +59,7 @@ evaluate_crates() {
             if printf "%s\n" "$BUILD_OUTPUT" | grep -q "$WARNING_STRING"; then
                 printf "[RESULT] Results for the UNSAFE crate are as expected.\n" | tee -a "$RESULTS_FILE"
                 UNSAFE_COUNT=$((UNSAFE_COUNT + 1))
-            else 
+            else
                 printf "[ALERT] Missing expected warning in UNSAFE crate.\n" | tee -a "$RESULTS_FILE"
             fi
             UNSAFE_TOTAL=$((UNSAFE_TOTAL + 1))
@@ -66,7 +67,7 @@ evaluate_crates() {
 
         {
             printf "%s\n" "---------------------------"
-            printf "%s\n" "$BUILD_OUTPUT" 
+            printf "%s\n" "$BUILD_OUTPUT"
         } >> "$RESULTS_FILE"
 
         popd > /dev/null
@@ -88,5 +89,3 @@ evaluate_crates "unsafe"
 
 
 printf "[DONE] Results saved to %s\n" "$RESULTS_FILE"
-
-

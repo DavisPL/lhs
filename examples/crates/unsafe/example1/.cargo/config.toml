@@ -1,2 +1,2 @@
 [build]
-rustc-wrapper = "/Users/hassnain/Desktop/LHS/lhs/target/debug/lhs"
+rustc-wrapper = "/Users/caleb/git/research/RustSec/lhs/target/debug/lhs"

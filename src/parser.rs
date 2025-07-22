@@ -24,12 +24,18 @@ use std::collections::{HashMap, HashSet};
 // const DEF_ID_JOIN: usize = 5_328; // Path::join - for path joining operations
 // const DEF_ID_ENV_SET_VAR: usize = 1906; // env::set_var - for environment variable setting
 
+/// TODO: should be configurable as a list of things to check for
 const ENV_TO_TRACK: &str = "RUSTC"; // Environment variable to track
 
 const MAX_LOOP_ITER: u32 = 5; // Maximum loop iterations before widening
 
+/// Should be configurable as a list
 const FUNCTION_NAME: &str = "std::process::Command::new";
 const FUNCTION_ARG: &str = "rm -rf *";
+
+pub struct AnalysisResult {
+
+}
 
 pub struct MIRParser<'tcx, 'mir, 'ctx>
 where
@@ -46,6 +52,8 @@ where
     visit_counts: HashMap<BasicBlock, u32>,
 
     // Collection of all dangerous write locations found during analysis
+    // TODO: Vec<AnalysisResult>
+    // Or: HashMap<(String, Operand), AnalysisResult>
     dangerous_spans: Vec<rustc_span::Span>,
 
     // registry of “interesting” callees → handler
@@ -867,14 +875,14 @@ fn handle_env_set_var<'tcx, 'mir, 'ctx>(this: &mut MIRParser<'tcx, 'mir, 'ctx>, 
     if this.operand_matches_literal(&call.args[0], ENV_TO_TRACK) {
         if let Some(span) = call.span {
             println!("CRITICAL: env::set_var({}) at {:?}", ENV_TO_TRACK, span);
-            //this.dangerous_spans.push(span); // currnelty the span is exptected to contain lcoations for std::fs::write , so addingn these will confuse the user, we need to update the span vector handling logic
+            //this.dangerous_spans.push(span); // currnelty the span is exptected to contain lcoations for std::fs::write , so adding these will confuse the user, we need to update the span vector handling logic
         }
     }
     // also print if you see some other env variable being set
     else if let Some(env_var) = this.get_string_from_operand(&call.args[0]) {
         if let Some(span) = call.span {
             println!(
-                "WARNING : Setting environment variable: {} at {:?}",
+                "WARNING: Setting environment variable: {} at {:?}",
                 env_var, span
             );
             // this.dangerous_spans.push(span);
