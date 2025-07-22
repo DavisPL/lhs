@@ -14,8 +14,10 @@ use z3::SatResult;
 use crate::operand::{
     get_operand_const_string, get_operand_def_id, get_operand_local, get_operand_span,
 };
-// use crate::symexec::SymExec;
+// TODO: update to use SOURCE_FUNCTIONS and SINK_FUNCTION_ARGS
+use crate::settings::{ENV_TO_TRACK,MAX_LOOP_ITER,FUNCTION_NAME,FUNCTION_ARG};
 use crate::symexec::SymExecBool as SymExec;
+
 use std::collections::{HashMap, HashSet};
 
 // const DEF_ID_FS_WRITE: usize = 2_345; // std::fs::write
@@ -24,14 +26,6 @@ use std::collections::{HashMap, HashSet};
 // const DEF_ID_JOIN: usize = 5_328; // Path::join - for path joining operations
 // const DEF_ID_ENV_SET_VAR: usize = 1906; // env::set_var - for environment variable setting
 
-/// TODO: should be configurable as a list of things to check for
-const ENV_TO_TRACK: &str = "RUSTC"; // Environment variable to track
-
-const MAX_LOOP_ITER: u32 = 5; // Maximum loop iterations before widening
-
-/// Should be configurable as a list
-const FUNCTION_NAME: &str = "std::process::Command::new";
-const FUNCTION_ARG: &str = "rm -rf *";
 
 pub struct MIRParser<'tcx, 'mir, 'ctx>
 where
@@ -100,6 +94,7 @@ where
         self.register_handler("std::ffi::OsString::from", handle_string_from);
         self.register_handler("std::convert::From::from", handle_from_trait);
 
+        // Source functions
         self.register_handler("std::env::args", handle_env_args);
         self.register_handler("std::env::args_os", handle_env_args);
         self.register_handler("std::env::var", handle_env_var);
