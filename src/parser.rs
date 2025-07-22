@@ -28,6 +28,9 @@ const ENV_TO_TRACK: &str = "RUSTC"; // Environment variable to track
 
 const MAX_LOOP_ITER: u32 = 5; // Maximum loop iterations before widening
 
+const FUNCTION_NAME: &str = "std::process::Command::new";
+const FUNCTION_ARG: &str = "rm -rf *";
+
 pub struct MIRParser<'tcx, 'mir, 'ctx>
 where
     'mir: 'tcx,
@@ -85,6 +88,13 @@ where
         self.register_handler("std::path::PathBuf::from", handle_pathbuf_from);
         self.register_handler("std::path::PathBuf::deref", handle_pathbuf_deref);
         self.register_handler("std::path::Path::join", handle_path_join);
+
+        self.register_handler(FUNCTION_NAME, generic_string_handler);
+
+        self.register_handler("alloc::string::String::from", handle_string_from);
+        self.register_handler("std::string::String::from", handle_string_from);
+        self.register_handler("std::ffi::OsString::from", handle_string_from);
+        self.register_handler("std::convert::From::from", handle_from_trait);
 
         self.register_handler("std::env::args", handle_env_args);
         self.register_handler("std::env::args_os", handle_env_args);
@@ -668,6 +678,19 @@ where
         }
     }
 
+    fn find_handler(&self, path: &str) -> Option<&CallHandler<'tcx, 'mir, 'ctx>> {
+        // exact match
+        if let Some(h) = self.handlers.get(path) {
+            return Some(h);
+        }
+
+        // fallback to prefix match?
+        self.handlers
+            .iter()
+            .find(|(k, _)| path.starts_with(k.as_str()))
+            .map(|(_, h)| h)
+    }
+
     // Handle function calls - this is completely rewritten to detect path operations
     fn handle_function_call(
         &mut self,
@@ -679,7 +702,8 @@ where
     ) {
         if let Some(def_id) = get_operand_def_id(&func) {
             let path = self.def_path_str(def_id);
-            if let Some(handler) = self.handlers.get(&path) {
+            // println!("MIR call path: {:?}", path);
+            if let Some(handler) = self.find_handler(&path) {
                 // materialise the Vec that Call owns
                 let arg_vec: Vec<Operand<'tcx>> = args.iter().map(|s| s.node.clone()).collect();
 
@@ -697,7 +721,6 @@ where
 
         let dest_key = self.place_key(&dest);
         if args.iter().any(|sp| self.operand_tainted(&sp.node)) {
-            //                              ^^^^^── unwrap the `Spanned`
             self.curr.set_taint(&dest_key, true);
         }
 
@@ -893,6 +916,79 @@ fn handle_path_join<'tcx, 'mir, 'ctx>(this: &mut MIRParser<'tcx, 'mir, 'ctx>, ca
         let joined = this.curr.path_join(&base, &comp);
         let key = this.place_key(&call.dest);
         this.curr.assign_string(&key, joined);
+    }
+}
+
+fn handle_string_from<'tcx, 'mir, 'ctx>(this: &mut MIRParser<'tcx, 'mir, 'ctx>, call: Call<'tcx>) {
+    // should have one argument
+    if call.args.is_empty() {
+        return;
+    }
+
+    if let Some(s) = this.get_string_from_operand(&call.args[0]) {
+        // Write the symbolic / concrete string into the destination Place
+        let key = this.place_key(&call.dest);
+        this.curr.assign_string(&key, s);
+
+        // If the argument was tainted, the new String is tainted, too.
+        if this.operand_tainted(&call.args[0]) {
+            this.curr.set_taint(&key, true);
+        }
+    }
+}
+
+// Handles `std::convert::From::from` , converts `&str` to `String`.
+fn handle_from_trait<'tcx, 'mir, 'ctx>(this: &mut MIRParser<'tcx, 'mir, 'ctx>, call: Call<'tcx>) {
+    // has only 1 argument
+    if call.args.is_empty() {
+        return;
+    }
+
+    // Check that the destination is actually a String to avoid accidentally treating unrelated From impls as strings.
+    let dest_ty = this.mir_body.local_decls[call.dest.local].ty;
+    let is_string = match dest_ty.kind() {
+        rustc_middle::ty::TyKind::Adt(adt, _) => {
+            this.tcx.def_path_str(adt.did()).ends_with("string::String")
+        }
+        _ => false,
+    };
+
+    if !is_string {
+        return; // Not the conversion we care about
+    }
+
+    // pull the string
+    if let Some(val) = this.get_string_from_operand(&call.args[0]) {
+        let key = this.place_key(&call.dest);
+        this.curr.assign_string(&key, val);
+
+        // Taint flows through the conversion
+        if this.operand_tainted(&call.args[0]) {
+            this.curr.set_taint(&key, true);
+        }
+    }
+}
+
+fn generic_string_handler<'tcx, 'mir, 'ctx>(
+    this: &mut MIRParser<'tcx, 'mir, 'ctx>,
+    call: Call<'tcx>,
+) {
+    dbg!();
+    if call.args.is_empty() {
+        return;
+    }
+    if let Some(s) = this.get_string_from_operand(&call.args[0]) {
+        let key = this.place_key(&call.dest);
+        this.curr.assign_string(&key, s);
+        let x = this
+            .curr
+            .check_string_matches(this.curr.get_string(&key).unwrap(), FUNCTION_ARG);
+        if x == z3::SatResult::Sat {
+            println!(
+                "Found matching string for {} at {:?}",
+                FUNCTION_ARG, call.span
+            );
+        }
     }
 }
 
