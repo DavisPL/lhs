@@ -29,10 +29,10 @@ use crate::symexec::SymExecBool as SymExec;
 
 use std::collections::HashMap;
 use std::fs::File;
-use std::io::Write;
-use std::path::{Path, PathBuf};
-use std::io::{BufWriter, Write as _};
 use std::fs::OpenOptions;
+use std::io::Write;
+use std::io::{BufWriter, Write as _};
+use std::path::{Path, PathBuf};
 
 const DEF_ID_PATH_BUF: usize = 5175;
 

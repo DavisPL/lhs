@@ -43,11 +43,6 @@ impl<'ctx> SymExecBool<'ctx> {
         }
     }
 
-    // True if the the path is tainted, false otherwise.
-    pub fn set_pc_taint(&mut self, t: bool) {
-        self.path_taint = t;
-    }
-
     // Helper functions to set taint flag on variables.
     fn set_flag<T>(
         map: &mut HashMap<String, Slot<T>>,
@@ -72,7 +67,7 @@ impl<'ctx> SymExecBool<'ctx> {
     /// Creates an uninterpreted string with the given variable name and adds it to the executor. This function can be used to model the string arguments to a function.
     pub fn create_uninterpreted_string_with_flag(&mut self, name: &str, flag: bool) {
         let v = z3::ast::String::new_const(self.context, name);
-        Self::insert_with_flag(&mut self.string_variables, name, v, flag);
+        SymExecBool::insert_with_flag(&mut self.string_variables, name, v, flag);
     }
     // Create uninterpreted string variables without a taint flag.
     pub fn create_uninterpreted_string(&mut self, name: &str) {
@@ -82,7 +77,7 @@ impl<'ctx> SymExecBool<'ctx> {
     // Create uninterpreted integer variables with custom taint flag.
     pub fn create_int_with_flag(&mut self, name: &str, flag: bool) {
         let v = z3::ast::Int::new_const(self.context, name);
-        Self::insert_with_flag(&mut self.int_variables, name, v, flag);
+        SymExecBool::insert_with_flag(&mut self.int_variables, name, v, flag);
         self.interval_map.insert(name.into(), (None, None));
     }
     // Create uninterpreted integer variables without a taint flag.
@@ -93,7 +88,7 @@ impl<'ctx> SymExecBool<'ctx> {
     // Create uninterpreted boolean variables with custom taint flag.
     pub fn create_uninterpreted_bool_with_flag(&mut self, name: &str, flag: bool) {
         let v = z3::ast::Bool::new_const(self.context, name);
-        Self::insert_with_flag(&mut self.bool_variables, name, v, flag);
+        SymExecBool::insert_with_flag(&mut self.bool_variables, name, v, flag);
     }
 
     // Create uninterpreted boolean variables without a taint flag.
@@ -103,16 +98,19 @@ impl<'ctx> SymExecBool<'ctx> {
 
     /// Assigns a string with the given value to the given variable name, adding it to the executor. Can also be used to replace the value of a string variable.
     pub fn assign_string(&mut self, name: &str, value: z3::ast::String<'ctx>) {
-        Self::insert_with_flag(&mut self.string_variables, name, value, false);
+        let f = self.string_flag(name).unwrap_or(false);
+        SymExecBool::insert_with_flag(&mut self.string_variables, name, value, f);
     }
     /// Assigns an integer with the given value to the given variable name, adding it to the executor. Can also be used to replace the value of an integer variable.
     pub fn assign_int(&mut self, name: &str, value: z3::ast::Int<'ctx>) {
-        Self::insert_with_flag(&mut self.int_variables, name, value, false);
+        let f = self.int_flag(name).unwrap_or(false);
+        SymExecBool::insert_with_flag(&mut self.int_variables, name, value, f);
         self.interval_map.entry(name.into()).or_insert((None, None));
     }
     /// Assigns a boolean with the given value to the given variable name, adding it to the executor. Can also be used to replace the value of a boolean variable.
     pub fn assign_bool(&mut self, name: &str, value: z3::ast::Bool<'ctx>) {
-        Self::insert_with_flag(&mut self.bool_variables, name, value, false);
+        let f = self.bool_flag(name).unwrap_or(false);
+        SymExecBool::insert_with_flag(&mut self.bool_variables, name, value, f);
     }
 
     /// Gets the z3 string expression with the given variable name from the executor. If the variable name is not present, None is returned.
@@ -130,27 +128,27 @@ impl<'ctx> SymExecBool<'ctx> {
 
     /// Sets a taint flag on the given string variable name. If the variable name is not present, an error is returned.
     pub fn set_string_flag(&mut self, name: &str, flag: bool) -> Result<(), &'static str> {
-        Self::set_flag(&mut self.string_variables, name, flag)
+        SymExecBool::set_flag(&mut self.string_variables, name, flag)
     }
     /// Gets the taint flag on the given string variable name. If the variable name is not present, None is returned.
     pub fn string_flag(&self, name: &str) -> Option<bool> {
-        Self::get_flag(&self.string_variables, name)
+        SymExecBool::get_flag(&self.string_variables, name)
     }
     /// Sets a taint flag on the given int variable name. If the variable name is not present, an error is returned.
     pub fn set_int_flag(&mut self, name: &str, flag: bool) -> Result<(), &'static str> {
-        Self::set_flag(&mut self.int_variables, name, flag)
+        SymExecBool::set_flag(&mut self.int_variables, name, flag)
     }
     /// Gets the taint flag on the given int variable name. If the variable name is not present, None is returned.
     pub fn int_flag(&self, name: &str) -> Option<bool> {
-        Self::get_flag(&self.int_variables, name)
+        SymExecBool::get_flag(&self.int_variables, name)
     }
     /// Sets a taint flag on the given bool variable name. If the variable name is not present, an error is returned.
     pub fn set_bool_flag(&mut self, name: &str, flag: bool) -> Result<(), &'static str> {
-        Self::set_flag(&mut self.bool_variables, name, flag)
+        SymExecBool::set_flag(&mut self.bool_variables, name, flag)
     }
     /// Gets the taint flag on the given bool variable name. If the variable name is not present, None is returned.
     pub fn bool_flag(&self, name: &str) -> Option<bool> {
-        Self::get_flag(&self.bool_variables, name)
+        SymExecBool::get_flag(&self.bool_variables, name)
     }
     /// Adds a constraint to the executor. This constraint will be used for all satisfiability checks.
     pub fn add_constraint(&mut self, c: z3::ast::Bool<'ctx>) {
@@ -361,6 +359,8 @@ impl<'ctx> SymExecBool<'ctx> {
         )
     }
 
+    // Creates a z3 regular expression from a pattern string.
+    /// The pattern can contain '*' as a wildcard that matches any sequence of characters.
     fn regex_from_pattern(&self, pat: &str) -> z3::ast::Regexp<'ctx> {
         if !pat.contains('*') {
             return Regexp::literal(self.context, pat);
@@ -381,6 +381,7 @@ impl<'ctx> SymExecBool<'ctx> {
             _ => Regexp::concat(self.context, &refs),
         }
     }
+    /// Checks if the given string matches the given pattern.
     pub fn check_string_matches(
         &self,
         expr: &z3::ast::String<'ctx>,
@@ -400,15 +401,22 @@ impl<'ctx> SymExecBool<'ctx> {
             || self.bool_flag(name).unwrap_or(false)
     }
 
-    /// Force a taint value (true = tainted, false = clean) on *all* slots
-    /// that might carry this variable’s name.
+    /// Force a taint value (true = tainted, false = clean) on all slots that might carry this variable’s name.
     pub fn set_taint(&mut self, name: &str, flag: bool) {
-        if !(self.set_string_flag(name, flag).is_ok()
-            || self.set_int_flag(name, flag).is_ok()
-            || self.set_bool_flag(name, flag).is_ok())
-        {
+
+        let mut touched = false;
+        if self.set_string_flag(name, flag).is_ok() {
+            touched = true;
+        }
+        if self.set_int_flag(name, flag).is_ok() {
+            touched = true;
+        }
+        if self.set_bool_flag(name, flag).is_ok() {
+            touched = true;
+        }
+        if !touched {
             // if we see a type we don't know, we assume it's a string
-            // (this is a hack, but it works for now)
+            // (fallback to keep analysis sound-ish on unknown slots)
             let s = z3::ast::String::new_const(self.context, name);
             self.string_variables
                 .insert(name.into(), Slot::with_flag(s, flag));

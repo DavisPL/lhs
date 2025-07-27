@@ -113,6 +113,12 @@ where
         self.register_handler("std::path::Path::join", handle_path_join, None);
         self.register_handler("std::path::PathBuf::push", handle_pathbuf_push, None);
 
+
+        //some traits that are used implicitly
+         self.register_handler("core::convert::From::from", handle_from_trait, None);
+         self.register_handler("std::convert::From::from", handle_from_trait, None);
+       
+
         self.register_handler(
             FUNCTION_NAME,
             generic_string_handler,
@@ -125,7 +131,6 @@ where
         self.register_handler("alloc::string::String::from", handle_string_from, None);
         self.register_handler("std::string::String::from", handle_string_from, None);
         self.register_handler("std::ffi::OsString::from", handle_string_from, None);
-        self.register_handler("std::convert::From::from", handle_from_trait, None);
 
         // Sources
         self.register_handler("std::env::args", handle_env_args, None);
@@ -697,13 +702,13 @@ where
         path: &str,
     ) -> Option<(CallHandler<'tcx, 'mir, 'ctx>, Option<SinkInformation>)> {
         if let Some((h, sink)) = self.handlers.get(path) {
-            return Some((*h, *sink)); // found exact match
+            return Some((*h, *sink)); // Exact match found
         }
-
         self.handlers
             .iter()
-            .find(|(k, _)| path.starts_with(k.as_str()))
-            .map(|(_, (h, sink))| (*h, *sink)) // found prefix match
+            .filter(|(k, _)| path.starts_with(k.as_str()))
+            .max_by_key(|(k, _)| k.len())  // Find the longest matching prefix
+            .map(|(_, (h, sink))| (*h, *sink))
     }
 
     // Handle function calls - this is completely rewritten to detect path operations
@@ -952,15 +957,20 @@ fn handle_string_from<'tcx, 'mir, 'ctx>(this: &mut MIRParser<'tcx, 'mir, 'ctx>, 
     }
 }
 
-// Handles `std::convert::From::from` , converts `&str` to `String`.
-fn handle_from_trait<'tcx, 'mir, 'ctx>(this: &mut MIRParser<'tcx, 'mir, 'ctx>, call: Call<'tcx>) {
-    // has only 1 argument
+// Handle the `From` trait for String and PathBuf
+fn handle_from_trait<'tcx, 'mir, 'ctx>(
+    this: &mut MIRParser<'tcx, 'mir, 'ctx>,
+    call: Call<'tcx>,
+) {
+
     if call.args.is_empty() {
         return;
     }
 
-    // Check that the destination is actually a String to avoid accidentally treating unrelated From impls as strings.
+    // get the destination type
     let dest_ty = this.mir_body.local_decls[call.dest.local].ty;
+
+    // if destination string
     let is_string = match dest_ty.kind() {
         rustc_middle::ty::TyKind::Adt(adt, _) => {
             this.tcx.def_path_str(adt.did()).ends_with("string::String")
@@ -968,16 +978,25 @@ fn handle_from_trait<'tcx, 'mir, 'ctx>(this: &mut MIRParser<'tcx, 'mir, 'ctx>, c
         _ => false,
     };
 
-    if !is_string {
-        return; // Not the conversion we care about
+    // if destination is PathBuf
+    let is_pathbuf = match dest_ty.kind() {
+        rustc_middle::ty::TyKind::Adt(adt, _) => {
+            this.tcx.def_path_str(adt.did()).ends_with("path::PathBuf")
+        }
+        _ => false,
+    };
+
+    // if neither is true, we don't handle this
+    if !is_string && !is_pathbuf {
+        return;
     }
 
-    // pull the string
+    // pull the string from arg 0
     if let Some(val) = this.get_string_from_operand(&call.args[0]) {
         let key = this.place_key(&call.dest);
         this.curr.assign_string(&key, val);
 
-        // Taint flows through the conversion
+        // propagate taint from the arg to the dest
         if this.operand_tainted(&call.args[0]) {
             this.curr.set_taint(&key, true);
         }
