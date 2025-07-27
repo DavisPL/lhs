@@ -1,5 +1,5 @@
 target/
 examples/sat/*.txt
 examples/unsat/*.txt
-examples/*.txt
+examples/crates/*.txt
 .DS_Store
