@@ -340,7 +340,7 @@ impl<'ctx> SymExecBool<'ctx> {
     pub fn int_gt(&self, a: &z3::ast::Int<'ctx>, b: &z3::ast::Int<'ctx>) -> z3::ast::Bool<'ctx> {
         a.gt(b)
     }
-    /// Creates a z3 int expression from the greater than or equal comparison of two z3 int expressions.
+
     pub fn int_ge(&self, a: &z3::ast::Int<'ctx>, b: &z3::ast::Int<'ctx>) -> z3::ast::Bool<'ctx> {
         a.ge(b)
     }

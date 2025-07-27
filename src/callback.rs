@@ -31,6 +31,8 @@ use std::collections::HashMap;
 use std::fs::File;
 use std::io::Write;
 use std::path::{Path, PathBuf};
+use std::io::{BufWriter, Write as _};
+use std::fs::OpenOptions;
 
 const DEF_ID_PATH_BUF: usize = 5175;
 
@@ -146,12 +148,24 @@ pub fn trace_mir_body<'tcx>(tcx: TyCtxt<'tcx>, mir_body: &'tcx Body<'tcx>) {
 }
 
 pub fn dump_danger_csv(sm: &SourceMap, map: &HashMap<(String, String), Vec<Span>>, path: &str) {
-    if let Ok(mut f) = File::create(Path::new(path)) {
-        let _ = writeln!(f, "function,value,index,span");
+    let path = Path::new(path);
+
+    // Check if the file already exists
+    let file_exists = path.exists();
+
+    // Open the file in append mode
+    if let Ok(file) = OpenOptions::new().create(true).append(true).open(path) {
+        let mut writer = BufWriter::new(file);
+
+        // Only write header if file didn't exist before
+        if !file_exists {
+            let _ = writeln!(writer, "function,value,index,span");
+        }
+
         for ((func, arg), spans) in map {
             for (i, sp) in spans.iter().enumerate() {
                 let span_str = sm.span_to_string(*sp, FileNameDisplayPreference::Local);
-                let _ = writeln!(f, "{},{},{},{}", func, arg, i + 1, span_str);
+                let _ = writeln!(writer, "{},{},{},{}", func, arg, i + 1, span_str);
             }
         }
     }

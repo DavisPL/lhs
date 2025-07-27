@@ -111,6 +111,7 @@ where
         self.register_handler("std::path::PathBuf::from", handle_pathbuf_from, None);
         self.register_handler("std::path::PathBuf::deref", handle_pathbuf_deref, None);
         self.register_handler("std::path::Path::join", handle_path_join, None);
+        self.register_handler("std::path::PathBuf::push", handle_pathbuf_push, None);
 
         self.register_handler(
             FUNCTION_NAME,
@@ -777,7 +778,10 @@ where
     fn get_string_from_operand(&self, operand: &Operand<'tcx>) -> Option<z3::ast::String<'ctx>> {
         match operand {
             Operand::Copy(place) | Operand::Move(place) => {
+                println!("I am here with operand: {:?}", operand);
                 let key = self.place_key(place);
+                println!("Key: {}", key);
+                println!("I shall return: {:?}", self.curr.get_string(&key));
                 self.curr.get_string(&key).cloned()
             }
             Operand::Constant(_) => {
@@ -1029,4 +1033,40 @@ fn handle_env_args<'tcx, 'mir, 'ctx>(this: &mut MIRParser<'tcx, 'mir, 'ctx>, cal
 fn handle_env_var<'tcx, 'mir, 'ctx>(this: &mut MIRParser<'tcx, 'mir, 'ctx>, call: Call<'tcx>) {
     let key = this.place_key(&call.dest);
     this.curr.set_taint(&key, true); // tainted source
+}
+
+fn handle_pathbuf_push<'tcx, 'mir, 'ctx>(this: &mut MIRParser<'tcx, 'mir, 'ctx>, call: Call<'tcx>) {
+    // push(&mut self, p)
+    if call.args.len() < 2 {
+        return;
+    }
+
+    // arg0 = &mut PathBuf (self)
+    let self_key = match &call.args[0] {
+        Operand::Copy(p) | Operand::Move(p) => this.place_key(p),
+        Operand::Constant(_) => return,
+    };
+
+    // Get current base path out of self
+    let base_opt = this.curr.get_string(&self_key).cloned();
+
+    // arg1 = component to push
+    let comp_opt = this.get_string_from_operand(&call.args[1]);
+
+    if let (Some(base), Some(comp)) = (base_opt, comp_opt) {
+        let joined = this.curr.path_join(&base, &comp);
+
+        // Mutate self in place
+        this.curr.assign_string(&self_key, joined);
+
+        // taint propagation
+        if this.operand_tainted(&call.args[1]) || this.operand_tainted(&call.args[0]) {
+            this.curr.set_taint(&self_key, true);
+        }
+    } else {
+        // if something is wrong with the arguments, we still want to taint the result
+        if this.operand_tainted(&call.args[1]) || this.operand_tainted(&call.args[0]) {
+            this.curr.set_taint(&self_key, true);
+        }
+    }
 }
