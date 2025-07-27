@@ -7,6 +7,8 @@ extern crate rustc_span;
 extern crate rustc_data_structures;
 extern crate rustc_metadata;
 
+use rustc_data_structures::steal::Steal;
+use rustc_data_structures::sync::{MappedReadGuard, ReadGuard, RwLock};
 use rustc_driver::{Callbacks, Compilation};
 use rustc_hir::def::DefKind;
 use rustc_interface::{interface::Compiler, Queries};
@@ -14,17 +16,21 @@ use rustc_middle::mir::Body;
 use rustc_middle::ty::{TyCtxt, TyKind};
 use rustc_span::FileNameDisplayPreference;
 
-use rustc_data_structures::steal::Steal;
-use rustc_data_structures::sync::{MappedReadGuard, ReadGuard, RwLock};
-
 use rustc_data_structures::sync::Lrc;
 use rustc_middle::query::LocalCrate;
 use rustc_middle::util::Providers;
 use rustc_session::search_paths::PathKind;
+use rustc_span::Span;
 
 use crate::parser::MIRParser;
+use rustc_span::source_map::SourceMap;
 // use crate::symexec;
 use crate::symexec::SymExecBool as SymExec;
+
+use std::collections::HashMap;
+use std::fs::File;
+use std::io::Write;
+use std::path::{Path, PathBuf};
 
 const DEF_ID_PATH_BUF: usize = 5175;
 
@@ -63,7 +69,7 @@ impl Callbacks for LCallback {
             for local_def_id in tcx.hir().krate().owners.indices() {
                 let def_id = local_def_id.to_def_id();
                 if tcx.def_kind(local_def_id) == DefKind::Fn {
-                    println!("MIR for function: {:?}", local_def_id);
+                    // println!("MIR for function: {:?}", local_def_id);
                     // let mir_body = tcx.optimized_mir(def_id);
                     let mir_body = tcx.optimized_mir(local_def_id); // This is a Steal<RwLock<Option>>
                                                                     // let mir_string = source_map.span_to_string(mir_body.span, FileNameDisplayPreference::Local);
@@ -71,12 +77,6 @@ impl Callbacks for LCallback {
                     trace_mir_body(tcx, mir_body)
                 }
             }
-
-            // for def_id in tcx.mir_keys(()) {
-            //     let mir = tcx.optimized_mir(def_id.to_def_id());
-            //     // Do something with the optimized MIR
-            //     println!("{:?}", mir);
-            // }
         });
         Compilation::Continue
     }
@@ -114,41 +114,45 @@ pub fn trace_mir_body<'tcx>(tcx: TyCtxt<'tcx>, mir_body: &'tcx Body<'tcx>) {
                     }
                 }
             }
-            _ => println!("Unsupported Type: {}", local_decl.ty),
+            // _ => println!("Unsupported Type: {}", local_decl.ty),
+            _ => {
+                // println!("Unsupported Type: {}", local_decl.ty);
+            }
         }
     }
-
-    // println!("{:#?}", ev);
 
     // let mut mir_parser = MIRParser::new(mir_body, ev);
     let mut mir_parser = MIRParser::new(tcx, mir_body, ev);
     // let fs_write_span: Option<rustc_span::Span> = mir_parser.parse();
-    let fs_write_spans: Vec<rustc_span::Span> = mir_parser.parse();
-    if !fs_write_spans.is_empty() {
-        println!(
-            // TODO: potential call to {SINK FUNCTION} with arg {arg}
-            "WARNING: Potential call to sink function: {} potential write(s) to `/proc/self/mem` detected:",
-            fs_write_spans.len()
-            // TODO: can we also save this to a results.csv file?
-        );
-        for (i, sp) in fs_write_spans.iter().enumerate() {
-            println!("\t{}. {:#?}", i + 1, sp);
-        }
+    let dangerous_spans: HashMap<(String, String), Vec<Span>> = mir_parser.parse();
+    println!("=== Dangerous Spans ===");
+    if dangerous_spans.is_empty() {
+        println!("No dangerous spans found.");
     } else {
-        // println!("Empty : No potential writes to `/proc/self/mem` detected!");
+        let sm = tcx.sess.source_map();
+        for ((func, arg), spans) in &dangerous_spans {
+            println!("=== {} (arg = {:?}) ===", func, arg);
+            for (i, sp) in spans.iter().enumerate() {
+                let loc = sm.span_to_string(*sp, FileNameDisplayPreference::Local); // or span_to_filename_string if you prefer
+                println!("  [{:02}] {}", i + 1, loc);
+            }
+        }
+        dump_danger_csv(
+            tcx.sess.source_map(),
+            &dangerous_spans,
+            "dangerous_spans.csv",
+        );
     }
+}
 
-    // match fs_write_span {
-    //     Some(sp) => {
-    //         println!("WARNING: potential write to `/proc/self/mem`");
-    //         println!("\t{:#?}", sp);
-    //         // TODO: query solver model for the actual assignments,
-    //         // and show the arguments of function that can be malicious
-    //         // (based on arg_count)
-    //     }
-    //     // None => println!("No potential writes to `/proc/self/mem` detected!"),
-    //     None =>{}
-    // }
-
-    // println!("{:#?}", mir_parser.curr);
+pub fn dump_danger_csv(sm: &SourceMap, map: &HashMap<(String, String), Vec<Span>>, path: &str) {
+    if let Ok(mut f) = File::create(Path::new(path)) {
+        let _ = writeln!(f, "function,value,index,span");
+        for ((func, arg), spans) in map {
+            for (i, sp) in spans.iter().enumerate() {
+                let span_str = sm.span_to_string(*sp, FileNameDisplayPreference::Local);
+                let _ = writeln!(f, "{},{},{},{}", func, arg, i + 1, span_str);
+            }
+        }
+    }
 }

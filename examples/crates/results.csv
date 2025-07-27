@@ -1,0 +1,11 @@
+group,crate,hit,result
+safe,command1,False,PASS
+safe,example1,False,PASS
+safe,example2,False,PASS
+unsafe,command1,True,PASS
+unsafe,command2,True,PASS
+unsafe,command3,True,PASS
+unsafe,example1,True,PASS
+unsafe,pathbuff1,True,PASS
+unsafe,pathbuff2,True,PASS
+unsafe,pathbuff3,True,PASS

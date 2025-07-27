@@ -1,16 +1,31 @@
 Evaluation results:
+Started: 2025-07-26T16:36:43.072847
+
+---- LHS build output ----
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.09s
+
+---------------------------
 ---------------------------
 Evaluating crate: command1
 This crate should be safe
-[RESULT] Results for the SAFE crate are as expected.
 ---------------------------
-    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.37s
+   Compiling example3 v0.1.0 (/Users/hassnain/Desktop/LHS/lhs/examples/crates/safe/command1)
+MIR for function: DefId(0:3 ~ example3[f793]::main)
+Unsupported Type: ()
+=== Starting MIR Analysis ===
+START: Path 0!
+START: Path_1!
+START: Path_2!
+No dangerous writes detected
+=== Dangerous Spans ===
+No dangerous spans found.
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.50s
+
 ---------------------------
 Evaluating crate: example1
 This crate should be safe
-[RESULT] Results for the SAFE crate are as expected.
 ---------------------------
-   Compiling example1 v0.1.0 (/Users/caleb/git/research/RustSec/lhs/examples/crates/safe/example1)
+   Compiling example1 v0.1.0 (/Users/hassnain/Desktop/LHS/lhs/examples/crates/safe/example1)
 warning: function `another_function` is never used
   --> src/main.rs:15:4
    |
@@ -28,16 +43,10 @@ Unsupported Type: ()
 START: Path 0!
     Skipping unsatisfiable true branch to bb4
     Taking false branch to bb2
-─── TAINT STATUS ───
-int  2  tainted=false
-int  3  tainted=false
-int  1  tainted=false
-int  4.f0  tainted=false
-bool 4.f1  tainted=false
-bool 5  tainted=false
-────────────────────
 START: Path_1!
 No dangerous writes detected
+=== Dangerous Spans ===
+No dangerous spans found.
 MIR for function: DefId(0:5 ~ example1[bfb7]::another_function)
 Unsupported Type: ()
 Unsupported Type: ()
@@ -46,61 +55,2304 @@ START: Path 0!
     Could not assign constant to 3 - unrecognized type
 START: Path_1!
 No dangerous writes detected
+=== Dangerous Spans ===
+No dangerous spans found.
 warning: `example1` (bin "example1") generated 1 warning
-    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.13s
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.15s
+
 ---------------------------
 Evaluating crate: example2
 This crate should be safe
-[RESULT] Results for the SAFE crate are as expected.
 ---------------------------
-   Compiling example2 v0.1.0 (/Users/caleb/git/research/RustSec/lhs/examples/crates/safe/example2)
-MIR for function: DefId(0:4 ~ example2[2a93]::get_random_bool)
+   Compiling libc v0.2.172
+   Compiling getrandom v0.3.3
+   Compiling zerocopy v0.8.25
+   Compiling cfg-if v1.0.0
+MIR for function: DefId(0:7 ~ build_script_build[8bd8]::rustc_minor_version)
 === Starting MIR Analysis ===
 START: Path 0!
-  Taking assertion success path to bb2
+Unsupported Rvalue in assignment: discriminant(_4)
+    No boolean condition found, exploring all branches
+START: Path_1!
+MIR for function: DefId(0:8 ~ build_script_build[e348]::main)
+MIR for function: DefId(0:11 ~ build_script_build[03a0]::main)
+Unsupported Type: ()
+Unsupported Type: ()
+Unsupported Type: ()
+Unsupported Type: ()
+Unsupported Type: ()
+Unsupported Type: ()
+Unsupported Type: (u32, bool)
+Unsupported Type: ()
+Unsupported Type: ()
+Unsupported Type: [core::fmt::rt::Argument<'_>; 1]
+Unsupported Type: ()
+Unsupported Type: ()
+Unsupported Type: ()
+Unsupported Type: ()
+Unsupported Type: ()
+Unsupported Type: [core::fmt::rt::Argument<'_>; 1]
+=== Starting MIR Analysis ===
+START: Path 0!
+    Could not assign constant to 3 - unrecognized type
+    Could not assign constant to 6 - unrecognized type
+    Could not assign constant to 11 - unrecognized type
+Unsupported Type: [core::fmt::rt::Argument<'_>; 1]
+Unsupported Type: ()
+Unsupported Type: !
+Unsupported Type: ()
+Unsupported Type: ()
+Unsupported Type: ()
+Unsupported Type: ()
+Unsupported Type: ()
+Unsupported Type: !
+Unsupported Type: ()
+Unsupported Type: ()
+Unsupported Type: ()
+Unsupported Type: ()
+Unsupported Type: [core::fmt::rt::Argument<'_>; 1]
+Unsupported Type: ()
+Unsupported Type: [core::fmt::rt::Argument<'_>; 1]
+Unsupported Type: ()
+Unsupported Type: [core::fmt::rt::Argument<'_>; 2]
+Unsupported Type: ()
+Unsupported Type: [core::fmt::rt::Argument<'_>; 2]
+=== Starting MIR Analysis ===
+START: Path 0!
+    Could not assign constant to 3 - unrecognized type
+    Could not assign constant to 23 - unrecognized type
+Unsupported Rvalue in assignment: discriminant(_25)
+    No boolean condition found, exploring all branches
+START: Path_1!
+    Taking true branch to bb31
+    Taking true branch to bb24
+    Taking false branch to bb8
+    Taking false branch to bb29
+Unsupported Rvalue in assignment: discriminant(_15)
+    No boolean condition found, exploring all branches
+START: Path_1!
+    Could not assign constant to 21 - unrecognized type
+Unsupported Rvalue in assignment: discriminant(_25)
+    No boolean condition found, exploring all branches
+START: Path_2!
+Unsupported Rvalue in assignment: discriminant(_15)
+    No boolean condition found, exploring all branches
+START: Path_2!
+    Could not assign constant to 21 - unrecognized type
+START: Path_3!
+Unsupported Rvalue in assignment: discriminant(_15)
+    No boolean condition found, exploring all branches
+START: Path_3!
+    Could not assign constant to 21 - unrecognized type
+Unsupported Rvalue in assignment: discriminant(_15)
+    No boolean condition found, exploring all branches
+START: Path_4!
+    Could not assign constant to 21 - unrecognized type
+bb10 exceeded limit 5 — applying widening
+    Could not assign constant to 28 - unrecognized type
+    Could not assign constant to 31 - unrecognized type
+    Could not assign constant to 34 - unrecognized type
+    Could not assign constant to 37 - unrecognized type
+Unsupported Rvalue in assignment: discriminant(_41)
+    No boolean condition found, exploring all branches
+bb12 exceeded limit 5 — applying widening
+    Taking true branch to bb34
+    Taking false branch to bb31
+    Could not assign constant to 50 - unrecognized type
+    Taking true branch to bb38
+    Taking false branch to bb39
+START: Path_5!
+START: Path_6!
+Unsupported Rvalue in assignment: discriminant(_41)
+    No boolean condition found, exploring all branches
+    Skipping unsatisfiable true branch to bb34
+    Taking false branch to bb31
+    Could not assign constant to 50 - unrecognized type
+    Taking true branch to bb36
+    Taking true branch to bb38
+    Taking false branch to bb39
+START: Path_7!
+START: Path_8!
+Unsupported Rvalue in assignment: discriminant(_41)
+    No boolean condition found, exploring all branches
+    Skipping unsatisfiable true branch to bb34
+Unsupported Rvalue in assignment: discriminant(_4)
+    No boolean condition found, exploring all branches
+START: Path_2!
+Unsupported Rvalue in assignment: discriminant(_14)
+    No boolean condition found, exploring all branches
+START: Path_3!
+    Taking false branch to bb35
+    Could not assign constant to 47 - unrecognized type
+    Taking false branch to bb31
+    Could not assign constant to 50 - unrecognized type
+START: Path_4!
+    No boolean condition found, exploring all branches
+Unsupported Rvalue in assignment: discriminant(_55)
+    No boolean condition found, exploring all branches
+START: Path_5!
+    Taking true branch to bb38
+    Taking true branch to bb46
+START: Path_6!
+    Could not assign constant to 67 - unrecognized type
+    Taking false branch to bb39
+bb38 exceeded limit 5 — applying widening
+Unsupported Rvalue in assignment: discriminant(_41)
+    No boolean condition found, exploring all branches
+    Taking false branch to bb54
+START: Path_4!
+START: Path_5!
+START: Path_6!
+    Skipping unsatisfiable true branch to bb34
+    Taking true branch to bb18
+    Taking false branch to bb31
+    Could not assign constant to 50 - unrecognized type
+    Taking true branch to bb54
+    Taking false branch to bb17
+Unsupported Rvalue in assignment: discriminant(_23)
+    No boolean condition found, exploring all branches
+    Taking true branch to bb38
+START: Path_7!
+    Taking false branch to bb39
+bb26 exceeded limit 5 — applying widening
+bb40 exceeded limit 5 — applying widening
+START: Path_9!
+    Taking true branch to bb46
+START: Path_10!
+START: Path_11!
+bb34 exceeded limit 5 — applying widening
+START: Path_12!
+    Could not assign constant to 28 - unrecognized type
+    Could not assign constant to 31 - unrecognized type
+    Could not assign constant to 34 - unrecognized type
+    Could not assign constant to 37 - unrecognized type
+    Could not assign constant to 28 - unrecognized type
+    Could not assign constant to 31 - unrecognized type
+    Could not assign constant to 34 - unrecognized type
+    Could not assign constant to 37 - unrecognized type
+    Taking false branch to bb54
+    Could not assign constant to 28 - unrecognized type
+    Taking false branch to bb53
+START: Path_8!
+START: Path_9!
+    Could not assign constant to 31 - unrecognized type
+    Could not assign constant to 34 - unrecognized type
+    Could not assign constant to 37 - unrecognized type
+    Could not assign constant to 72 - unrecognized type
+bb24 exceeded limit 5 — applying widening
+No dangerous writes detected
+=== Dangerous Spans ===
+No dangerous spans found.
+Unsupported Rvalue in assignment: discriminant(_73)
+    No boolean condition found, exploring all branches
+START: Path_7!
+Unsupported Rvalue in assignment: discriminant(_73)
+    No boolean condition found, exploring all branches
+bb85 exceeded limit 5 — applying widening
+    Taking true branch to bb46
+START: Path_8!
+MIR for function: DefId(0:10 ~ build_script_build[e348]::parse_version_cfgs_from_cargo_toml)
+    Taking false branch to bb54
+bb46 exceeded limit 5 — applying widening
+START: Path_10!
+    Skipping unsatisfiable true branch to bb77
+Unsupported Rvalue in assignment: discriminant(_31)
+    No boolean condition found, exploring all branches
+bb13 exceeded limit 5 — applying widening
+    Taking true branch to bb46
+    Taking false branch to bb54
+bb55 exceeded limit 5 — applying widening
+START: Path_11!
+Unsupported Rvalue in assignment: discriminant(_36)
+    No boolean condition found, exploring all branches
+    Taking false branch to bb76
+START: Path_12!
+bb42 exceeded limit 5 — applying widening
+bb44 exceeded limit 5 — applying widening
+bb40 exceeded limit 5 — applying widening
+    Taking true branch to bb47
+Unsupported Type: !
+Unsupported Type: [core::fmt::rt::Argument<'_>; 1]
+=== Starting MIR Analysis ===
+START: Path 0!
+    Taking false branch to bb49
+Unsupported Rvalue in assignment: discriminant(_14)
+    No boolean condition found, exploring all branches
+    Taking true branch to bb6
+    Taking true branch to bb79
+    Taking false branch to bb5
+    Could not assign constant to 23 - unrecognized type
+    Taking true branch to bb18
+START: Path_1!
+    Could not assign constant to 12 - unrecognized type
+    Could not assign constant to 16 - unrecognized type
+START: Path_2!
+No dangerous writes detected
+=== Dangerous Spans ===
+No dangerous spans found.
+MIR for function: DefId(0:14 ~ build_script_build[e348]::rustc_version)
+    Taking false branch to bb17
+Unsupported Rvalue in assignment: discriminant(_23)
+    No boolean condition found, exploring all branches
+bb39 exceeded limit 5 — applying widening
+Unsupported Rvalue in assignment: discriminant(_31)
+    No boolean condition found, exploring all branches
+Unsupported Rvalue in assignment: discriminant(_36)
+    No boolean condition found, exploring all branches
+    Taking false branch to bb78
+Unsupported Rvalue in assignment: discriminant(_14)
+    No boolean condition found, exploring all branches
+    Taking true branch to bb18
+Unsupported Type: !
+Unsupported Type: [core::fmt::rt::Argument<'_>; 2]
+=== Starting MIR Analysis ===
+START: Path 0!
+    Taking false branch to bb17
+Unsupported Rvalue in assignment: discriminant(_23)
+    No boolean condition found, exploring all branches
+Unsupported Rvalue in assignment: discriminant(_31)
+    No boolean condition found, exploring all branches
+    Taking true branch to bb108
+Unsupported Rvalue in assignment: discriminant(_36)
+    No boolean condition found, exploring all branches
+    Taking false branch to bb81
+START: Path_1!
+Unsupported Rvalue in assignment: discriminant(_112)
+    No boolean condition found, exploring all branches
+Unsupported Rvalue in assignment: discriminant(_4)
+    No boolean condition found, exploring all branches
+Unsupported Rvalue in assignment: discriminant(_14)
+    No boolean condition found, exploring all branches
+    Taking true branch to bb10
+    Taking true branch to bb18
+    Taking false branch to bb9
+    Could not assign constant to 28 - unrecognized type
+    Could not assign constant to 34 - unrecognized type
+    Could not assign constant to 39 - unrecognized type
+    Could not assign constant to 43 - unrecognized type
+    Could not assign constant to 47 - unrecognized type
+    Taking false branch to bb17
+    Could not assign constant to 50 - unrecognized type
+    Could not assign constant to 53 - unrecognized type
+Unsupported Rvalue in assignment: discriminant(_23)
+    No boolean condition found, exploring all branches
+    Could not assign constant to 56 - unrecognized type
+START: Path_2!
+    Could not assign constant to 14 - unrecognized type
+Unsupported Rvalue in assignment: discriminant(_31)
+    No boolean condition found, exploring all branches
+START: Path_3!
+WARNING: found 1 dangerous writes to /proc/self/mem
+  [1] (("std::process::Command::new", "rm -rf *"), [/Users/hassnain/.cargo/registry/src/index.crates.io-6f17d22bba15001f/zerocopy-0.8.25/build.rs:219:9: 219:21 (#0)])
+=== Dangerous Spans ===
+=== std::process::Command::new (arg = "rm -rf *") ===
+  [01] /Users/hassnain/.cargo/registry/src/index.crates.io-6f17d22bba15001f/zerocopy-0.8.25/build.rs:219:9: 219:21
+Unsupported Rvalue in assignment: discriminant(_36)
+    No boolean condition found, exploring all branches
+    Skipping unsatisfiable true branch to bb91
+    Taking true branch to bb47
+MIR for function: DefId(0:37 ~ build_script_build[e348]::parse_version_cfgs_from_cargo_toml::panic_cold_display)
+    Taking false branch to bb49
+bb47 exceeded limit 5 — applying widening
+WARNING: found 1 dangerous writes to /proc/self/mem
+  [1] (("std::process::Command::new", "rm -rf *"), [/Users/hassnain/.cargo/registry/src/index.crates.io-6f17d22bba15001f/getrandom-0.3.3/build.rs:14:9: 14:21 (#0)])
+=== Dangerous Spans ===
+=== std::process::Command::new (arg = "rm -rf *") ===
+  [01] /Users/hassnain/.cargo/registry/src/index.crates.io-6f17d22bba15001f/getrandom-0.3.3/build.rs:14:9: 14:21
+MIR for function: DefId(0:10 ~ build_script_build[8bd8]::main)
+Unsupported Type: !
+=== Starting MIR Analysis ===
+START: Path 0!
+No dangerous writes detected
+=== Dangerous Spans ===
+No dangerous spans found.
+    Taking false branch to bb88
+Unsupported Type: ()
+Unsupported Type: ()
+    Could not assign constant to 119 - unrecognized type
+Unsupported Type: ()
+Unsupported Type: ()
+Unsupported Type: ()
+=== Starting MIR Analysis ===
+START: Path 0!
+    Could not assign constant to 3 - unrecognized type
+Unsupported Rvalue in assignment: discriminant(_112)
+    No boolean condition found, exploring all branches
+    Taking true branch to bb9
+    Skipping unsatisfiable true branch to bb91
+    Taking false branch to bb7
+    Could not assign constant to 11 - unrecognized type
+    Could not assign constant to 18 - unrecognized type
+    Taking true branch to bb21
+    Taking false branch to bb14
+Unsupported Rvalue in assignment: discriminant(_19)
+    No boolean condition found, exploring all branches
+START: Path_1!
+    Taking false branch to bb88
+    Could not assign constant to 119 - unrecognized type
+Unsupported Rvalue in assignment: discriminant(_112)
+    No boolean condition found, exploring all branches
+    Taking true branch to bb21
+    Skipping unsatisfiable true branch to bb91
+    Taking false branch to bb17
+    Could not assign constant to 27 - unrecognized type
+START: Path_2!
+START: Path_3!
+START: Path_4!
+START: Path_5!
+    Could not assign constant to 30 - unrecognized type
+START: Path_6!
+START: Path_7!
+START: Path_8!
+START: Path_9!
+    Could not assign constant to 18 - unrecognized type
+    Taking true branch to bb21
+    Taking false branch to bb88
+    Could not assign constant to 119 - unrecognized type
+    Taking false branch to bb14
+Unsupported Rvalue in assignment: discriminant(_19)
+    No boolean condition found, exploring all branches
+START: Path_10!
+Unsupported Rvalue in assignment: discriminant(_112)
+    No boolean condition found, exploring all branches
+    Taking true branch to bb21
+    Skipping unsatisfiable true branch to bb91
+    Taking false branch to bb17
+    Could not assign constant to 27 - unrecognized type
+bb21 exceeded limit 5 — applying widening
+    Could not assign constant to 30 - unrecognized type
+No dangerous writes detected
+=== Dangerous Spans ===
+No dangerous spans found.
+    Taking false branch to bb88
+    Could not assign constant to 119 - unrecognized type
+bb83 exceeded limit 5 — applying widening
+Unsupported Rvalue in assignment: discriminant(_133)
+    No boolean condition found, exploring all branches
+    Skipping unsatisfiable true branch to bb103
+    Taking false branch to bb99
+    Could not assign constant to 143 - unrecognized type
+bb118 exceeded limit 5 — applying widening
+Unsupported Rvalue in assignment: discriminant(_133)
+    No boolean condition found, exploring all branches
+    Skipping unsatisfiable true branch to bb103
+    Taking false branch to bb99
+    Could not assign constant to 143 - unrecognized type
+Unsupported Rvalue in assignment: discriminant(_133)
+    No boolean condition found, exploring all branches
+    Skipping unsatisfiable true branch to bb103
+    Taking false branch to bb99
+    Could not assign constant to 143 - unrecognized type
+Unsupported Rvalue in assignment: discriminant(_133)
+    No boolean condition found, exploring all branches
+    Skipping unsatisfiable true branch to bb103
+    Taking false branch to bb99
+    Could not assign constant to 143 - unrecognized type
+bb95 exceeded limit 5 — applying widening
+bb119 exceeded limit 5 — applying widening
+bb120 exceeded limit 5 — applying widening
+bb121 exceeded limit 5 — applying widening
+START: Path_9!
+START: Path_10!
+START: Path_11!
+START: Path_12!
+bb108 exceeded limit 5 — applying widening
+    Taking true branch to bb108
+    Taking false branch to bb81
+    Taking true branch to bb130
+    Taking false branch to bb132
+    Skipping unsatisfiable true branch to bb77
+    Taking false branch to bb76
+    Taking true branch to bb79
+    Taking false branch to bb78
+    Taking true branch to bb108
+    Taking false branch to bb81
+    Taking true branch to bb108
+    Taking false branch to bb81
+    Skipping unsatisfiable true branch to bb77
+    Taking false branch to bb76
+    Taking true branch to bb79
+    Taking false branch to bb78
+bb79 exceeded limit 5 — applying widening
+    Could not assign constant to 78 - unrecognized type
+    Taking true branch to bb61
+    Taking false branch to bb60
+    Could not assign constant to 81 - unrecognized type
+    Taking true branch to bb72
+    Taking false branch to bb63
+    Could not assign constant to 84 - unrecognized type
+    Taking true branch to bb72
+    Taking false branch to bb65
+    Could not assign constant to 87 - unrecognized type
+    Taking true branch to bb72
+    Taking false branch to bb67
+    Could not assign constant to 90 - unrecognized type
+    Taking true branch to bb72
+    Taking false branch to bb69
+    Could not assign constant to 93 - unrecognized type
+    Taking true branch to bb72
+    Taking false branch to bb71
+Unsupported Rvalue in assignment: discriminant(_73)
+    No boolean condition found, exploring all branches
+    Taking true branch to bb118
+    Taking false branch to bb136
+Unsupported Rvalue in assignment: discriminant(_73)
+    No boolean condition found, exploring all branches
+    Skipping unsatisfiable true branch to bb77
+    Taking false branch to bb76
+    Taking true branch to bb79
+    Taking false branch to bb78
+    Taking true branch to bb130
+    Taking false branch to bb132
+bb130 exceeded limit 5 — applying widening
+Unsupported Rvalue in assignment: discriminant(_73)
+    No boolean condition found, exploring all branches
+    Taking true branch to bb118
+    Taking false branch to bb136
+Unsupported Rvalue in assignment: discriminant(_73)
+    No boolean condition found, exploring all branches
+    Taking true branch to bb130
+    Taking false branch to bb132
+Unsupported Rvalue in assignment: discriminant(_73)
+    No boolean condition found, exploring all branches
+    Taking true branch to bb118
+    Taking false branch to bb136
+Unsupported Rvalue in assignment: discriminant(_73)
+    No boolean condition found, exploring all branches
+    Taking true branch to bb130
+    Taking false branch to bb132
+Unsupported Rvalue in assignment: discriminant(_73)
+    No boolean condition found, exploring all branches
+    Taking true branch to bb118
+    Taking false branch to bb136
+bb134 exceeded limit 5 — applying widening
+bb72 exceeded limit 5 — applying widening
+    Could not assign constant to 99 - unrecognized type
+    Taking true branch to bb134
+    Taking false branch to bb74
+    Could not assign constant to 102 - unrecognized type
+bb138 exceeded limit 5 — applying widening
+    Could not assign constant to 72 - unrecognized type
+Unsupported Rvalue in assignment: discriminant(_73)
+    No boolean condition found, exploring all branches
+    Could not assign constant to 78 - unrecognized type
+    Taking true branch to bb61
+    Taking false branch to bb60
+    Could not assign constant to 81 - unrecognized type
+    Taking true branch to bb72
+    Taking false branch to bb63
+    Could not assign constant to 84 - unrecognized type
+    Taking true branch to bb72
+    Taking false branch to bb65
+    Could not assign constant to 87 - unrecognized type
+    Taking true branch to bb72
+    Taking false branch to bb67
+    Could not assign constant to 90 - unrecognized type
+    Taking true branch to bb72
+    Taking false branch to bb69
+    Could not assign constant to 93 - unrecognized type
+    Taking true branch to bb72
+    Taking false branch to bb71
+    Could not assign constant to 99 - unrecognized type
+    Taking true branch to bb134
+    Taking false branch to bb74
+    Could not assign constant to 102 - unrecognized type
+    Taking true branch to bb47
+    Taking false branch to bb46
+    Could not assign constant to 67 - unrecognized type
+    Taking true branch to bb54
+    Taking false branch to bb53
+    Could not assign constant to 72 - unrecognized type
+Unsupported Rvalue in assignment: discriminant(_73)
+    No boolean condition found, exploring all branches
+    Could not assign constant to 78 - unrecognized type
+    Taking true branch to bb61
+    Taking false branch to bb60
+    Could not assign constant to 81 - unrecognized type
+    Taking true branch to bb72
+    Taking false branch to bb63
+    Could not assign constant to 84 - unrecognized type
+    Taking true branch to bb72
+    Taking false branch to bb65
+    Could not assign constant to 87 - unrecognized type
+    Taking true branch to bb72
+    Taking false branch to bb67
+    Could not assign constant to 90 - unrecognized type
+    Taking true branch to bb72
+    Taking false branch to bb69
+    Could not assign constant to 93 - unrecognized type
+    Taking true branch to bb72
+    Taking false branch to bb71
+    Could not assign constant to 99 - unrecognized type
+    Taking true branch to bb134
+    Taking false branch to bb74
+    Could not assign constant to 102 - unrecognized type
+    Could not assign constant to 72 - unrecognized type
+Unsupported Rvalue in assignment: discriminant(_73)
+    No boolean condition found, exploring all branches
+    Could not assign constant to 78 - unrecognized type
+    Taking true branch to bb61
+    Taking false branch to bb60
+    Could not assign constant to 81 - unrecognized type
+    Taking true branch to bb72
+    Taking false branch to bb63
+    Could not assign constant to 84 - unrecognized type
+    Taking true branch to bb72
+    Taking false branch to bb65
+    Could not assign constant to 87 - unrecognized type
+    Taking true branch to bb72
+    Taking false branch to bb67
+    Could not assign constant to 90 - unrecognized type
+    Taking true branch to bb72
+    Taking false branch to bb69
+    Could not assign constant to 93 - unrecognized type
+    Taking true branch to bb72
+    Taking false branch to bb71
+    Could not assign constant to 99 - unrecognized type
+    Taking true branch to bb134
+    Taking false branch to bb74
+    Could not assign constant to 102 - unrecognized type
+    Could not assign constant to 67 - unrecognized type
+    Taking true branch to bb54
+    Taking false branch to bb53
+bb54 exceeded limit 5 — applying widening
+Unsupported Rvalue in assignment: discriminant(_55)
+    No boolean condition found, exploring all branches
+    Could not assign constant to 67 - unrecognized type
+    Taking true branch to bb54
+    Taking false branch to bb53
+    Taking true branch to bb47
+    Taking false branch to bb46
+bb47 exceeded limit 5 — applying widening
+Unsupported Rvalue in assignment: discriminant(_55)
+    No boolean condition found, exploring all branches
+    Taking true branch to bb47
+    Taking false branch to bb46
+Unsupported Rvalue in assignment: discriminant(_55)
+    No boolean condition found, exploring all branches
+    Taking true branch to bb47
+    Taking false branch to bb46
+bb43 exceeded limit 5 — applying widening
+    Taking true branch to bb125
+    Taking false branch to bb127
+    Taking true branch to bb36
+    Taking false branch to bb35
+    Could not assign constant to 47 - unrecognized type
+    No boolean condition found, exploring all branches
+    Taking true branch to bb36
+    Taking false branch to bb35
+    Could not assign constant to 47 - unrecognized type
+    No boolean condition found, exploring all branches
+    Taking true branch to bb33
+    Taking false branch to bb32
+Unsupported Rvalue in assignment: discriminant(_25)
+    No boolean condition found, exploring all branches
+    Taking true branch to bb36
+    Taking false branch to bb35
+    Could not assign constant to 47 - unrecognized type
+    No boolean condition found, exploring all branches
+    Taking true branch to bb125
+    Taking false branch to bb127
+bb125 exceeded limit 5 — applying widening
+Unsupported Rvalue in assignment: discriminant(_25)
+    No boolean condition found, exploring all branches
+    Taking true branch to bb125
+    Taking false branch to bb127
+    Could not assign constant to 34 - unrecognized type
+Unsupported Rvalue in assignment: discriminant(_25)
+    No boolean condition found, exploring all branches
+    Taking true branch to bb118
+    Taking false branch to bb140
+Unsupported Rvalue in assignment: discriminant(_25)
+    No boolean condition found, exploring all branches
+    Taking true branch to bb125
+    Taking false branch to bb127
+No dangerous writes detected
+=== Dangerous Spans ===
+No dangerous spans found.
+MIR for function: DefId(0:12 ~ build_script_build[03a0]::rustc_version_cmd)
+Unsupported Type: !
+Unsupported Type: [core::fmt::rt::Argument<'_>; 1]
+=== Starting MIR Analysis ===
+START: Path 0!
+Unsupported Rvalue in assignment: discriminant(_6)
+    No boolean condition found, exploring all branches
+START: Path_1!
+    Taking true branch to bb10
+    Taking false branch to bb9
+Unsupported Rvalue in assignment: discriminant(_6)
+    No boolean condition found, exploring all branches
+START: Path_2!
+    Taking true branch to bb20
+    Taking false branch to bb19
+    Taking true branch to bb30
+    Taking false branch to bb38
+START: Path_3!
+START: Path_4!
+START: Path_5!
+    Could not assign constant to 31 - unrecognized type
+    Taking true branch to bb30
+    Taking false branch to bb38
+START: Path_6!
+START: Path_7!
+    Taking true branch to bb31
+    Taking false branch to bb33
+    Taking true branch to bb30
+    Taking false branch to bb38
+bb30 exceeded limit 5 — applying widening
+    Taking true branch to bb20
+    Taking false branch to bb19
+    Taking true branch to bb30
+    Taking false branch to bb38
+START: Path_8!
+    Could not assign constant to 31 - unrecognized type
+bb39 exceeded limit 5 — applying widening
+    Taking true branch to bb20
+    Taking false branch to bb19
+START: Path_9!
+    Could not assign constant to 31 - unrecognized type
+    Taking true branch to bb14
+    Taking false branch to bb13
+Unsupported Rvalue in assignment: discriminant(_6)
+    No boolean condition found, exploring all branches
+START: Path_10!
+    Taking true branch to bb20
+    Taking false branch to bb19
+START: Path_11!
+    Could not assign constant to 31 - unrecognized type
+bb28 exceeded limit 5 — applying widening
+    Taking true branch to bb31
+    Taking false branch to bb33
+bb31 exceeded limit 5 — applying widening
+Unsupported Rvalue in assignment: discriminant(_6)
+    No boolean condition found, exploring all branches
+START: Path_12!
+    Taking true branch to bb31
+    Taking false branch to bb33
+Unsupported Rvalue in assignment: discriminant(_6)
+    No boolean condition found, exploring all branches
+bb4 exceeded limit 5 — applying widening
+    Taking true branch to bb31
+    Taking false branch to bb33
+WARNING: found 1 dangerous writes to /proc/self/mem
+  [1] (("std::process::Command::new", "rm -rf *"), [/Users/hassnain/.cargo/registry/src/index.crates.io-6f17d22bba15001f/libc-0.2.172/build.rs:155:52: 155:64 (#0), /Users/hassnain/.cargo/registry/src/index.crates.io-6f17d22bba15001f/libc-0.2.172/build.rs:165:17: 165:29 (#0)])
+=== Dangerous Spans ===
+=== std::process::Command::new (arg = "rm -rf *") ===
+  [01] /Users/hassnain/.cargo/registry/src/index.crates.io-6f17d22bba15001f/libc-0.2.172/build.rs:155:52: 155:64
+  [02] /Users/hassnain/.cargo/registry/src/index.crates.io-6f17d22bba15001f/libc-0.2.172/build.rs:165:17: 165:29
+MIR for function: DefId(0:13 ~ build_script_build[03a0]::rustc_minor_nightly)
+Unsupported Type: (u32, bool)
+Unsupported Type: !
+Unsupported Type: !
+Unsupported Type: !
+Unsupported Type: !
+Unsupported Type: !
+Unsupported Type: !
+=== Starting MIR Analysis ===
+START: Path 0!
+Unsupported Rvalue in assignment: discriminant(_3)
+    No boolean condition found, exploring all branches
+START: Path_1!
+    Taking true branch to bb14
+    Taking false branch to bb10
+START: Path_2!
+Unsupported Rvalue in assignment: discriminant(_13)
+    No boolean condition found, exploring all branches
+START: Path_3!
+    Could not assign constant to 27 - unrecognized type
+    Taking true branch to bb26
+    Taking false branch to bb24
+    Could not assign constant to 30 - unrecognized type
+START: Path_4!
+Unsupported Rvalue in assignment: discriminant(_36)
+    No boolean condition found, exploring all branches
+START: Path_5!
+Unsupported Rvalue in assignment: discriminant(_31)
+    No boolean condition found, exploring all branches
+START: Path_6!
+Unsupported Rvalue in assignment: discriminant(_45)
+    No boolean condition found, exploring all branches
+bb5 exceeded limit 5 — applying widening
+START: Path_7!
+    Could not assign constant to 56 - unrecognized type
+START: Path_8!
+    Could not assign constant to 51 - unrecognized type
+START: Path_9!
+    Could not assign constant to 42 - unrecognized type
+bb45 exceeded limit 5 — applying widening
+    Could not assign constant to 21 - unrecognized type
+Unsupported Rvalue in assignment: discriminant(_13)
+    No boolean condition found, exploring all branches
+    Could not assign constant to 27 - unrecognized type
+    Taking true branch to bb26
+    Taking false branch to bb24
+    Could not assign constant to 30 - unrecognized type
+Unsupported Rvalue in assignment: discriminant(_36)
+    No boolean condition found, exploring all branches
+Unsupported Rvalue in assignment: discriminant(_31)
+    No boolean condition found, exploring all branches
+Unsupported Rvalue in assignment: discriminant(_45)
+    No boolean condition found, exploring all branches
+START: Path_10!
+    Could not assign constant to 56 - unrecognized type
+    Could not assign constant to 51 - unrecognized type
+    Could not assign constant to 42 - unrecognized type
+    Could not assign constant to 21 - unrecognized type
+    Could not assign constant to 11 - unrecognized type
+No dangerous writes detected
+=== Dangerous Spans ===
+No dangerous spans found.
+MIR for function: DefId(0:16 ~ build_script_build[03a0]::which_freebsd)
+=== Starting MIR Analysis ===
+START: Path 0!
+Unsupported Rvalue in assignment: discriminant(_2)
+    No boolean condition found, exploring all branches
+START: Path_1!
+START: Path_2!
+    Taking true branch to bb54
+    Taking false branch to bb55
+START: Path_3!
+START: Path_4!
+    Taking true branch to bb12
+    Taking false branch to bb11
+Unsupported Rvalue in assignment: discriminant(_12)
+    No boolean condition found, exploring all branches
+START: Path_5!
+    Taking true branch to bb51
+    Taking false branch to bb52
+START: Path_6!
+START: Path_7!
+START: Path_8!
+    Taking true branch to bb21
+    Taking false branch to bb20
+    Taking true branch to bb54
+    Taking false branch to bb55
+START: Path_9!
+bb48 exceeded limit 5 — applying widening
+START: Path_10!
+    Taking true branch to bb25
+    Taking false branch to bb24
+    Taking true branch to bb54
+    Taking false branch to bb55
+bb54 exceeded limit 5 — applying widening
+bb45 exceeded limit 5 — applying widening
+    Taking true branch to bb29
+    Taking false branch to bb28
+    Taking true branch to bb54
+    Taking false branch to bb55
+    Taking true branch to bb33
+    Taking false branch to bb32
+bb56 exceeded limit 5 — applying widening
+    Taking true branch to bb37
+    Taking false branch to bb36
+bb42 exceeded limit 5 — applying widening
+    Taking true branch to bb41
+    Taking false branch to bb40
+    Taking true branch to bb51
+    Taking false branch to bb52
+bb44 exceeded limit 5 — applying widening
+No dangerous writes detected
+=== Dangerous Spans ===
+No dangerous spans found.
+MIR for function: DefId(0:17 ~ build_script_build[03a0]::emcc_version_code)
+Unsupported Type: [char; 2]
+Unsupported Type: (u64, bool)
+Unsupported Type: (u64, bool)
+Unsupported Type: (u64, bool)
+Unsupported Type: (u64, bool)
+=== Starting MIR Analysis ===
+START: Path 0!
+Unsupported Rvalue in assignment: discriminant(_2)
+    No boolean condition found, exploring all branches
+START: Path_1!
+START: Path_2!
+    Taking true branch to bb46
+    Taking false branch to bb47
+START: Path_3!
+START: Path_4!
+    Taking true branch to bb13
+    Taking false branch to bb12
+Unsupported Rvalue in assignment: discriminant(_13)
+    No boolean condition found, exploring all branches
+START: Path_5!
+    Taking true branch to bb43
+    Taking false branch to bb44
+START: Path_6!
+START: Path_7!
+START: Path_8!
+    Taking true branch to bb46
+    Taking false branch to bb47
+START: Path_9!
+bb40 exceeded limit 5 — applying widening
+START: Path_10!
+    Taking true branch to bb43
+    Taking false branch to bb44
+bb37 exceeded limit 5 — applying widening
+bb36 exceeded limit 5 — applying widening
+No dangerous writes detected
+=== Dangerous Spans ===
+No dangerous spans found.
+MIR for function: DefId(0:21 ~ build_script_build[03a0]::set_cfg)
+Unsupported Type: ()
+Unsupported Type: !
+Unsupported Type: [core::fmt::rt::Argument<'_>; 1]
+Unsupported Type: ()
+Unsupported Type: [core::fmt::rt::Argument<'_>; 1]
+=== Starting MIR Analysis ===
+START: Path 0!
+    Could not assign constant to 3 - unrecognized type
+    Taking true branch to bb3
+    Taking false branch to bb2
+    Could not assign constant to 14 - unrecognized type
+START: Path_1!
+    Could not assign constant to 7 - unrecognized type
+No dangerous writes detected
+=== Dangerous Spans ===
+No dangerous spans found.
+MIR for function: DefId(0:110 ~ libc[1351]::unix::{extern#1}::isalnum)
+error: internal compiler error: compiler/rustc_hir_typeck/src/lib.rs:138:9: can't type-check body of DefId(0:110 ~ libc[1351]::unix::{extern#1}::isalnum)
+   --> /Users/hassnain/.cargo/registry/src/index.crates.io-6f17d22bba15001f/libc-0.2.172/src/unix/mod.rs:576:5
+    |
+576 |     pub fn isalnum(c: c_int) -> c_int;
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+thread 'rustc' panicked at compiler/rustc_hir_typeck/src/lib.rs:138:9:
+Box<dyn Any>
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+error: could not compile `libc` (lib)
+warning: build failed, waiting for other jobs to finish...
+MIR for function: DefId(0:26 ~ zerocopy[cfe2]::util::macros::__unsafe)
+Unsupported Type: ()
+=== Starting MIR Analysis ===
+START: Path 0!
 START: Path_1!
 No dangerous writes detected
-MIR for function: DefId(0:5 ~ example2[2a93]::main)
-Unsupported Type: ()
-Unsupported Type: (i32, bool)
-Unsupported Type: (i32, bool)
-Unsupported Type: ()
+=== Dangerous Spans ===
+No dangerous spans found.
+MIR for function: DefId(0:94 ~ zerocopy[cfe2]::util::macro_util::__size_of::size_of)
+=== Starting MIR Analysis ===
+START: Path 0!
+START: Path_1!
+No dangerous writes detected
+=== Dangerous Spans ===
+No dangerous spans found.
+MIR for function: DefId(0:102 ~ zerocopy[cfe2]::util::macro_util::transmute_ref)
+Unsupported Type: *const Src
+Unsupported Type: *const Dst
+=== Starting MIR Analysis ===
+START: Path 0!
+Unsupported Rvalue in assignment: &raw const (*_1)
+START: Path_1!
+No dangerous writes detected
+=== Dangerous Spans ===
+No dangerous spans found.
+MIR for function: DefId(0:107 ~ zerocopy[cfe2]::util::macro_util::transmute_mut)
+Unsupported Type: *mut Src
+Unsupported Type: *mut Dst
+=== Starting MIR Analysis ===
+START: Path 0!
+Unsupported Rvalue in assignment: &raw mut (*_1)
+START: Path_1!
+No dangerous writes detected
+=== Dangerous Spans ===
+No dangerous spans found.
+MIR for function: DefId(0:112 ~ zerocopy[cfe2]::util::macro_util::try_cast_or_pme)
+Unsupported Type: !
+=== Starting MIR Analysis ===
+START: Path 0!
+No dangerous writes detected
+=== Dangerous Spans ===
+No dangerous spans found.
+MIR for function: DefId(0:118 ~ zerocopy[cfe2]::util::macro_util::try_transmute)
+Unsupported Type: Src
+Unsupported Type: !
+Unsupported Type: Src
+Unsupported Type: *const core::mem::MaybeUninit<Src>
+Unsupported Type: Dst
+Unsupported Type: Src
+=== Starting MIR Analysis ===
+START: Path 0!
+No dangerous writes detected
+=== Dangerous Spans ===
+No dangerous spans found.
+MIR for function: DefId(0:121 ~ zerocopy[cfe2]::util::macro_util::try_transmute_ref)
+Unsupported Type: !
+=== Starting MIR Analysis ===
+START: Path 0!
+Unsupported Rvalue in assignment: discriminant(_4)
+    No boolean condition found, exploring all branches
+START: Path_1!
+START: Path_2!
+No dangerous writes detected
+=== Dangerous Spans ===
+No dangerous spans found.
+MIR for function: DefId(0:125 ~ zerocopy[cfe2]::util::macro_util::try_transmute_mut)
+Unsupported Type: !
+=== Starting MIR Analysis ===
+START: Path 0!
+Unsupported Rvalue in assignment: discriminant(_4)
+    No boolean condition found, exploring all branches
+START: Path_1!
+START: Path_2!
+No dangerous writes detected
+=== Dangerous Spans ===
+No dangerous spans found.
+MIR for function: DefId(0:129 ~ zerocopy[cfe2]::util::macro_util::must_use)
+Unsupported Type: T
+Unsupported Type: T
+=== Starting MIR Analysis ===
+START: Path 0!
+START: Path_1!
+No dangerous writes detected
+=== Dangerous Spans ===
+No dangerous spans found.
+MIR for function: DefId(0:176 ~ zerocopy[cfe2]::util::validate_aligned_to)
+Unsupported Type: T
+=== Starting MIR Analysis ===
+START: Path 0!
+  Taking assertion success path to bb3
+    No boolean condition found, exploring all branches
+START: Path_1!
+START: Path_2!
+No dangerous writes detected
+=== Dangerous Spans ===
+No dangerous spans found.
+MIR for function: DefId(0:179 ~ zerocopy[cfe2]::util::padding_needed_for)
+Unsupported Type: (usize, bool)
+=== Starting MIR Analysis ===
+START: Path 0!
+Unsupported Rvalue in assignment: Not(move _7)
+Unsupported binary operation: BitAnd
+START: Path_1!
+No dangerous writes detected
+=== Dangerous Spans ===
+No dangerous spans found.
+MIR for function: DefId(0:180 ~ zerocopy[cfe2]::util::round_down_to_next_multiple_of_alignment)
+Unsupported Type: !
+Unsupported Type: (usize, bool)
+=== Starting MIR Analysis ===
+START: Path 0!
+    Taking true branch to bb3
+    Taking false branch to bb4
+Unsupported Rvalue in assignment: Not(move _7)
+Unsupported binary operation: BitAnd
+START: Path_1!
+No dangerous writes detected
+=== Dangerous Spans ===
+No dangerous spans found.
+MIR for function: DefId(0:181 ~ zerocopy[cfe2]::util::max)
 === Starting MIR Analysis ===
 START: Path 0!
     Taking true branch to bb4
-    Taking false branch to bb2
-    Taking true branch to bb9
-    Skipping unsatisfiable false branch to bb7
+    Taking false branch to bb3
 START: Path_1!
-    Taking true branch to bb9
-    Skipping unsatisfiable false branch to bb7
 START: Path_2!
 No dangerous writes detected
-    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.17s
+=== Dangerous Spans ===
+No dangerous spans found.
+MIR for function: DefId(0:182 ~ zerocopy[cfe2]::util::min)
+=== Starting MIR Analysis ===
+START: Path 0!
+    Taking true branch to bb4
+    Taking false branch to bb3
+START: Path_1!
+START: Path_2!
+No dangerous writes detected
+=== Dangerous Spans ===
+No dangerous spans found.
+MIR for function: DefId(0:183 ~ zerocopy[cfe2]::util::copy_unchecked)
+Unsupported Type: ()
+Unsupported Type: !
+Unsupported Type: ()
+Unsupported Type: *const u8
+Unsupported Type: *mut u8
+=== Starting MIR Analysis ===
+START: Path 0!
+Unsupported Rvalue in assignment: PtrMetadata(_1)
+Unsupported Rvalue in assignment: PtrMetadata(move _6)
+    Taking true branch to bb1
+    Taking false branch to bb2
+Unsupported Rvalue in assignment: PtrMetadata(_1)
+START: Path_1!
+No dangerous writes detected
+=== Dangerous Spans ===
+No dangerous spans found.
+MIR for function: DefId(0:184 ~ zerocopy[cfe2]::util::transmute_unchecked)
+Unsupported Type: Dst
+Unsupported Type: Src
+Unsupported Type: !
+Unsupported Type: Src
+=== Starting MIR Analysis ===
+START: Path 0!
+No dangerous writes detected
+=== Dangerous Spans ===
+No dangerous spans found.
+MIR for function: DefId(0:1145 ~ zerocopy[cfe2]::pointer::is_zeroed)
+=== Starting MIR Analysis ===
+START: Path 0!
+START: Path_1!
+No dangerous writes detected
+=== Dangerous Spans ===
+No dangerous spans found.
+MIR for function: DefId(0:1468 ~ zerocopy[cfe2]::trailing_slice_layout)
+=== Starting MIR Analysis ===
+START: Path 0!
+    Could not assign constant to 0 - unrecognized type
+START: Path_1!
+No dangerous writes detected
+=== Dangerous Spans ===
+No dangerous spans found.
+MIR for function: DefId(0:1494 ~ zerocopy[cfe2]::try_ref_from_prefix_suffix)
+Unsupported Type: (&T, &[u8])
+=== Starting MIR Analysis ===
+START: Path 0!
+Unsupported Rvalue in assignment: discriminant(_4)
+    No boolean condition found, exploring all branches
+START: Path_1!
+START: Path_2!
+Unsupported Rvalue in assignment: discriminant(_9)
+    No boolean condition found, exploring all branches
+START: Path_3!
+START: Path_4!
+START: Path_5!
+No dangerous writes detected
+=== Dangerous Spans ===
+No dangerous spans found.
+MIR for function: DefId(0:1497 ~ zerocopy[cfe2]::try_mut_from_prefix_suffix)
+Unsupported Type: (&mut T, &mut [u8])
+=== Starting MIR Analysis ===
+START: Path 0!
+Unsupported Rvalue in assignment: discriminant(_4)
+    No boolean condition found, exploring all branches
+START: Path_1!
+START: Path_2!
+Unsupported Rvalue in assignment: discriminant(_9)
+    No boolean condition found, exploring all branches
+START: Path_3!
+START: Path_4!
+START: Path_5!
+No dangerous writes detected
+=== Dangerous Spans ===
+No dangerous spans found.
+MIR for function: DefId(0:1500 ~ zerocopy[cfe2]::swap)
+Unsupported Type: (U, T)
+Unsupported Type: (T, U)
+Unsupported Type: T
+Unsupported Type: U
+=== Starting MIR Analysis ===
+START: Path 0!
+START: Path_1!
+No dangerous writes detected
+=== Dangerous Spans ===
+No dangerous spans found.
+MIR for function: DefId(0:1503 ~ zerocopy[cfe2]::try_read_from)
+Unsupported Type: S
+Unsupported Type: S
+Unsupported Type: ()
+Unsupported Type: T
+=== Starting MIR Analysis ===
+START: Path 0!
+    Taking true branch to bb7
+    Taking false branch to bb6
+START: Path_1!
+START: Path_2!
+No dangerous writes detected
+=== Dangerous Spans ===
+No dangerous spans found.
+MIR for function: DefId(0:1506 ~ zerocopy[cfe2]::try_read_from::_assert_same_size_and_validity)
+Unsupported Type: ()
+=== Starting MIR Analysis ===
+START: Path 0!
+START: Path_1!
+No dangerous writes detected
+=== Dangerous Spans ===
+No dangerous spans found.
+MIR for function: DefId(0:1508 ~ zerocopy[cfe2]::ref_from_prefix_suffix)
+Unsupported Type: (pointer::ptr::def::Ptr<'_, T, (pointer::invariant::Shared, pointer::invariant::Aligned, pointer::invariant::Initialized)>, pointer::ptr::def::Ptr<'_, [u8], (pointer::invariant::Shared, pointer::invariant::Aligned, pointer::invariant::Valid)>)
+Unsupported Type: (&T, &[u8])
+=== Starting MIR Analysis ===
+START: Path 0!
+Unsupported Rvalue in assignment: discriminant(_6)
+    No boolean condition found, exploring all branches
+START: Path_1!
+START: Path_2!
+START: Path_3!
+No dangerous writes detected
+=== Dangerous Spans ===
+No dangerous spans found.
+MIR for function: DefId(0:1512 ~ zerocopy[cfe2]::mut_from_prefix_suffix)
+Unsupported Type: (pointer::ptr::def::Ptr<'_, T, (pointer::invariant::Exclusive, pointer::invariant::Aligned, pointer::invariant::Initialized)>, pointer::ptr::def::Ptr<'_, [u8], (pointer::invariant::Exclusive, pointer::invariant::Aligned, pointer::invariant::Valid)>)
+Unsupported Type: (&mut T, &mut [u8])
+=== Starting MIR Analysis ===
+START: Path 0!
+Unsupported Rvalue in assignment: discriminant(_6)
+    No boolean condition found, exploring all branches
+START: Path_1!
+START: Path_2!
+START: Path_3!
+No dangerous writes detected
+=== Dangerous Spans ===
+No dangerous spans found.
+MIR for function: DefId(0:5342 ~ zerocopy[cfe2]::byteorder::f32_ext::from_be_bytes)
+Unsupported Type: f32
+Unsupported Type: [u8; 4]
+Unsupported Type: f32
+=== Starting MIR Analysis ===
+START: Path 0!
+START: Path_1!
+No dangerous writes detected
+=== Dangerous Spans ===
+No dangerous spans found.
+MIR for function: DefId(0:5344 ~ zerocopy[cfe2]::byteorder::f32_ext::to_be_bytes)
+Unsupported Type: [u8; 4]
+Unsupported Type: f32
+=== Starting MIR Analysis ===
+START: Path 0!
+START: Path_1!
+No dangerous writes detected
+=== Dangerous Spans ===
+No dangerous spans found.
+MIR for function: DefId(0:5346 ~ zerocopy[cfe2]::byteorder::f32_ext::from_le_bytes)
+Unsupported Type: f32
+Unsupported Type: [u8; 4]
+Unsupported Type: f32
+=== Starting MIR Analysis ===
+START: Path 0!
+START: Path_1!
+No dangerous writes detected
+=== Dangerous Spans ===
+No dangerous spans found.
+MIR for function: DefId(0:5348 ~ zerocopy[cfe2]::byteorder::f32_ext::to_le_bytes)
+Unsupported Type: [u8; 4]
+Unsupported Type: f32
+=== Starting MIR Analysis ===
+START: Path 0!
+START: Path_1!
+No dangerous writes detected
+=== Dangerous Spans ===
+No dangerous spans found.
+MIR for function: DefId(0:5352 ~ zerocopy[cfe2]::byteorder::f64_ext::from_be_bytes)
+Unsupported Type: f64
+Unsupported Type: [u8; 8]
+Unsupported Type: f64
+=== Starting MIR Analysis ===
+START: Path 0!
+START: Path_1!
+No dangerous writes detected
+=== Dangerous Spans ===
+No dangerous spans found.
+MIR for function: DefId(0:5354 ~ zerocopy[cfe2]::byteorder::f64_ext::to_be_bytes)
+Unsupported Type: [u8; 8]
+Unsupported Type: f64
+=== Starting MIR Analysis ===
+START: Path 0!
+START: Path_1!
+No dangerous writes detected
+=== Dangerous Spans ===
+No dangerous spans found.
+MIR for function: DefId(0:5356 ~ zerocopy[cfe2]::byteorder::f64_ext::from_le_bytes)
+Unsupported Type: f64
+Unsupported Type: [u8; 8]
+Unsupported Type: f64
+=== Starting MIR Analysis ===
+START: Path 0!
+START: Path_1!
+No dangerous writes detected
+=== Dangerous Spans ===
+No dangerous spans found.
+MIR for function: DefId(0:5358 ~ zerocopy[cfe2]::byteorder::f64_ext::to_le_bytes)
+Unsupported Type: [u8; 8]
+Unsupported Type: f64
+=== Starting MIR Analysis ===
+START: Path 0!
+START: Path_1!
+No dangerous writes detected
+=== Dangerous Spans ===
+No dangerous spans found.
+MIR for function: DefId(0:7293 ~ zerocopy[cfe2]::impls::atomics::atomic_8::_#3::{impl#0}::only_derive_is_allowed_to_implement_this_trait::is_trait)
+Unsupported Type: ()
+=== Starting MIR Analysis ===
+START: Path 0!
+START: Path_1!
+No dangerous writes detected
+=== Dangerous Spans ===
+No dangerous spans found.
+MIR for function: DefId(0:7296 ~ zerocopy[cfe2]::impls::atomics::atomic_8::_#3::{impl#0}::only_derive_is_allowed_to_implement_this_trait::f)
+Unsupported Type: ()
+Unsupported Type: ()
+=== Starting MIR Analysis ===
+START: Path 0!
+START: Path_1!
+No dangerous writes detected
+=== Dangerous Spans ===
+No dangerous spans found.
+MIR for function: DefId(0:7305 ~ zerocopy[cfe2]::impls::atomics::atomic_8::_#4::{impl#0}::only_derive_is_allowed_to_implement_this_trait::is_trait)
+Unsupported Type: ()
+=== Starting MIR Analysis ===
+START: Path 0!
+START: Path_1!
+No dangerous writes detected
+=== Dangerous Spans ===
+No dangerous spans found.
+MIR for function: DefId(0:7308 ~ zerocopy[cfe2]::impls::atomics::atomic_8::_#4::{impl#0}::only_derive_is_allowed_to_implement_this_trait::f)
+Unsupported Type: ()
+Unsupported Type: ()
+=== Starting MIR Analysis ===
+START: Path 0!
+START: Path_1!
+No dangerous writes detected
+=== Dangerous Spans ===
+No dangerous spans found.
+MIR for function: DefId(0:7315 ~ zerocopy[cfe2]::impls::atomics::atomic_8::_#5::{impl#0}::only_derive_is_allowed_to_implement_this_trait::is_trait)
+Unsupported Type: ()
+=== Starting MIR Analysis ===
+START: Path 0!
+START: Path_1!
+No dangerous writes detected
+=== Dangerous Spans ===
+No dangerous spans found.
+MIR for function: DefId(0:7318 ~ zerocopy[cfe2]::impls::atomics::atomic_8::_#5::{impl#0}::only_derive_is_allowed_to_implement_this_trait::f)
+Unsupported Type: ()
+Unsupported Type: ()
+=== Starting MIR Analysis ===
+START: Path 0!
+START: Path_1!
+No dangerous writes detected
+=== Dangerous Spans ===
+No dangerous spans found.
+MIR for function: DefId(0:7325 ~ zerocopy[cfe2]::impls::atomics::atomic_8::_#6::{impl#0}::only_derive_is_allowed_to_implement_this_trait::is_trait)
+Unsupported Type: ()
+=== Starting MIR Analysis ===
+START: Path 0!
+START: Path_1!
+No dangerous writes detected
+=== Dangerous Spans ===
+No dangerous spans found.
+MIR for function: DefId(0:7328 ~ zerocopy[cfe2]::impls::atomics::atomic_8::_#6::{impl#0}::only_derive_is_allowed_to_implement_this_trait::f)
+Unsupported Type: ()
+Unsupported Type: ()
+=== Starting MIR Analysis ===
+START: Path 0!
+START: Path_1!
+No dangerous writes detected
+=== Dangerous Spans ===
+No dangerous spans found.
+MIR for function: DefId(0:7344 ~ zerocopy[cfe2]::impls::atomics::atomic_8::_#8::{impl#0}::only_derive_is_allowed_to_implement_this_trait::is_trait)
+Unsupported Type: ()
+=== Starting MIR Analysis ===
+START: Path 0!
+START: Path_1!
+No dangerous writes detected
+=== Dangerous Spans ===
+No dangerous spans found.
+MIR for function: DefId(0:7347 ~ zerocopy[cfe2]::impls::atomics::atomic_8::_#8::{impl#0}::only_derive_is_allowed_to_implement_this_trait::f)
+Unsupported Type: ()
+Unsupported Type: ()
+=== Starting MIR Analysis ===
+START: Path 0!
+START: Path_1!
+No dangerous writes detected
+=== Dangerous Spans ===
+No dangerous spans found.
+MIR for function: DefId(0:7356 ~ zerocopy[cfe2]::impls::atomics::atomic_8::_#9::{impl#0}::only_derive_is_allowed_to_implement_this_trait::is_trait)
+Unsupported Type: ()
+=== Starting MIR Analysis ===
+START: Path 0!
+START: Path_1!
+No dangerous writes detected
+=== Dangerous Spans ===
+No dangerous spans found.
+MIR for function: DefId(0:7359 ~ zerocopy[cfe2]::impls::atomics::atomic_8::_#9::{impl#0}::only_derive_is_allowed_to_implement_this_trait::f)
+Unsupported Type: ()
+Unsupported Type: ()
+=== Starting MIR Analysis ===
+START: Path 0!
+START: Path_1!
+No dangerous writes detected
+=== Dangerous Spans ===
+No dangerous spans found.
+MIR for function: DefId(0:7366 ~ zerocopy[cfe2]::impls::atomics::atomic_8::_#10::{impl#0}::only_derive_is_allowed_to_implement_this_trait::is_trait)
+Unsupported Type: ()
+=== Starting MIR Analysis ===
+START: Path 0!
+START: Path_1!
+No dangerous writes detected
+=== Dangerous Spans ===
+No dangerous spans found.
+MIR for function: DefId(0:7369 ~ zerocopy[cfe2]::impls::atomics::atomic_8::_#10::{impl#0}::only_derive_is_allowed_to_implement_this_trait::f)
+Unsupported Type: ()
+Unsupported Type: ()
+=== Starting MIR Analysis ===
+START: Path 0!
+START: Path_1!
+No dangerous writes detected
+=== Dangerous Spans ===
+No dangerous spans found.
+MIR for function: DefId(0:7376 ~ zerocopy[cfe2]::impls::atomics::atomic_8::_#11::{impl#0}::only_derive_is_allowed_to_implement_this_trait::is_trait)
+Unsupported Type: ()
+=== Starting MIR Analysis ===
+START: Path 0!
+START: Path_1!
+No dangerous writes detected
+=== Dangerous Spans ===
+No dangerous spans found.
+MIR for function: DefId(0:7379 ~ zerocopy[cfe2]::impls::atomics::atomic_8::_#11::{impl#0}::only_derive_is_allowed_to_implement_this_trait::f)
+Unsupported Type: ()
+Unsupported Type: ()
+=== Starting MIR Analysis ===
+START: Path 0!
+START: Path_1!
+No dangerous writes detected
+=== Dangerous Spans ===
+No dangerous spans found.
+MIR for function: DefId(0:7395 ~ zerocopy[cfe2]::impls::atomics::atomic_8::_#13::{impl#0}::only_derive_is_allowed_to_implement_this_trait::is_trait)
+Unsupported Type: ()
+=== Starting MIR Analysis ===
+START: Path 0!
+START: Path_1!
+No dangerous writes detected
+=== Dangerous Spans ===
+No dangerous spans found.
+MIR for function: DefId(0:7398 ~ zerocopy[cfe2]::impls::atomics::atomic_8::_#13::{impl#0}::only_derive_is_allowed_to_implement_this_trait::f)
+Unsupported Type: ()
+Unsupported Type: ()
+=== Starting MIR Analysis ===
+START: Path 0!
+START: Path_1!
+No dangerous writes detected
+=== Dangerous Spans ===
+No dangerous spans found.
+MIR for function: DefId(0:7407 ~ zerocopy[cfe2]::impls::atomics::atomic_8::_#14::{impl#0}::only_derive_is_allowed_to_implement_this_trait::is_trait)
+Unsupported Type: ()
+=== Starting MIR Analysis ===
+START: Path 0!
+START: Path_1!
+No dangerous writes detected
+=== Dangerous Spans ===
+No dangerous spans found.
+MIR for function: DefId(0:7410 ~ zerocopy[cfe2]::impls::atomics::atomic_8::_#14::{impl#0}::only_derive_is_allowed_to_implement_this_trait::f)
+Unsupported Type: ()
+Unsupported Type: ()
+=== Starting MIR Analysis ===
+START: Path 0!
+START: Path_1!
+No dangerous writes detected
+=== Dangerous Spans ===
+No dangerous spans found.
+MIR for function: DefId(0:7417 ~ zerocopy[cfe2]::impls::atomics::atomic_8::_#15::{impl#0}::only_derive_is_allowed_to_implement_this_trait::is_trait)
+Unsupported Type: ()
+=== Starting MIR Analysis ===
+START: Path 0!
+START: Path_1!
+No dangerous writes detected
+=== Dangerous Spans ===
+No dangerous spans found.
+MIR for function: DefId(0:7420 ~ zerocopy[cfe2]::impls::atomics::atomic_8::_#15::{impl#0}::only_derive_is_allowed_to_implement_this_trait::f)
+Unsupported Type: ()
+Unsupported Type: ()
+=== Starting MIR Analysis ===
+START: Path 0!
+START: Path_1!
+No dangerous writes detected
+=== Dangerous Spans ===
+No dangerous spans found.
+MIR for function: DefId(0:7497 ~ zerocopy[cfe2]::impls::atomics::atomic_16::_#2::{impl#0}::only_derive_is_allowed_to_implement_this_trait::is_trait)
+Unsupported Type: ()
+=== Starting MIR Analysis ===
+START: Path 0!
+START: Path_1!
+No dangerous writes detected
+=== Dangerous Spans ===
+No dangerous spans found.
+MIR for function: DefId(0:7500 ~ zerocopy[cfe2]::impls::atomics::atomic_16::_#2::{impl#0}::only_derive_is_allowed_to_implement_this_trait::f)
+Unsupported Type: ()
+Unsupported Type: ()
+=== Starting MIR Analysis ===
+START: Path 0!
+START: Path_1!
+No dangerous writes detected
+=== Dangerous Spans ===
+No dangerous spans found.
+MIR for function: DefId(0:7509 ~ zerocopy[cfe2]::impls::atomics::atomic_16::_#3::{impl#0}::only_derive_is_allowed_to_implement_this_trait::is_trait)
+Unsupported Type: ()
+=== Starting MIR Analysis ===
+START: Path 0!
+START: Path_1!
+No dangerous writes detected
+=== Dangerous Spans ===
+No dangerous spans found.
+MIR for function: DefId(0:7512 ~ zerocopy[cfe2]::impls::atomics::atomic_16::_#3::{impl#0}::only_derive_is_allowed_to_implement_this_trait::f)
+Unsupported Type: ()
+Unsupported Type: ()
+=== Starting MIR Analysis ===
+START: Path 0!
+START: Path_1!
+No dangerous writes detected
+=== Dangerous Spans ===
+No dangerous spans found.
+MIR for function: DefId(0:7519 ~ zerocopy[cfe2]::impls::atomics::atomic_16::_#4::{impl#0}::only_derive_is_allowed_to_implement_this_trait::is_trait)
+Unsupported Type: ()
+=== Starting MIR Analysis ===
+START: Path 0!
+START: Path_1!
+No dangerous writes detected
+=== Dangerous Spans ===
+No dangerous spans found.
+MIR for function: DefId(0:7522 ~ zerocopy[cfe2]::impls::atomics::atomic_16::_#4::{impl#0}::only_derive_is_allowed_to_implement_this_trait::f)
+Unsupported Type: ()
+Unsupported Type: ()
+=== Starting MIR Analysis ===
+START: Path 0!
+START: Path_1!
+No dangerous writes detected
+=== Dangerous Spans ===
+No dangerous spans found.
+MIR for function: DefId(0:7529 ~ zerocopy[cfe2]::impls::atomics::atomic_16::_#5::{impl#0}::only_derive_is_allowed_to_implement_this_trait::is_trait)
+Unsupported Type: ()
+=== Starting MIR Analysis ===
+START: Path 0!
+START: Path_1!
+No dangerous writes detected
+=== Dangerous Spans ===
+No dangerous spans found.
+MIR for function: DefId(0:7532 ~ zerocopy[cfe2]::impls::atomics::atomic_16::_#5::{impl#0}::only_derive_is_allowed_to_implement_this_trait::f)
+Unsupported Type: ()
+Unsupported Type: ()
+=== Starting MIR Analysis ===
+START: Path 0!
+START: Path_1!
+No dangerous writes detected
+=== Dangerous Spans ===
+No dangerous spans found.
+MIR for function: DefId(0:7548 ~ zerocopy[cfe2]::impls::atomics::atomic_16::_#7::{impl#0}::only_derive_is_allowed_to_implement_this_trait::is_trait)
+Unsupported Type: ()
+=== Starting MIR Analysis ===
+START: Path 0!
+START: Path_1!
+No dangerous writes detected
+=== Dangerous Spans ===
+No dangerous spans found.
+MIR for function: DefId(0:7551 ~ zerocopy[cfe2]::impls::atomics::atomic_16::_#7::{impl#0}::only_derive_is_allowed_to_implement_this_trait::f)
+Unsupported Type: ()
+Unsupported Type: ()
+=== Starting MIR Analysis ===
+START: Path 0!
+START: Path_1!
+No dangerous writes detected
+=== Dangerous Spans ===
+No dangerous spans found.
+MIR for function: DefId(0:7560 ~ zerocopy[cfe2]::impls::atomics::atomic_16::_#8::{impl#0}::only_derive_is_allowed_to_implement_this_trait::is_trait)
+Unsupported Type: ()
+=== Starting MIR Analysis ===
+START: Path 0!
+START: Path_1!
+No dangerous writes detected
+=== Dangerous Spans ===
+No dangerous spans found.
+MIR for function: DefId(0:7563 ~ zerocopy[cfe2]::impls::atomics::atomic_16::_#8::{impl#0}::only_derive_is_allowed_to_implement_this_trait::f)
+Unsupported Type: ()
+Unsupported Type: ()
+=== Starting MIR Analysis ===
+START: Path 0!
+START: Path_1!
+No dangerous writes detected
+=== Dangerous Spans ===
+No dangerous spans found.
+MIR for function: DefId(0:7570 ~ zerocopy[cfe2]::impls::atomics::atomic_16::_#9::{impl#0}::only_derive_is_allowed_to_implement_this_trait::is_trait)
+Unsupported Type: ()
+=== Starting MIR Analysis ===
+START: Path 0!
+START: Path_1!
+No dangerous writes detected
+=== Dangerous Spans ===
+No dangerous spans found.
+MIR for function: DefId(0:7573 ~ zerocopy[cfe2]::impls::atomics::atomic_16::_#9::{impl#0}::only_derive_is_allowed_to_implement_this_trait::f)
+Unsupported Type: ()
+Unsupported Type: ()
+=== Starting MIR Analysis ===
+START: Path 0!
+START: Path_1!
+No dangerous writes detected
+=== Dangerous Spans ===
+No dangerous spans found.
+MIR for function: DefId(0:7580 ~ zerocopy[cfe2]::impls::atomics::atomic_16::_#10::{impl#0}::only_derive_is_allowed_to_implement_this_trait::is_trait)
+Unsupported Type: ()
+=== Starting MIR Analysis ===
+START: Path 0!
+START: Path_1!
+No dangerous writes detected
+=== Dangerous Spans ===
+No dangerous spans found.
+MIR for function: DefId(0:7583 ~ zerocopy[cfe2]::impls::atomics::atomic_16::_#10::{impl#0}::only_derive_is_allowed_to_implement_this_trait::f)
+Unsupported Type: ()
+Unsupported Type: ()
+=== Starting MIR Analysis ===
+START: Path 0!
+START: Path_1!
+No dangerous writes detected
+=== Dangerous Spans ===
+No dangerous spans found.
+MIR for function: DefId(0:7638 ~ zerocopy[cfe2]::impls::atomics::atomic_32::_#2::{impl#0}::only_derive_is_allowed_to_implement_this_trait::is_trait)
+Unsupported Type: ()
+=== Starting MIR Analysis ===
+START: Path 0!
+START: Path_1!
+No dangerous writes detected
+=== Dangerous Spans ===
+No dangerous spans found.
+MIR for function: DefId(0:7641 ~ zerocopy[cfe2]::impls::atomics::atomic_32::_#2::{impl#0}::only_derive_is_allowed_to_implement_this_trait::f)
+Unsupported Type: ()
+Unsupported Type: ()
+=== Starting MIR Analysis ===
+START: Path 0!
+START: Path_1!
+No dangerous writes detected
+=== Dangerous Spans ===
+No dangerous spans found.
+MIR for function: DefId(0:7650 ~ zerocopy[cfe2]::impls::atomics::atomic_32::_#3::{impl#0}::only_derive_is_allowed_to_implement_this_trait::is_trait)
+Unsupported Type: ()
+=== Starting MIR Analysis ===
+START: Path 0!
+START: Path_1!
+No dangerous writes detected
+=== Dangerous Spans ===
+No dangerous spans found.
+MIR for function: DefId(0:7653 ~ zerocopy[cfe2]::impls::atomics::atomic_32::_#3::{impl#0}::only_derive_is_allowed_to_implement_this_trait::f)
+Unsupported Type: ()
+Unsupported Type: ()
+=== Starting MIR Analysis ===
+START: Path 0!
+START: Path_1!
+No dangerous writes detected
+=== Dangerous Spans ===
+No dangerous spans found.
+MIR for function: DefId(0:7660 ~ zerocopy[cfe2]::impls::atomics::atomic_32::_#4::{impl#0}::only_derive_is_allowed_to_implement_this_trait::is_trait)
+Unsupported Type: ()
+=== Starting MIR Analysis ===
+START: Path 0!
+START: Path_1!
+No dangerous writes detected
+=== Dangerous Spans ===
+No dangerous spans found.
+MIR for function: DefId(0:7663 ~ zerocopy[cfe2]::impls::atomics::atomic_32::_#4::{impl#0}::only_derive_is_allowed_to_implement_this_trait::f)
+Unsupported Type: ()
+Unsupported Type: ()
+=== Starting MIR Analysis ===
+START: Path 0!
+START: Path_1!
+No dangerous writes detected
+=== Dangerous Spans ===
+No dangerous spans found.
+MIR for function: DefId(0:7670 ~ zerocopy[cfe2]::impls::atomics::atomic_32::_#5::{impl#0}::only_derive_is_allowed_to_implement_this_trait::is_trait)
+Unsupported Type: ()
+=== Starting MIR Analysis ===
+START: Path 0!
+START: Path_1!
+No dangerous writes detected
+=== Dangerous Spans ===
+No dangerous spans found.
+MIR for function: DefId(0:7673 ~ zerocopy[cfe2]::impls::atomics::atomic_32::_#5::{impl#0}::only_derive_is_allowed_to_implement_this_trait::f)
+Unsupported Type: ()
+Unsupported Type: ()
+=== Starting MIR Analysis ===
+START: Path 0!
+START: Path_1!
+No dangerous writes detected
+=== Dangerous Spans ===
+No dangerous spans found.
+MIR for function: DefId(0:7689 ~ zerocopy[cfe2]::impls::atomics::atomic_32::_#7::{impl#0}::only_derive_is_allowed_to_implement_this_trait::is_trait)
+Unsupported Type: ()
+=== Starting MIR Analysis ===
+START: Path 0!
+START: Path_1!
+No dangerous writes detected
+=== Dangerous Spans ===
+No dangerous spans found.
+MIR for function: DefId(0:7692 ~ zerocopy[cfe2]::impls::atomics::atomic_32::_#7::{impl#0}::only_derive_is_allowed_to_implement_this_trait::f)
+Unsupported Type: ()
+Unsupported Type: ()
+=== Starting MIR Analysis ===
+START: Path 0!
+START: Path_1!
+No dangerous writes detected
+=== Dangerous Spans ===
+No dangerous spans found.
+MIR for function: DefId(0:7701 ~ zerocopy[cfe2]::impls::atomics::atomic_32::_#8::{impl#0}::only_derive_is_allowed_to_implement_this_trait::is_trait)
+Unsupported Type: ()
+=== Starting MIR Analysis ===
+START: Path 0!
+START: Path_1!
+No dangerous writes detected
+=== Dangerous Spans ===
+No dangerous spans found.
+MIR for function: DefId(0:7704 ~ zerocopy[cfe2]::impls::atomics::atomic_32::_#8::{impl#0}::only_derive_is_allowed_to_implement_this_trait::f)
+Unsupported Type: ()
+Unsupported Type: ()
+=== Starting MIR Analysis ===
+START: Path 0!
+START: Path_1!
+No dangerous writes detected
+=== Dangerous Spans ===
+No dangerous spans found.
+MIR for function: DefId(0:7711 ~ zerocopy[cfe2]::impls::atomics::atomic_32::_#9::{impl#0}::only_derive_is_allowed_to_implement_this_trait::is_trait)
+Unsupported Type: ()
+=== Starting MIR Analysis ===
+START: Path 0!
+START: Path_1!
+No dangerous writes detected
+=== Dangerous Spans ===
+No dangerous spans found.
+MIR for function: DefId(0:7714 ~ zerocopy[cfe2]::impls::atomics::atomic_32::_#9::{impl#0}::only_derive_is_allowed_to_implement_this_trait::f)
+Unsupported Type: ()
+Unsupported Type: ()
+=== Starting MIR Analysis ===
+START: Path 0!
+START: Path_1!
+No dangerous writes detected
+=== Dangerous Spans ===
+No dangerous spans found.
+MIR for function: DefId(0:7721 ~ zerocopy[cfe2]::impls::atomics::atomic_32::_#10::{impl#0}::only_derive_is_allowed_to_implement_this_trait::is_trait)
+Unsupported Type: ()
+=== Starting MIR Analysis ===
+START: Path 0!
+START: Path_1!
+No dangerous writes detected
+=== Dangerous Spans ===
+No dangerous spans found.
+MIR for function: DefId(0:7724 ~ zerocopy[cfe2]::impls::atomics::atomic_32::_#10::{impl#0}::only_derive_is_allowed_to_implement_this_trait::f)
+Unsupported Type: ()
+Unsupported Type: ()
+=== Starting MIR Analysis ===
+START: Path 0!
+START: Path_1!
+No dangerous writes detected
+=== Dangerous Spans ===
+No dangerous spans found.
+MIR for function: DefId(0:7779 ~ zerocopy[cfe2]::impls::atomics::atomic_64::_#2::{impl#0}::only_derive_is_allowed_to_implement_this_trait::is_trait)
+Unsupported Type: ()
+=== Starting MIR Analysis ===
+START: Path 0!
+START: Path_1!
+No dangerous writes detected
+=== Dangerous Spans ===
+No dangerous spans found.
+MIR for function: DefId(0:7782 ~ zerocopy[cfe2]::impls::atomics::atomic_64::_#2::{impl#0}::only_derive_is_allowed_to_implement_this_trait::f)
+Unsupported Type: ()
+Unsupported Type: ()
+=== Starting MIR Analysis ===
+START: Path 0!
+START: Path_1!
+No dangerous writes detected
+=== Dangerous Spans ===
+No dangerous spans found.
+MIR for function: DefId(0:7791 ~ zerocopy[cfe2]::impls::atomics::atomic_64::_#3::{impl#0}::only_derive_is_allowed_to_implement_this_trait::is_trait)
+Unsupported Type: ()
+=== Starting MIR Analysis ===
+START: Path 0!
+START: Path_1!
+No dangerous writes detected
+=== Dangerous Spans ===
+No dangerous spans found.
+MIR for function: DefId(0:7794 ~ zerocopy[cfe2]::impls::atomics::atomic_64::_#3::{impl#0}::only_derive_is_allowed_to_implement_this_trait::f)
+Unsupported Type: ()
+Unsupported Type: ()
+=== Starting MIR Analysis ===
+START: Path 0!
+START: Path_1!
+No dangerous writes detected
+=== Dangerous Spans ===
+No dangerous spans found.
+MIR for function: DefId(0:7801 ~ zerocopy[cfe2]::impls::atomics::atomic_64::_#4::{impl#0}::only_derive_is_allowed_to_implement_this_trait::is_trait)
+Unsupported Type: ()
+=== Starting MIR Analysis ===
+START: Path 0!
+START: Path_1!
+No dangerous writes detected
+=== Dangerous Spans ===
+No dangerous spans found.
+MIR for function: DefId(0:7804 ~ zerocopy[cfe2]::impls::atomics::atomic_64::_#4::{impl#0}::only_derive_is_allowed_to_implement_this_trait::f)
+Unsupported Type: ()
+Unsupported Type: ()
+=== Starting MIR Analysis ===
+START: Path 0!
+START: Path_1!
+No dangerous writes detected
+=== Dangerous Spans ===
+No dangerous spans found.
+MIR for function: DefId(0:7811 ~ zerocopy[cfe2]::impls::atomics::atomic_64::_#5::{impl#0}::only_derive_is_allowed_to_implement_this_trait::is_trait)
+Unsupported Type: ()
+=== Starting MIR Analysis ===
+START: Path 0!
+START: Path_1!
+No dangerous writes detected
+=== Dangerous Spans ===
+No dangerous spans found.
+MIR for function: DefId(0:7814 ~ zerocopy[cfe2]::impls::atomics::atomic_64::_#5::{impl#0}::only_derive_is_allowed_to_implement_this_trait::f)
+Unsupported Type: ()
+Unsupported Type: ()
+=== Starting MIR Analysis ===
+START: Path 0!
+START: Path_1!
+No dangerous writes detected
+=== Dangerous Spans ===
+No dangerous spans found.
+MIR for function: DefId(0:7830 ~ zerocopy[cfe2]::impls::atomics::atomic_64::_#7::{impl#0}::only_derive_is_allowed_to_implement_this_trait::is_trait)
+Unsupported Type: ()
+=== Starting MIR Analysis ===
+START: Path 0!
+START: Path_1!
+No dangerous writes detected
+=== Dangerous Spans ===
+No dangerous spans found.
+MIR for function: DefId(0:7833 ~ zerocopy[cfe2]::impls::atomics::atomic_64::_#7::{impl#0}::only_derive_is_allowed_to_implement_this_trait::f)
+Unsupported Type: ()
+Unsupported Type: ()
+=== Starting MIR Analysis ===
+START: Path 0!
+START: Path_1!
+No dangerous writes detected
+=== Dangerous Spans ===
+No dangerous spans found.
+MIR for function: DefId(0:7842 ~ zerocopy[cfe2]::impls::atomics::atomic_64::_#8::{impl#0}::only_derive_is_allowed_to_implement_this_trait::is_trait)
+Unsupported Type: ()
+=== Starting MIR Analysis ===
+START: Path 0!
+START: Path_1!
+No dangerous writes detected
+=== Dangerous Spans ===
+No dangerous spans found.
+MIR for function: DefId(0:7845 ~ zerocopy[cfe2]::impls::atomics::atomic_64::_#8::{impl#0}::only_derive_is_allowed_to_implement_this_trait::f)
+Unsupported Type: ()
+Unsupported Type: ()
+=== Starting MIR Analysis ===
+START: Path 0!
+START: Path_1!
+No dangerous writes detected
+=== Dangerous Spans ===
+No dangerous spans found.
+MIR for function: DefId(0:7852 ~ zerocopy[cfe2]::impls::atomics::atomic_64::_#9::{impl#0}::only_derive_is_allowed_to_implement_this_trait::is_trait)
+Unsupported Type: ()
+=== Starting MIR Analysis ===
+START: Path 0!
+START: Path_1!
+No dangerous writes detected
+=== Dangerous Spans ===
+No dangerous spans found.
+MIR for function: DefId(0:7855 ~ zerocopy[cfe2]::impls::atomics::atomic_64::_#9::{impl#0}::only_derive_is_allowed_to_implement_this_trait::f)
+Unsupported Type: ()
+Unsupported Type: ()
+=== Starting MIR Analysis ===
+START: Path 0!
+START: Path_1!
+No dangerous writes detected
+=== Dangerous Spans ===
+No dangerous spans found.
+MIR for function: DefId(0:7862 ~ zerocopy[cfe2]::impls::atomics::atomic_64::_#10::{impl#0}::only_derive_is_allowed_to_implement_this_trait::is_trait)
+Unsupported Type: ()
+=== Starting MIR Analysis ===
+START: Path 0!
+START: Path_1!
+No dangerous writes detected
+=== Dangerous Spans ===
+No dangerous spans found.
+MIR for function: DefId(0:7865 ~ zerocopy[cfe2]::impls::atomics::atomic_64::_#10::{impl#0}::only_derive_is_allowed_to_implement_this_trait::f)
+Unsupported Type: ()
+Unsupported Type: ()
+=== Starting MIR Analysis ===
+START: Path 0!
+START: Path_1!
+No dangerous writes detected
+=== Dangerous Spans ===
+No dangerous spans found.
+MIR for function: DefId(0:7920 ~ zerocopy[cfe2]::impls::atomics::atomic_ptr::_#3::{impl#0}::only_derive_is_allowed_to_implement_this_trait::is_trait)
+Unsupported Type: ()
+=== Starting MIR Analysis ===
+START: Path 0!
+START: Path_1!
+No dangerous writes detected
+=== Dangerous Spans ===
+No dangerous spans found.
+MIR for function: DefId(0:7923 ~ zerocopy[cfe2]::impls::atomics::atomic_ptr::_#3::{impl#0}::only_derive_is_allowed_to_implement_this_trait::f)
+Unsupported Type: ()
+Unsupported Type: ()
+=== Starting MIR Analysis ===
+START: Path 0!
+START: Path_1!
+No dangerous writes detected
+=== Dangerous Spans ===
+No dangerous spans found.
+MIR for function: DefId(0:7932 ~ zerocopy[cfe2]::impls::atomics::atomic_ptr::_#4::{impl#0}::only_derive_is_allowed_to_implement_this_trait::is_trait)
+Unsupported Type: ()
+=== Starting MIR Analysis ===
+START: Path 0!
+START: Path_1!
+No dangerous writes detected
+=== Dangerous Spans ===
+No dangerous spans found.
+MIR for function: DefId(0:7935 ~ zerocopy[cfe2]::impls::atomics::atomic_ptr::_#4::{impl#0}::only_derive_is_allowed_to_implement_this_trait::f)
+Unsupported Type: ()
+Unsupported Type: ()
+=== Starting MIR Analysis ===
+START: Path 0!
+START: Path_1!
+No dangerous writes detected
+=== Dangerous Spans ===
+No dangerous spans found.
+MIR for function: DefId(0:7942 ~ zerocopy[cfe2]::impls::atomics::atomic_ptr::_#5::{impl#0}::only_derive_is_allowed_to_implement_this_trait::is_trait)
+Unsupported Type: ()
+=== Starting MIR Analysis ===
+START: Path 0!
+START: Path_1!
+No dangerous writes detected
+=== Dangerous Spans ===
+No dangerous spans found.
+MIR for function: DefId(0:7945 ~ zerocopy[cfe2]::impls::atomics::atomic_ptr::_#5::{impl#0}::only_derive_is_allowed_to_implement_this_trait::f)
+Unsupported Type: ()
+Unsupported Type: ()
+=== Starting MIR Analysis ===
+START: Path 0!
+START: Path_1!
+No dangerous writes detected
+=== Dangerous Spans ===
+No dangerous spans found.
+MIR for function: DefId(0:7952 ~ zerocopy[cfe2]::impls::atomics::atomic_ptr::_#6::{impl#0}::only_derive_is_allowed_to_implement_this_trait::is_trait)
+Unsupported Type: ()
+=== Starting MIR Analysis ===
+START: Path 0!
+START: Path_1!
+No dangerous writes detected
+=== Dangerous Spans ===
+No dangerous spans found.
+MIR for function: DefId(0:7955 ~ zerocopy[cfe2]::impls::atomics::atomic_ptr::_#6::{impl#0}::only_derive_is_allowed_to_implement_this_trait::f)
+Unsupported Type: ()
+Unsupported Type: ()
+=== Starting MIR Analysis ===
+START: Path 0!
+START: Path_1!
+No dangerous writes detected
+=== Dangerous Spans ===
+No dangerous spans found.
+MIR for function: DefId(0:7971 ~ zerocopy[cfe2]::impls::atomics::atomic_ptr::_#8::{impl#0}::only_derive_is_allowed_to_implement_this_trait::is_trait)
+Unsupported Type: ()
+=== Starting MIR Analysis ===
+START: Path 0!
+START: Path_1!
+No dangerous writes detected
+=== Dangerous Spans ===
+No dangerous spans found.
+MIR for function: DefId(0:7974 ~ zerocopy[cfe2]::impls::atomics::atomic_ptr::_#8::{impl#0}::only_derive_is_allowed_to_implement_this_trait::f)
+Unsupported Type: ()
+Unsupported Type: ()
+=== Starting MIR Analysis ===
+START: Path 0!
+START: Path_1!
+No dangerous writes detected
+=== Dangerous Spans ===
+No dangerous spans found.
+MIR for function: DefId(0:7983 ~ zerocopy[cfe2]::impls::atomics::atomic_ptr::_#9::{impl#0}::only_derive_is_allowed_to_implement_this_trait::is_trait)
+Unsupported Type: ()
+=== Starting MIR Analysis ===
+START: Path 0!
+START: Path_1!
+No dangerous writes detected
+=== Dangerous Spans ===
+No dangerous spans found.
+MIR for function: DefId(0:7986 ~ zerocopy[cfe2]::impls::atomics::atomic_ptr::_#9::{impl#0}::only_derive_is_allowed_to_implement_this_trait::f)
+Unsupported Type: ()
+Unsupported Type: ()
+=== Starting MIR Analysis ===
+START: Path 0!
+START: Path_1!
+No dangerous writes detected
+=== Dangerous Spans ===
+No dangerous spans found.
+MIR for function: DefId(0:7993 ~ zerocopy[cfe2]::impls::atomics::atomic_ptr::_#10::{impl#0}::only_derive_is_allowed_to_implement_this_trait::is_trait)
+Unsupported Type: ()
+=== Starting MIR Analysis ===
+START: Path 0!
+START: Path_1!
+No dangerous writes detected
+=== Dangerous Spans ===
+No dangerous spans found.
+MIR for function: DefId(0:7996 ~ zerocopy[cfe2]::impls::atomics::atomic_ptr::_#10::{impl#0}::only_derive_is_allowed_to_implement_this_trait::f)
+Unsupported Type: ()
+Unsupported Type: ()
+=== Starting MIR Analysis ===
+START: Path 0!
+START: Path_1!
+No dangerous writes detected
+=== Dangerous Spans ===
+No dangerous spans found.
+MIR for function: DefId(0:8003 ~ zerocopy[cfe2]::impls::atomics::atomic_ptr::_#11::{impl#0}::only_derive_is_allowed_to_implement_this_trait::is_trait)
+Unsupported Type: ()
+=== Starting MIR Analysis ===
+START: Path 0!
+START: Path_1!
+No dangerous writes detected
+=== Dangerous Spans ===
+No dangerous spans found.
+MIR for function: DefId(0:8006 ~ zerocopy[cfe2]::impls::atomics::atomic_ptr::_#11::{impl#0}::only_derive_is_allowed_to_implement_this_trait::f)
+Unsupported Type: ()
+Unsupported Type: ()
+=== Starting MIR Analysis ===
+START: Path 0!
+START: Path_1!
+No dangerous writes detected
+=== Dangerous Spans ===
+No dangerous spans found.
+MIR for function: DefId(0:8024 ~ zerocopy[cfe2]::impls::atomics::atomic_ptr::_#13::{impl#0}::only_derive_is_allowed_to_implement_this_trait::is_trait)
+Unsupported Type: ()
+=== Starting MIR Analysis ===
+START: Path 0!
+START: Path_1!
+No dangerous writes detected
+=== Dangerous Spans ===
+No dangerous spans found.
+MIR for function: DefId(0:8027 ~ zerocopy[cfe2]::impls::atomics::atomic_ptr::_#13::{impl#0}::only_derive_is_allowed_to_implement_this_trait::f)
+Unsupported Type: ()
+Unsupported Type: ()
+=== Starting MIR Analysis ===
+START: Path 0!
+START: Path_1!
+No dangerous writes detected
+=== Dangerous Spans ===
+No dangerous spans found.
+MIR for function: DefId(0:8038 ~ zerocopy[cfe2]::impls::atomics::atomic_ptr::_#14::{impl#0}::only_derive_is_allowed_to_implement_this_trait::is_trait)
+Unsupported Type: ()
+=== Starting MIR Analysis ===
+START: Path 0!
+START: Path_1!
+No dangerous writes detected
+=== Dangerous Spans ===
+No dangerous spans found.
+MIR for function: DefId(0:8041 ~ zerocopy[cfe2]::impls::atomics::atomic_ptr::_#14::{impl#0}::only_derive_is_allowed_to_implement_this_trait::f)
+Unsupported Type: ()
+Unsupported Type: ()
+=== Starting MIR Analysis ===
+START: Path 0!
+START: Path_1!
+No dangerous writes detected
+=== Dangerous Spans ===
+No dangerous spans found.
+MIR for function: DefId(0:8140 ~ zerocopy[cfe2]::impls::_#29::{impl#0}::only_derive_is_allowed_to_implement_this_trait::is_trait)
+Unsupported Type: ()
+=== Starting MIR Analysis ===
+START: Path 0!
+START: Path_1!
+No dangerous writes detected
+=== Dangerous Spans ===
+No dangerous spans found.
+MIR for function: DefId(0:8143 ~ zerocopy[cfe2]::impls::_#29::{impl#0}::only_derive_is_allowed_to_implement_this_trait::f)
+Unsupported Type: ()
+Unsupported Type: ()
+=== Starting MIR Analysis ===
+START: Path 0!
+START: Path_1!
+No dangerous writes detected
+=== Dangerous Spans ===
+No dangerous spans found.
+MIR for function: DefId(0:8154 ~ zerocopy[cfe2]::impls::_#30::{impl#0}::only_derive_is_allowed_to_implement_this_trait::is_trait)
+Unsupported Type: ()
+=== Starting MIR Analysis ===
+START: Path 0!
+START: Path_1!
+No dangerous writes detected
+=== Dangerous Spans ===
+No dangerous spans found.
+MIR for function: DefId(0:8157 ~ zerocopy[cfe2]::impls::_#30::{impl#0}::only_derive_is_allowed_to_implement_this_trait::f)
+Unsupported Type: ()
+Unsupported Type: ()
+=== Starting MIR Analysis ===
+START: Path 0!
+START: Path_1!
+No dangerous writes detected
+=== Dangerous Spans ===
+No dangerous spans found.
+MIR for function: DefId(0:8166 ~ zerocopy[cfe2]::impls::_#31::{impl#0}::only_derive_is_allowed_to_implement_this_trait::is_trait)
+Unsupported Type: ()
+=== Starting MIR Analysis ===
+START: Path 0!
+START: Path_1!
+No dangerous writes detected
+=== Dangerous Spans ===
+No dangerous spans found.
+MIR for function: DefId(0:8169 ~ zerocopy[cfe2]::impls::_#31::{impl#0}::only_derive_is_allowed_to_implement_this_trait::f)
+Unsupported Type: ()
+Unsupported Type: ()
+=== Starting MIR Analysis ===
+START: Path 0!
+START: Path_1!
+No dangerous writes detected
+=== Dangerous Spans ===
+No dangerous spans found.
+MIR for function: DefId(0:8178 ~ zerocopy[cfe2]::impls::_#32::{impl#0}::only_derive_is_allowed_to_implement_this_trait::is_trait)
+Unsupported Type: ()
+=== Starting MIR Analysis ===
+START: Path 0!
+START: Path_1!
+No dangerous writes detected
+=== Dangerous Spans ===
+No dangerous spans found.
+MIR for function: DefId(0:8181 ~ zerocopy[cfe2]::impls::_#32::{impl#0}::only_derive_is_allowed_to_implement_this_trait::f)
+Unsupported Type: ()
+Unsupported Type: ()
+=== Starting MIR Analysis ===
+START: Path 0!
+START: Path_1!
+No dangerous writes detected
+=== Dangerous Spans ===
+No dangerous spans found.
+MIR for function: DefId(0:8216 ~ zerocopy[cfe2]::impls::_#33::{impl#0}::only_derive_is_allowed_to_implement_this_trait::is_trait)
+Unsupported Type: ()
+=== Starting MIR Analysis ===
+START: Path 0!
+START: Path_1!
+No dangerous writes detected
+=== Dangerous Spans ===
+No dangerous spans found.
+MIR for function: DefId(0:8219 ~ zerocopy[cfe2]::impls::_#33::{impl#0}::only_derive_is_allowed_to_implement_this_trait::f)
+Unsupported Type: ()
+Unsupported Type: ()
+=== Starting MIR Analysis ===
+START: Path 0!
+START: Path_1!
+No dangerous writes detected
+=== Dangerous Spans ===
+No dangerous spans found.
+MIR for function: DefId(0:8230 ~ zerocopy[cfe2]::impls::_#34::{impl#0}::only_derive_is_allowed_to_implement_this_trait::is_trait)
+Unsupported Type: ()
+=== Starting MIR Analysis ===
+START: Path 0!
+START: Path_1!
+No dangerous writes detected
+=== Dangerous Spans ===
+No dangerous spans found.
+MIR for function: DefId(0:8233 ~ zerocopy[cfe2]::impls::_#34::{impl#0}::only_derive_is_allowed_to_implement_this_trait::f)
+Unsupported Type: ()
+Unsupported Type: ()
+=== Starting MIR Analysis ===
+START: Path 0!
+START: Path_1!
+No dangerous writes detected
+=== Dangerous Spans ===
+No dangerous spans found.
+MIR for function: DefId(0:8242 ~ zerocopy[cfe2]::impls::_#35::{impl#0}::only_derive_is_allowed_to_implement_this_trait::is_trait)
+Unsupported Type: ()
+=== Starting MIR Analysis ===
+START: Path 0!
+START: Path_1!
+No dangerous writes detected
+=== Dangerous Spans ===
+No dangerous spans found.
+MIR for function: DefId(0:8245 ~ zerocopy[cfe2]::impls::_#35::{impl#0}::only_derive_is_allowed_to_implement_this_trait::f)
+Unsupported Type: ()
+Unsupported Type: ()
+=== Starting MIR Analysis ===
+START: Path 0!
+START: Path_1!
+No dangerous writes detected
+=== Dangerous Spans ===
+No dangerous spans found.
+MIR for function: DefId(0:8254 ~ zerocopy[cfe2]::impls::_#36::{impl#0}::only_derive_is_allowed_to_implement_this_trait::is_trait)
+Unsupported Type: ()
+=== Starting MIR Analysis ===
+START: Path 0!
+START: Path_1!
+No dangerous writes detected
+=== Dangerous Spans ===
+No dangerous spans found.
+MIR for function: DefId(0:8257 ~ zerocopy[cfe2]::impls::_#36::{impl#0}::only_derive_is_allowed_to_implement_this_trait::f)
+Unsupported Type: ()
+Unsupported Type: ()
+=== Starting MIR Analysis ===
+START: Path 0!
+START: Path_1!
+No dangerous writes detected
+=== Dangerous Spans ===
+No dangerous spans found.
+MIR for function: DefId(0:8269 ~ zerocopy[cfe2]::impls::_#37::{impl#0}::only_derive_is_allowed_to_implement_this_trait::is_trait)
+Unsupported Type: ()
+=== Starting MIR Analysis ===
+START: Path 0!
+START: Path_1!
+No dangerous writes detected
+=== Dangerous Spans ===
+No dangerous spans found.
+MIR for function: DefId(0:8272 ~ zerocopy[cfe2]::impls::_#37::{impl#0}::only_derive_is_allowed_to_implement_this_trait::f)
+Unsupported Type: ()
+Unsupported Type: ()
+=== Starting MIR Analysis ===
+START: Path 0!
+START: Path_1!
+No dangerous writes detected
+=== Dangerous Spans ===
+No dangerous spans found.
+MIR for function: DefId(0:8283 ~ zerocopy[cfe2]::impls::_#38::{impl#0}::only_derive_is_allowed_to_implement_this_trait::is_trait)
+Unsupported Type: ()
+=== Starting MIR Analysis ===
+START: Path 0!
+START: Path_1!
+No dangerous writes detected
+=== Dangerous Spans ===
+No dangerous spans found.
+MIR for function: DefId(0:8286 ~ zerocopy[cfe2]::impls::_#38::{impl#0}::only_derive_is_allowed_to_implement_this_trait::f)
+Unsupported Type: ()
+Unsupported Type: ()
+=== Starting MIR Analysis ===
+START: Path 0!
+START: Path_1!
+No dangerous writes detected
+=== Dangerous Spans ===
+No dangerous spans found.
+MIR for function: DefId(0:8295 ~ zerocopy[cfe2]::impls::_#39::{impl#0}::only_derive_is_allowed_to_implement_this_trait::is_trait)
+Unsupported Type: ()
+=== Starting MIR Analysis ===
+START: Path 0!
+START: Path_1!
+No dangerous writes detected
+=== Dangerous Spans ===
+No dangerous spans found.
+MIR for function: DefId(0:8298 ~ zerocopy[cfe2]::impls::_#39::{impl#0}::only_derive_is_allowed_to_implement_this_trait::f)
+Unsupported Type: ()
+Unsupported Type: ()
+=== Starting MIR Analysis ===
+START: Path 0!
+START: Path_1!
+No dangerous writes detected
+=== Dangerous Spans ===
+No dangerous spans found.
+MIR for function: DefId(0:8307 ~ zerocopy[cfe2]::impls::_#40::{impl#0}::only_derive_is_allowed_to_implement_this_trait::is_trait)
+Unsupported Type: ()
+=== Starting MIR Analysis ===
+START: Path 0!
+START: Path_1!
+No dangerous writes detected
+=== Dangerous Spans ===
+No dangerous spans found.
+MIR for function: DefId(0:8310 ~ zerocopy[cfe2]::impls::_#40::{impl#0}::only_derive_is_allowed_to_implement_this_trait::f)
+Unsupported Type: ()
+Unsupported Type: ()
+=== Starting MIR Analysis ===
+START: Path 0!
+START: Path_1!
+No dangerous writes detected
+=== Dangerous Spans ===
+No dangerous spans found.
+MIR for function: DefId(0:8322 ~ zerocopy[cfe2]::impls::_#41::{impl#0}::only_derive_is_allowed_to_implement_this_trait::is_trait)
+Unsupported Type: ()
+=== Starting MIR Analysis ===
+START: Path 0!
+START: Path_1!
+No dangerous writes detected
+=== Dangerous Spans ===
+No dangerous spans found.
+MIR for function: DefId(0:8325 ~ zerocopy[cfe2]::impls::_#41::{impl#0}::only_derive_is_allowed_to_implement_this_trait::f)
+Unsupported Type: ()
+Unsupported Type: ()
+=== Starting MIR Analysis ===
+START: Path 0!
+START: Path_1!
+No dangerous writes detected
+=== Dangerous Spans ===
+No dangerous spans found.
+MIR for function: DefId(0:8334 ~ zerocopy[cfe2]::impls::_#42::{impl#0}::only_derive_is_allowed_to_implement_this_trait::is_trait)
+Unsupported Type: ()
+=== Starting MIR Analysis ===
+START: Path 0!
+START: Path_1!
+No dangerous writes detected
+=== Dangerous Spans ===
+No dangerous spans found.
+MIR for function: DefId(0:8337 ~ zerocopy[cfe2]::impls::_#42::{impl#0}::only_derive_is_allowed_to_implement_this_trait::f)
+Unsupported Type: ()
+Unsupported Type: ()
+=== Starting MIR Analysis ===
+START: Path 0!
+START: Path_1!
+No dangerous writes detected
+=== Dangerous Spans ===
+No dangerous spans found.
+MIR for function: DefId(0:8346 ~ zerocopy[cfe2]::impls::_#43::{impl#0}::only_derive_is_allowed_to_implement_this_trait::is_trait)
+Unsupported Type: ()
+=== Starting MIR Analysis ===
+START: Path 0!
+START: Path_1!
+No dangerous writes detected
+=== Dangerous Spans ===
+No dangerous spans found.
+MIR for function: DefId(0:8349 ~ zerocopy[cfe2]::impls::_#43::{impl#0}::only_derive_is_allowed_to_implement_this_trait::f)
+Unsupported Type: ()
+Unsupported Type: ()
+=== Starting MIR Analysis ===
+START: Path 0!
+START: Path_1!
+No dangerous writes detected
+=== Dangerous Spans ===
+No dangerous spans found.
+
 ---------------------------
 Evaluating crate: command1
 This crate should be unsafe
-[ALERT] Missing expected warning in UNSAFE crate.
 ---------------------------
-    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.03s
+   Compiling example2 v0.1.0 (/Users/hassnain/Desktop/LHS/lhs/examples/crates/unsafe/command1)
+MIR for function: DefId(0:4 ~ example2[57ed]::main)
+Unsupported Type: ()
+=== Starting MIR Analysis ===
+START: Path 0!
+    Taking true branch to bb14
+    Taking false branch to bb15
+START: Path_1!
+START: Path_2!
+    Taking true branch to bb14
+    Taking false branch to bb15
+START: Path_3!
+START: Path_4!
+    Taking true branch to bb14
+    Taking false branch to bb15
+bb14 exceeded limit 5 — applying widening
+START: Path_5!
+WARNING: found 1 dangerous writes to /proc/self/mem
+  [1] (("std::process::Command::new", "rm -rf *"), [src/main.rs:6:5: 6:31 (#0)])
+=== Dangerous Spans ===
+=== std::process::Command::new (arg = "rm -rf *") ===
+  [01] src/main.rs:6:5: 6:31
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.16s
+
 ---------------------------
 Evaluating crate: command2
 This crate should be unsafe
-[ALERT] Missing expected warning in UNSAFE crate.
 ---------------------------
-    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.02s
+   Compiling example3 v0.1.0 (/Users/hassnain/Desktop/LHS/lhs/examples/crates/unsafe/command2)
+MIR for function: DefId(0:3 ~ example3[f793]::main)
+Unsupported Type: ()
+=== Starting MIR Analysis ===
+START: Path 0!
+START: Path_1!
+No dangerous writes detected
+=== Dangerous Spans ===
+No dangerous spans found.
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.15s
+
 ---------------------------
 Evaluating crate: command3
 This crate should be unsafe
-[ALERT] Missing expected warning in UNSAFE crate.
 ---------------------------
-    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.03s
+   Compiling example4 v0.1.0 (/Users/hassnain/Desktop/LHS/lhs/examples/crates/unsafe/command3)
+MIR for function: DefId(0:3 ~ example4[e393]::main)
+Unsupported Type: ()
+=== Starting MIR Analysis ===
+START: Path 0!
+START: Path_1!
+No dangerous writes detected
+=== Dangerous Spans ===
+No dangerous spans found.
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.15s
+
 ---------------------------
 Evaluating crate: example1
 This crate should be unsafe
-[RESULT] Results for the UNSAFE crate are as expected.
 ---------------------------
-   Compiling example1 v0.1.0 (/Users/caleb/git/research/RustSec/lhs/examples/crates/unsafe/example1)
+   Compiling example1 v0.1.0 (/Users/hassnain/Desktop/LHS/lhs/examples/crates/unsafe/example1)
 MIR for function: DefId(0:6 ~ example1[bfb7]::main)
 Unsupported Type: ()
 Unsupported Type: (u8, bool)
@@ -115,37 +2367,12 @@ Unsupported Type: ()
 START: Path 0!
     Taking true branch to bb11
     Taking false branch to bb9
-Found dangerous write at src/main.rs:7:9: 7:18 (#0)
-─── TAINT STATUS ───
-int  13  tainted=false
-int  8.f0  tainted=false
-int  11  tainted=false
-int  12.f0  tainted=false
-int  1  tainted=false
-int  10  tainted=false
-int  14.f0  tainted=false
-int  15.f0  tainted=false
-int  2  tainted=false
-int  9.f0  tainted=false
-int  5  tainted=false
-int  4  tainted=false
-int  6.f0  tainted=false
-int  7  tainted=false
-bool 14.f1  tainted=false
-bool 12.f1  tainted=false
-bool 3  tainted=false
-bool 8.f1  tainted=false
-bool 9.f1  tainted=false
-bool 6.f1  tainted=false
-bool 15.f1  tainted=false
-────────────────────
 START: Path_1!
     Could not assign constant to 20 - unrecognized type
 START: Path_2!
-WARNING: found 1 dangerous writes to /proc/self/mem
-  [1] src/main.rs:7:9: 7:18 (#0)
-WARNING: Potential call to sink function: 1 potential write(s) to `/proc/self/mem` detected:
-	1. src/main.rs:7:9: 7:18 (#0)
+No dangerous writes detected
+=== Dangerous Spans ===
+No dangerous spans found.
 MIR for function: DefId(0:7 ~ example1[bfb7]::mystery_function)
 Unsupported Type: ()
 Unsupported Type: [u8; 1]
@@ -158,65 +2385,84 @@ Unsupported Rvalue in assignment: [const 0_u8; 1]
   Skipping unsatisfiable assertion failure path to bb9
 START: Path_1!
 No dangerous writes detected
-    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.11s
+=== Dangerous Spans ===
+No dangerous spans found.
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.15s
+
 ---------------------------
 Evaluating crate: pathbuff1
 This crate should be unsafe
-[ALERT] Missing expected warning in UNSAFE crate.
 ---------------------------
-   Compiling pathbuff1 v0.1.0 (/Users/caleb/git/research/RustSec/lhs/examples/crates/unsafe/pathbuff1)
-error[E0433]: failed to resolve: use of undeclared crate or module `fs`
- --> src/main.rs:6:5
-  |
-6 |     fs::write(b, "Hello, world!").expect("Unable to write file");
-  |     ^^ use of undeclared crate or module `fs`
-  |
-help: consider importing this module
-  |
-1 + use std::fs;
-  |
+   Compiling pathbuff1 v0.1.0 (/Users/hassnain/Desktop/LHS/lhs/examples/crates/unsafe/pathbuff1)
+MIR for function: DefId(0:6 ~ pathbuff1[7d57]::main)
+Unsupported Type: ()
+Unsupported Type: ()
+=== Starting MIR Analysis ===
+START: Path 0!
+    Taking true branch to bb12
+    Taking false branch to bb14
+START: Path_1!
+START: Path_2!
+DANGEROUS & TAINTED write to /proc/self/mem at src/main.rs:9:5: 9:14 (#0)
+START: Path_3!
+WARNING: found 1 dangerous writes to /proc/self/mem
+  [1] (("std::fs::write", "/proc/self/mem"), [src/main.rs:9:5: 9:14 (#0)])
+=== Dangerous Spans ===
+=== std::fs::write (arg = "/proc/self/mem") ===
+  [01] src/main.rs:9:5: 9:14
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.17s
 
-For more information about this error, try `rustc --explain E0433`.
-error: could not compile `pathbuff1` (bin "pathbuff1") due to 1 previous error
 ---------------------------
 Evaluating crate: pathbuff2
 This crate should be unsafe
-[ALERT] Missing expected warning in UNSAFE crate.
 ---------------------------
-   Compiling pathbuff2 v0.1.0 (/Users/caleb/git/research/RustSec/lhs/examples/crates/unsafe/pathbuff2)
-error[E0433]: failed to resolve: use of undeclared crate or module `fs`
- --> src/main.rs:6:5
-  |
-6 |     fs::write(b, "Hello, world!").expect("Unable to write file");
-  |     ^^ use of undeclared crate or module `fs`
-  |
-help: consider importing this module
-  |
-1 + use std::fs;
-  |
+   Compiling pathbuff2 v0.1.0 (/Users/hassnain/Desktop/LHS/lhs/examples/crates/unsafe/pathbuff2)
+MIR for function: DefId(0:6 ~ pathbuff2[6cc1]::main)
+Unsupported Type: ()
+Unsupported Type: ()
+=== Starting MIR Analysis ===
+START: Path 0!
+    Taking true branch to bb13
+    Taking false branch to bb14
+START: Path_1!
+START: Path_2!
+DANGEROUS & TAINTED write to /proc/self/mem at src/main.rs:9:5: 9:14 (#0)
+    Taking true branch to bb13
+    Taking false branch to bb14
+START: Path_3!
+START: Path_4!
+START: Path_5!
+WARNING: found 1 dangerous writes to /proc/self/mem
+  [1] (("std::fs::write", "/proc/self/mem"), [src/main.rs:9:5: 9:14 (#0)])
+=== Dangerous Spans ===
+=== std::fs::write (arg = "/proc/self/mem") ===
+  [01] src/main.rs:9:5: 9:14
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.16s
 
-For more information about this error, try `rustc --explain E0433`.
-error: could not compile `pathbuff2` (bin "pathbuff2") due to 1 previous error
 ---------------------------
 Evaluating crate: pathbuff3
 This crate should be unsafe
-[ALERT] Missing expected warning in UNSAFE crate.
 ---------------------------
-   Compiling pathbuff3 v0.1.0 (/Users/caleb/git/research/RustSec/lhs/examples/crates/unsafe/pathbuff3)
-error[E0433]: failed to resolve: use of undeclared crate or module `fs`
- --> src/main.rs:6:5
-  |
-6 |     fs::write(b, "Hello, world!").expect("Unable to write file");
-  |     ^^ use of undeclared crate or module `fs`
-  |
-help: consider importing this module
-  |
-1 + use std::fs;
-  |
+   Compiling pathbuff3 v0.1.0 (/Users/hassnain/Desktop/LHS/lhs/examples/crates/unsafe/pathbuff3)
+MIR for function: DefId(0:6 ~ pathbuff3[92f3]::main)
+Unsupported Type: ()
+Unsupported Type: ()
+=== Starting MIR Analysis ===
+START: Path 0!
+    Taking true branch to bb13
+    Taking false branch to bb14
+START: Path_1!
+START: Path_2!
+DANGEROUS & TAINTED write to /proc/self/mem at src/main.rs:9:5: 9:14 (#0)
+    Taking true branch to bb13
+    Taking false branch to bb14
+START: Path_3!
+START: Path_4!
+START: Path_5!
+WARNING: found 1 dangerous writes to /proc/self/mem
+  [1] (("std::fs::write", "/proc/self/mem"), [src/main.rs:9:5: 9:14 (#0)])
+=== Dangerous Spans ===
+=== std::fs::write (arg = "/proc/self/mem") ===
+  [01] src/main.rs:9:5: 9:14
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.17s
 
-For more information about this error, try `rustc --explain E0433`.
-error: could not compile `pathbuff3` (bin "pathbuff3") due to 1 previous error
-
-Summary:
-Safe crates accuracy: 3/3
-Unsafe crates accuracy: 1/7

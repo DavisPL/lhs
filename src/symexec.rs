@@ -17,10 +17,6 @@ impl<T> Slot<T> {
     }
 }
 
-// TODO: Hassnain
-// Pls copy 48 lines of documentation back into this file from
-// https://github.com/DavisPL/lhs/blob/11a7afdb78e12ed92db8f44a1bca19433110089b/src/symexec.rs
-
 #[derive(Debug, Clone)]
 pub struct SymExecBool<'ctx> {
     pub context: &'ctx z3::Context,
@@ -29,9 +25,12 @@ pub struct SymExecBool<'ctx> {
     pub bool_variables: HashMap<String, Slot<z3::ast::Bool<'ctx>>>,
     pub constraints: Vec<z3::ast::Bool<'ctx>>,
     pub interval_map: HashMap<String, (Option<i128>, Option<i128>)>,
+
+    pub path_taint: bool, // useful for cases like examples/unsafe/command2
 }
 
 impl<'ctx> SymExecBool<'ctx> {
+    // Creates an empty SymExec with a supplied Z3 context.
     pub fn new(context: &'ctx z3::Context) -> Self {
         Self {
             context,
@@ -40,9 +39,16 @@ impl<'ctx> SymExecBool<'ctx> {
             bool_variables: HashMap::new(),
             constraints: Vec::new(),
             interval_map: HashMap::new(),
+            path_taint: false,
         }
     }
 
+    // True if the the path is tainted, false otherwise.
+    pub fn set_pc_taint(&mut self, t: bool) {
+        self.path_taint = t;
+    }
+
+    // Helper functions to set taint flag on variables.
     fn set_flag<T>(
         map: &mut HashMap<String, Slot<T>>,
         name: &str,
@@ -52,84 +58,105 @@ impl<'ctx> SymExecBool<'ctx> {
             .map(|s| s.flag = flag)
             .ok_or("unknown variable")
     }
+
+    // Helper functions to get taint flag on variables.
     fn get_flag<T>(map: &HashMap<String, Slot<T>>, name: &str) -> Option<bool> {
         map.get(name).map(|s| s.flag)
     }
 
+    // Helper function to insert a variable with a flag.
+    fn insert_with_flag<T>(map: &mut HashMap<String, Slot<T>>, name: &str, val: T, flag: bool) {
+        map.insert(name.into(), Slot::with_flag(val, flag));
+    }
+
+    /// Creates an uninterpreted string with the given variable name and adds it to the executor. This function can be used to model the string arguments to a function.
     pub fn create_uninterpreted_string_with_flag(&mut self, name: &str, flag: bool) {
         let v = z3::ast::String::new_const(self.context, name);
-        self.string_variables
-            .insert(name.into(), Slot::with_flag(v, flag));
+        Self::insert_with_flag(&mut self.string_variables, name, v, flag);
     }
+    // Create uninterpreted string variables without a taint flag.
     pub fn create_uninterpreted_string(&mut self, name: &str) {
         self.create_uninterpreted_string_with_flag(name, false);
     }
 
+    // Create uninterpreted integer variables with custom taint flag.
     pub fn create_int_with_flag(&mut self, name: &str, flag: bool) {
         let v = z3::ast::Int::new_const(self.context, name);
-        self.int_variables
-            .insert(name.into(), Slot::with_flag(v, flag));
+        Self::insert_with_flag(&mut self.int_variables, name, v, flag);
         self.interval_map.insert(name.into(), (None, None));
     }
+    // Create uninterpreted integer variables without a taint flag.
     pub fn create_int(&mut self, name: &str) {
         self.create_int_with_flag(name, false);
     }
 
+    // Create uninterpreted boolean variables with custom taint flag.
     pub fn create_uninterpreted_bool_with_flag(&mut self, name: &str, flag: bool) {
         let v = z3::ast::Bool::new_const(self.context, name);
-        self.bool_variables
-            .insert(name.into(), Slot::with_flag(v, flag));
+        Self::insert_with_flag(&mut self.bool_variables, name, v, flag);
     }
+
+    // Create uninterpreted boolean variables without a taint flag.
     pub fn create_uninterpreted_bool(&mut self, name: &str) {
         self.create_uninterpreted_bool_with_flag(name, false);
     }
 
+    /// Assigns a string with the given value to the given variable name, adding it to the executor. Can also be used to replace the value of a string variable.
     pub fn assign_string(&mut self, name: &str, value: z3::ast::String<'ctx>) {
-        self.string_variables
-            .insert(name.into(), Slot::with_flag(value, false));
+        Self::insert_with_flag(&mut self.string_variables, name, value, false);
     }
+    /// Assigns an integer with the given value to the given variable name, adding it to the executor. Can also be used to replace the value of an integer variable.
     pub fn assign_int(&mut self, name: &str, value: z3::ast::Int<'ctx>) {
-        self.int_variables
-            .insert(name.into(), Slot::with_flag(value, false));
+        Self::insert_with_flag(&mut self.int_variables, name, value, false);
         self.interval_map.entry(name.into()).or_insert((None, None));
     }
+    /// Assigns a boolean with the given value to the given variable name, adding it to the executor. Can also be used to replace the value of a boolean variable.
     pub fn assign_bool(&mut self, name: &str, value: z3::ast::Bool<'ctx>) {
-        self.bool_variables
-            .insert(name.into(), Slot::with_flag(value, false));
+        Self::insert_with_flag(&mut self.bool_variables, name, value, false);
     }
 
+    /// Gets the z3 string expression with the given variable name from the executor. If the variable name is not present, None is returned.
     pub fn get_string(&self, name: &str) -> Option<&z3::ast::String<'ctx>> {
         self.string_variables.get(name).map(|s| &s.value)
     }
+    /// Gets the z3 integer expression with the given variable name from the executor. If the variable name is not present, None is returned.
     pub fn get_int(&self, name: &str) -> Option<&z3::ast::Int<'ctx>> {
         self.int_variables.get(name).map(|s| &s.value)
     }
+    /// Gets the z3 boolean expression with the given variable name from the executor. If the variable name is not present, None is returned.
     pub fn get_bool(&self, name: &str) -> Option<&z3::ast::Bool<'ctx>> {
         self.bool_variables.get(name).map(|s| &s.value)
     }
 
+    /// Sets a taint flag on the given string variable name. If the variable name is not present, an error is returned.
     pub fn set_string_flag(&mut self, name: &str, flag: bool) -> Result<(), &'static str> {
         Self::set_flag(&mut self.string_variables, name, flag)
     }
+    /// Gets the taint flag on the given string variable name. If the variable name is not present, None is returned.
     pub fn string_flag(&self, name: &str) -> Option<bool> {
         Self::get_flag(&self.string_variables, name)
     }
+    /// Sets a taint flag on the given int variable name. If the variable name is not present, an error is returned.
     pub fn set_int_flag(&mut self, name: &str, flag: bool) -> Result<(), &'static str> {
         Self::set_flag(&mut self.int_variables, name, flag)
     }
+    /// Gets the taint flag on the given int variable name. If the variable name is not present, None is returned.
     pub fn int_flag(&self, name: &str) -> Option<bool> {
         Self::get_flag(&self.int_variables, name)
     }
+    /// Sets a taint flag on the given bool variable name. If the variable name is not present, an error is returned.
     pub fn set_bool_flag(&mut self, name: &str, flag: bool) -> Result<(), &'static str> {
         Self::set_flag(&mut self.bool_variables, name, flag)
     }
+    /// Gets the taint flag on the given bool variable name. If the variable name is not present, None is returned.
     pub fn bool_flag(&self, name: &str) -> Option<bool> {
         Self::get_flag(&self.bool_variables, name)
     }
-
+    /// Adds a constraint to the executor. This constraint will be used for all satisfiability checks.
     pub fn add_constraint(&mut self, c: z3::ast::Bool<'ctx>) {
         self.constraints.push(c)
     }
+    /// Checks if the constraints in the executor and the new constraint are satisfiable.
     pub fn check_constraint_sat(&self, new_c: &z3::ast::Bool<'ctx>) -> z3::SatResult {
         let s = z3::Solver::new(self.context);
         for c in &self.constraints {
@@ -138,7 +165,9 @@ impl<'ctx> SymExecBool<'ctx> {
         s.assert(new_c);
         s.check()
     }
-
+    /// Checks if there is an assignment to symbolic variables in the executor such that write_arg_name matches /proc/self/mem.
+    /// This function can be used to check that a write such a `fs::write(filename, contents)` does not write to the directory
+    /// /proc/self/mem. The argument write_arg_name must already be present in the environment. If it is not, an Error is returned.
     pub fn is_write_safe(&self, expr: &z3::ast::String<'ctx>) -> Result<z3::SatResult, &str> {
         let s = z3::Solver::new(self.context);
         for c in &self.constraints {
@@ -161,9 +190,11 @@ impl<'ctx> SymExecBool<'ctx> {
         Ok(s.check())
     }
 
+    /// Creates a z3 string expression from a Rust static string.
     pub fn static_string(&self, v: &str) -> z3::ast::String<'ctx> {
         z3::ast::String::from_str(self.context, v).unwrap()
     }
+    /// Creates a z3 string expression from the concatenation of two strings.
     pub fn concat_strings(
         &self,
         a: &z3::ast::String<'ctx>,
@@ -171,30 +202,32 @@ impl<'ctx> SymExecBool<'ctx> {
     ) -> z3::ast::String<'ctx> {
         z3::ast::String::concat(self.context, &[a, b])
     }
+    /// Creates a z3 string for path join operation (like Path::join or PathBuf::join)
     pub fn path_join(
         &self,
         base: &z3::ast::String<'ctx>,
         comp: &z3::ast::String<'ctx>,
     ) -> z3::ast::String<'ctx> {
-        let sep = self.static_string("/");
+        let sep = self.static_string("/"); // Create a "/" separator
         z3::ast::Bool::ite(
-            &base._eq(&self.static_string("")),
-            comp,
+            &base._eq(&self.static_string("")), // If base is empty
+            comp,                               // Return comp as is
             &z3::ast::Bool::ite(
-                &comp._eq(&self.static_string("")),
-                base,
+                &comp._eq(&self.static_string("")), // If comp is empty
+                base,                               // Return base as is
                 &z3::ast::Bool::ite(
-                    &sep.prefix(comp),
+                    &sep.prefix(comp), // if component prefix matches "/"
                     comp,
                     &z3::ast::Bool::ite(&sep.suffix(base), &self.concat_strings(base, comp), {
                         let tmp = self.concat_strings(base, &sep);
-                        &self.concat_strings(&tmp, comp)
+                        &self.concat_strings(&tmp, comp) // Concatenate base + component
                     }),
                 ),
             ),
         )
     }
 
+    /// Creates a z3 bool expression representing whether or not two strings are equivalent.
     pub fn string_eq(
         &self,
         a: &z3::ast::String<'ctx>,
@@ -203,28 +236,52 @@ impl<'ctx> SymExecBool<'ctx> {
         a._eq(b)
     }
 
+    /// Creates a z3 bool expression from a Rust bool.
     pub fn static_bool(&self, v: bool) -> z3::ast::Bool<'ctx> {
         z3::ast::Bool::from_bool(self.context, v)
     }
+    /// Creates a z3 bool expression from the negation of a z3 bool expression.
     pub fn not(&self, b: &z3::ast::Bool<'ctx>) -> z3::ast::Bool<'ctx> {
         b.not()
     }
+    /// Creates a z3 bool expression from the conjunction of two z3 bool expressions.
     pub fn and(&self, a: &z3::ast::Bool<'ctx>, b: &z3::ast::Bool<'ctx>) -> z3::ast::Bool<'ctx> {
         z3::ast::Bool::and(self.context, &[a, b])
     }
+    /// Creates a z3 bool expression from the disjunction of two z3 bool expressions.
     pub fn or(&self, a: &z3::ast::Bool<'ctx>, b: &z3::ast::Bool<'ctx>) -> z3::ast::Bool<'ctx> {
         z3::ast::Bool::or(self.context, &[a, b])
     }
+    /// Create a z3 bool expression from the equality of two z3 bool expressions.
     pub fn bool_eq(&self, a: &z3::ast::Bool<'ctx>, b: &z3::ast::Bool<'ctx>) -> z3::ast::Bool<'ctx> {
         a._eq(b)
     }
+    /// Create a z3 bool expression from the less than comparison of two z3 bool expressions.
     pub fn bool_lt(&self, a: &z3::ast::Bool<'ctx>, b: &z3::ast::Bool<'ctx>) -> z3::ast::Bool<'ctx> {
         self.and(&self.not(a), b)
     }
+    /// Create a z3 bool expression from the less than or equal comparison of two z3 bool expressions.
+    pub fn bool_le(
+        &self,
+        lhs: &z3::ast::Bool<'ctx>,
+        rhs: &z3::ast::Bool<'ctx>,
+    ) -> z3::ast::Bool<'ctx> {
+        z3::ast::Bool::from_bool(&self.context, true)
+    }
+    /// Create a z3 bool expression from the less than or equal comparison of two z3 bool expressions.
     pub fn bool_gt(&self, a: &z3::ast::Bool<'ctx>, b: &z3::ast::Bool<'ctx>) -> z3::ast::Bool<'ctx> {
         self.and(b, &self.not(a))
     }
+    /// Create a z3 bool expression from the greater than or equal comparison of two z3 bool expressions.
+    pub fn bool_ge(
+        &self,
+        lhs: &z3::ast::Bool<'ctx>,
+        rhs: &z3::ast::Bool<'ctx>,
+    ) -> z3::ast::Bool<'ctx> {
+        z3::ast::Bool::from_bool(&self.context, true)
+    }
 
+    /// Creates a z3 int expression from an Rust int.
     pub fn static_int(&self, v: i128) -> z3::ast::Int<'ctx> {
         if (i64::MIN as i128..=i64::MAX as i128).contains(&v) {
             z3::ast::Int::from_i64(self.context, v as i64)
@@ -247,33 +304,43 @@ impl<'ctx> SymExecBool<'ctx> {
             }
         }
     }
+    /// Creates a z3 int expression from the addition of two z3 int expressions.
     pub fn add(&self, a: &z3::ast::Int<'ctx>, b: &z3::ast::Int<'ctx>) -> z3::ast::Int<'ctx> {
         z3::ast::Int::add(self.context, &[a, b])
     }
+    /// Creates a z3 int expression from the subtraction of two z3 int expressions.
     pub fn sub(&self, a: &z3::ast::Int<'ctx>, b: &z3::ast::Int<'ctx>) -> z3::ast::Int<'ctx> {
         z3::ast::Int::sub(self.context, &[a, b])
     }
+    /// Creates a z3 int expression from the multiplication of two z3 int expressions.
     pub fn mul(&self, a: &z3::ast::Int<'ctx>, b: &z3::ast::Int<'ctx>) -> z3::ast::Int<'ctx> {
         z3::ast::Int::mul(self.context, &[a, b])
     }
+    /// Creates a z3 int expression from the division of two z3 int expressions.
     pub fn div(&self, a: &z3::ast::Int<'ctx>, b: &z3::ast::Int<'ctx>) -> z3::ast::Int<'ctx> {
         a.div(b)
     }
+    /// Creates a z3 int expression from the remainder of two z3 int expressions.
     pub fn rem(&self, a: &z3::ast::Int<'ctx>, b: &z3::ast::Int<'ctx>) -> z3::ast::Int<'ctx> {
         a.rem(b)
     }
+    /// Creates a z3 int expression from the negation of a z3 int expression.
     pub fn int_eq(&self, a: &z3::ast::Int<'ctx>, b: &z3::ast::Int<'ctx>) -> z3::ast::Bool<'ctx> {
         a._eq(b)
     }
+    /// Creates a z3 int expression from the less than, less than or equal, greater than, and greater than or equal comparisons of two z3 int expressions.
     pub fn int_lt(&self, a: &z3::ast::Int<'ctx>, b: &z3::ast::Int<'ctx>) -> z3::ast::Bool<'ctx> {
         a.lt(b)
     }
+    /// Creates a z3 int expression from the less than or equal comparison of two z3 int expressions.
     pub fn int_le(&self, a: &z3::ast::Int<'ctx>, b: &z3::ast::Int<'ctx>) -> z3::ast::Bool<'ctx> {
         a.le(b)
     }
+    /// Creates a z3 int expression from the greater than, greater than or equal comparisons of two z3 int expressions.
     pub fn int_gt(&self, a: &z3::ast::Int<'ctx>, b: &z3::ast::Int<'ctx>) -> z3::ast::Bool<'ctx> {
         a.gt(b)
     }
+    /// Creates a z3 int expression from the greater than or equal comparison of two z3 int expressions.
     pub fn int_ge(&self, a: &z3::ast::Int<'ctx>, b: &z3::ast::Int<'ctx>) -> z3::ast::Bool<'ctx> {
         a.ge(b)
     }

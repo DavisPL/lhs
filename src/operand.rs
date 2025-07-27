@@ -94,9 +94,6 @@ pub fn extract_string_from_const<'tcx>(
     data: &'tcx ConstAllocation<'tcx>, //pub struct ConstAllocation<'tcx>(pub Interned<'tcx, Allocation>);
     meta: u64,
 ) -> Option<String> {
-    println!("\tData: {:?}", data);
-    println!("\tMeta: {:?}", meta);
-
     //0: Interned<'tcx, Allocation>
     let range: AllocRange = AllocRange {
         start: rustc_abi::Size::from_bytes(0),
@@ -109,7 +106,7 @@ pub fn extract_string_from_const<'tcx>(
     let a: String = match String::from_utf8(allocation.to_vec()) {
         Ok(s) => s,
         Err(_) => {
-            println!("extract_string_from_const: Failed to convert bytes to String");
+            // println!("extract_string_from_const: Failed to convert bytes to String");
             return None;
         }
     };
@@ -120,11 +117,11 @@ pub fn extract_string_from_const<'tcx>(
 pub fn get_operand_span(operand: &Operand) -> Option<rustc_span::Span> {
     match operand {
         Operand::Copy(_place) => {
-            println!("get_operand_span: Unsupported, This function currently caters only for constants. ");
+            // println!("get_operand_span: Unsupported, This function currently caters only for constants. ");
             return None;
         }
         Operand::Move(place) => {
-            println!("get_operand_span: Unsupported, This function currently caters only for constants. ");
+            // println!("get_operand_span: Unsupported, This function currently caters only for constants. ");
             None
         }
         Operand::Constant(place) => {

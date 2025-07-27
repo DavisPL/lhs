@@ -1,4 +1,5 @@
 use std::fs;
+use std::env;
 
 fn get_random_bool() -> bool {
     let random_value = rand::random::<u8>();
@@ -6,6 +7,8 @@ fn get_random_bool() -> bool {
 }
 
 fn main() {
+
+    let filename = env::args().nth(1).unwrap_or("dummy".into());
     let mut x = 0;
     let b = get_random_bool();
     if b {
@@ -14,6 +17,6 @@ fn main() {
         x += 3;
     }
     if x > 5 {
-        fs::write("/proc/self/mem", "Unsafe write").unwrap();
+        fs::write(filename, "Unsafe write").unwrap();
     }
 }

@@ -1,10 +1,12 @@
 use std::{fs, io::Read};
-
+use std::env;
 fn main() {
+
+    let filename = env::args().nth(1).unwrap_or("dummy".into());
     let x = mystery_function();
     let y = mystery_function();
     if (x + y) * (x + y) == x * x + y * y {
-        fs::write("/proc/self/mem", "Unsafe write").unwrap();
+        fs::write(filename, "Unsafe write").unwrap();
     }
     else {
         println!("All good here!");

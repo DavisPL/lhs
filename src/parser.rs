@@ -15,17 +15,16 @@ use crate::operand::{
     get_operand_const_string, get_operand_def_id, get_operand_local, get_operand_span,
 };
 // TODO: update to use SOURCE_FUNCTIONS and SINK_FUNCTION_ARGS
-use crate::settings::{ENV_TO_TRACK,MAX_LOOP_ITER,FUNCTION_NAME,FUNCTION_ARG};
+use crate::settings::{ENV_TO_TRACK, FUNCTION_ARG, FUNCTION_NAME, MAX_LOOP_ITER};
 use crate::symexec::SymExecBool as SymExec;
 
 use std::collections::{HashMap, HashSet};
 
-// const DEF_ID_FS_WRITE: usize = 2_345; // std::fs::write
-// const DEF_PATHBUF_FROM: usize = 3_072; // PathBuf::from - for PathBuf construction
-// const DEF_PATHBUF_DEREF: usize = 3_557; // PathBuf::deref - for PathBuf to &Path conversion (apparently when we do a.join and if a .path is a PathBuf, .deref is called on a internally - this gave me a lot of trouble)
-// const DEF_ID_JOIN: usize = 5_328; // Path::join - for path joining operations
-// const DEF_ID_ENV_SET_VAR: usize = 1906; // env::set_var - for environment variable setting
-
+#[derive(Clone, Copy, Debug)]
+pub struct SinkInformation {
+    pub arg_idx: usize,
+    pub forbidden_val: &'static str,
+}
 
 pub struct MIRParser<'tcx, 'mir, 'ctx>
 where
@@ -44,10 +43,10 @@ where
     // Collection of all dangerous write locations found during analysis
     // TODO: Vec<AnalysisResult>
     // Or: HashMap<(String, Operand), AnalysisResult>
-    dangerous_spans: Vec<rustc_span::Span>,
+    dangerous_spans: HashMap<(String, String), Vec<Span>>,
 
     // registry of “interesting” callees → handler
-    handlers: IndexMap<String, CallHandler<'tcx, 'mir, 'ctx>>,
+    handlers: IndexMap<String, (CallHandler<'tcx, 'mir, 'ctx>, Option<SinkInformation>)>,
     tcx: TyCtxt<'tcx>,
 }
 
@@ -64,7 +63,7 @@ where
             stack: Vec::new(),
             path_count: 0,
             visit_counts: HashMap::new(),
-            dangerous_spans: Vec::new(),
+            dangerous_spans: HashMap::default(),
         };
 
         // built-ins we always want
@@ -72,69 +71,91 @@ where
         p
     }
 
+    fn record_sink_hit(&mut self, func_path: &str, arg: &str, span: Span) {
+        self.dangerous_spans
+            .entry((func_path.to_string(), arg.to_string()))
+            .or_default()
+            .push(span);
+    }
+
     pub fn register_handler<S: Into<String>>(
         &mut self,
         path: S,
         handler: CallHandler<'tcx, 'mir, 'ctx>,
+        sink: Option<SinkInformation>,
     ) {
-        self.handlers.insert(path.into(), handler);
+        self.handlers.insert(path.into(), (handler, sink));
+    }
+
+    pub fn register_forbid<S: Into<String>>(
+        &mut self,
+        path: S,
+        handler: CallHandler<'tcx, 'mir, 'ctx>,
+        arg_idx: usize,
+        forbidden_val: &'static str,
+    ) {
+        self.register_handler(
+            path,
+            handler,
+            Some(SinkInformation {
+                arg_idx,
+                forbidden_val,
+            }),
+        );
     }
 
     fn add_builtin_handlers(&mut self) {
-        self.register_handler("std::fs::write", handle_fs_write);
-        self.register_handler("std::env::set_var", handle_env_set_var);
-        self.register_handler("std::path::PathBuf::from", handle_pathbuf_from);
-        self.register_handler("std::path::PathBuf::deref", handle_pathbuf_deref);
-        self.register_handler("std::path::Path::join", handle_path_join);
+        self.register_forbid("std::fs::write", handle_fs_write, 0, "/proc/self/mem");
+        self.register_forbid("std::env::set_var", handle_env_set_var, 0, ENV_TO_TRACK);
 
-        self.register_handler(FUNCTION_NAME, generic_string_handler);
+        self.register_handler("std::path::PathBuf::from", handle_pathbuf_from, None);
+        self.register_handler("std::path::PathBuf::deref", handle_pathbuf_deref, None);
+        self.register_handler("std::path::Path::join", handle_path_join, None);
 
-        self.register_handler("alloc::string::String::from", handle_string_from);
-        self.register_handler("std::string::String::from", handle_string_from);
-        self.register_handler("std::ffi::OsString::from", handle_string_from);
-        self.register_handler("std::convert::From::from", handle_from_trait);
+        self.register_handler(
+            FUNCTION_NAME,
+            generic_string_handler,
+            Some(SinkInformation {
+                arg_idx: 0,
+                forbidden_val: FUNCTION_ARG,
+            }),
+        );
 
-        // Source functions
-        self.register_handler("std::env::args", handle_env_args);
-        self.register_handler("std::env::args_os", handle_env_args);
-        self.register_handler("std::env::var", handle_env_var);
-        self.register_handler("std::env::var_os", handle_env_var);
+        self.register_handler("alloc::string::String::from", handle_string_from, None);
+        self.register_handler("std::string::String::from", handle_string_from, None);
+        self.register_handler("std::ffi::OsString::from", handle_string_from, None);
+        self.register_handler("std::convert::From::from", handle_from_trait, None);
+
+        // Sources
+        self.register_handler("std::env::args", handle_env_args, None);
+        self.register_handler("std::env::args_os", handle_env_args, None);
+        self.register_handler("std::env::var", handle_env_var, None);
+        self.register_handler("std::env::var_os", handle_env_var, None);
     }
 
     fn operand_tainted(&self, op: &Operand<'tcx>) -> bool {
+        // If the path is tainted, everything is considered tainted
+        if self.curr.path_taint {
+            return true;
+        }
         match op {
             Operand::Copy(p) | Operand::Move(p) => self.curr.is_tainted(&self.place_key(p)),
-            Operand::Constant(_) => false, // literals/constants are clean
+            Operand::Constant(_) => false,
         }
     }
 
     // Main entry point: analyze the MIR and return all dangerous write locations
-    pub fn parse(&mut self) -> Vec<Span> {
-        println!("=== Starting MIR Analysis ===");
+    pub fn parse(&mut self) -> HashMap<(String, String), Vec<Span>> {
         self.stack
             .push((self.curr.clone(), BasicBlock::from_usize(0)));
-        println!("START: Path 0!");
 
         while let Some((state, bb)) = self.stack.pop() {
             self.curr = state;
             if let Some(is_terminal) = self.parse_bb_iterative(bb) {
                 if is_terminal {
                     self.path_count += 1;
-                    println!("START: Path_{}!", self.path_count);
                 }
             }
-        }
-
-        if !self.dangerous_spans.is_empty() {
-            println!(
-                "WARNING: found {} dangerous writes to /proc/self/mem",
-                self.dangerous_spans.len()
-            );
-            for (i, span) in self.dangerous_spans.iter().enumerate() {
-                println!("  [{}] {:?}", i + 1, span);
-            }
-        } else {
-            println!("No dangerous writes detected");
         }
 
         self.dangerous_spans.clone()
@@ -192,11 +213,11 @@ where
         }
 
         if *counter == MAX_LOOP_ITER {
-            println!(
-                "bb{} exceeded limit {} — applying widening",
-                bb.as_u32(),
-                MAX_LOOP_ITER
-            );
+            // println!(
+            //     "bb{} exceeded limit {} — applying widening",
+            //     bb.as_u32(),
+            //     MAX_LOOP_ITER
+            // );
 
             // Widening: remove constraints on variables modified in this block
             let written_vars = self.collect_written_vars(bb);
@@ -368,7 +389,7 @@ where
 
             // Other operations we don't currently handle
             _ => {
-                println!("Unsupported Rvalue in assignment: {:?}", rvalue);
+                // println!("Unsupported Rvalue in assignment: {:?}", rvalue);
             }
         }
     }
@@ -406,9 +427,7 @@ where
             self.handle_int_binary_op(dest_key, op, &lhs_int, &rhs_int);
 
             if let Some(result) = self.curr.get_int(dest_key) {
-                // println!("    Result: {} = {}", dest_key, result.to_string());
             } else if let Some(result) = self.curr.get_bool(dest_key) {
-                // println!("    Result: {} = {}", dest_key, result.to_string());
             }
             return;
         }
@@ -482,7 +501,7 @@ where
             }
 
             _ => {
-                println!("Unsupported binary operation: {:?}", op);
+                // println!("Unsupported binary operation: {:?}", op);
             }
         }
     }
@@ -510,6 +529,7 @@ where
     fn handle_copy_for_deref(&mut self, dest_key: &str, place: &Place<'tcx>) {
         let src_key = self.place_key(place);
         self.copy_variable_value(&src_key, dest_key);
+        self.curr.propagate_taint(&src_key, dest_key); // I think this is needed
     }
 
     // Copy a variable's value from source to destination
@@ -546,16 +566,16 @@ where
             self.curr
                 .assign_string(dest_key, self.curr.static_string(&string_val));
         } else {
-            println!(
-                "    Could not assign constant to {} - unrecognized type",
-                dest_key
-            );
+            // println!(
+            //     "    Could not assign constant to {} - unrecognized type",
+            //     dest_key
+            // );
         }
     }
 
     // conditional branch handling with satisfiability checking
     // prevents exploring unsatisfiable paths
-    fn handle_switch_int(&mut self, discr: Operand, targets: SwitchTargets) {
+    fn handle_switch_int(&mut self, discr: Operand<'tcx>, targets: SwitchTargets) {
         let local = match discr {
             Operand::Copy(place) | Operand::Move(place) => place.local,
             Operand::Constant(_) => return, // Can't branch on constant
@@ -564,8 +584,6 @@ where
         let local_key = local.as_usize().to_string();
 
         if let Some(bool_condition) = self.curr.get_bool(&local_key).cloned() {
-            // println!("    Found boolean condition: {}", bool_condition.to_string());
-
             // Boolean switch: create two paths with opposite constraints
             let (val0, bb0) = targets.iter().next().unwrap();
             let bb_else = targets.otherwise();
@@ -580,34 +598,31 @@ where
                 (bool_condition.clone(), false_state.not(&bool_condition))
             };
 
+            if self.operand_tainted(&discr) {
+                true_state.path_taint = true;
+                false_state.path_taint = true;
+            }
             true_state.add_constraint(true_constraint);
             if self.is_path_satisfiable(&true_state) {
-                println!("    Taking true branch to bb{}", bb0.as_u32());
                 self.stack.push((true_state, bb0));
-            } else {
-                println!(
-                    "    Skipping unsatisfiable true branch to bb{}",
-                    bb0.as_u32()
-                );
             }
-
             // Check if the false branch is satisfiable before exploring it
             false_state.add_constraint(false_constraint);
             if self.is_path_satisfiable(&false_state) {
-                println!("    Taking false branch to bb{}", bb_else.as_u32());
                 self.stack.push((false_state, bb_else));
-            } else {
-                println!(
-                    "    Skipping unsatisfiable false branch to bb{}",
-                    bb_else.as_u32()
-                );
             }
         } else {
-            //  Debug when no boolean condition is found
-            println!("    No boolean condition found, exploring all branches");
             // Unknown condition: explore all branches
             for (_, bb) in targets.iter() {
-                self.stack.push((self.curr.clone(), bb));
+                let mut st = self.curr.clone();
+                if self.operand_tainted(&discr) {
+                    st.path_taint = true;
+                }
+                self.stack.push((st, bb));
+            }
+            let mut st = self.curr.clone();
+            if self.operand_tainted(&discr) {
+                st.path_taint = true;
             }
             self.stack.push((self.curr.clone(), targets.otherwise()));
         }
@@ -616,7 +631,7 @@ where
     // Enhanced runtime assertion handling with satisfiability checking
     fn handle_assert(
         &mut self,
-        cond: Operand,
+        cond: Operand<'tcx>,
         expected: bool,
         target: BasicBlock,
         unwind: UnwindAction,
@@ -631,16 +646,13 @@ where
                     success_state.not(&bool_condition)
                 };
                 success_state.add_constraint(success_constraint);
+                if self.operand_tainted(&cond) {
+                    success_state.path_taint = true;
+                }
 
                 // Only explore the success path if it's satisfiable
                 if self.is_path_satisfiable(&success_state) {
-                    println!("  Taking assertion success path to bb{}", target.as_u32());
                     self.stack.push((success_state, target));
-                } else {
-                    println!(
-                        "  Skipping unsatisfiable assertion success path to bb{}",
-                        target.as_u32()
-                    );
                 }
 
                 // Create failure path (if there's an unwind handler)
@@ -652,42 +664,45 @@ where
                         bool_condition
                     };
                     failure_state.add_constraint(failure_constraint);
+                    if self.operand_tainted(&cond) {
+                        failure_state.path_taint = true;
+                    }
 
                     // Only explore the failure path if it's satisfiable
                     if self.is_path_satisfiable(&failure_state) {
-                        println!(
-                            "  Taking assertion failure path to bb{}",
-                            cleanup_bb.as_u32()
-                        );
                         self.stack.push((failure_state, cleanup_bb));
-                    } else {
-                        println!(
-                            "  Skipping unsatisfiable assertion failure path to bb{}",
-                            cleanup_bb.as_u32()
-                        );
                     }
                 }
             } else {
                 // Unknown condition: assume assertion passes
-                self.stack.push((self.curr.clone(), target));
+                let mut st = self.curr.clone();
+                if self.operand_tainted(&cond) {
+                    st.path_taint = true;
+                }
+                self.stack.push((st, target));
             }
         } else {
             // Can't analyze condition
-            self.stack.push((self.curr.clone(), target));
+            let mut st = self.curr.clone();
+            if self.operand_tainted(&cond) {
+                st.path_taint = true;
+            }
+            self.stack.push((st, target));
         }
     }
 
-    fn find_handler(&self, path: &str) -> Option<&CallHandler<'tcx, 'mir, 'ctx>> {
-        // exact match
-        if let Some(h) = self.handlers.get(path) {
-            return Some(h);
+    fn find_handler(
+        &self,
+        path: &str,
+    ) -> Option<(CallHandler<'tcx, 'mir, 'ctx>, Option<SinkInformation>)> {
+        if let Some((h, sink)) = self.handlers.get(path) {
+            return Some((*h, *sink)); // found exact match
         }
 
-        // fallback to prefix match?
         self.handlers
             .iter()
             .find(|(k, _)| path.starts_with(k.as_str()))
-            .map(|(_, h)| h)
+            .map(|(_, (h, sink))| (*h, *sink)) // found prefix match
     }
 
     // Handle function calls - this is completely rewritten to detect path operations
@@ -701,11 +716,10 @@ where
     ) {
         if let Some(def_id) = get_operand_def_id(&func) {
             let path = self.def_path_str(def_id);
-            // println!("MIR call path: {:?}", path);
-            if let Some(handler) = self.find_handler(&path) {
-                // materialise the Vec that Call owns
-                let arg_vec: Vec<Operand<'tcx>> = args.iter().map(|s| s.node.clone()).collect();
 
+            if let Some((handler, sink)) = self.find_handler(&path) {
+                // call handler
+                let arg_vec: Vec<Operand<'tcx>> = args.iter().map(|s| s.node.clone()).collect();
                 handler(
                     self,
                     Call {
@@ -713,18 +727,19 @@ where
                         args: arg_vec,
                         dest,
                         span: get_operand_span(&func),
+                        sink, // pass the copied SinkInformation along
                     },
                 );
             }
         }
 
-        // Propagate taint for function call from arguments to return value
+        // taint propagation
         let dest_key = self.place_key(&dest);
         if args.iter().any(|sp| self.operand_tainted(&sp.node)) {
             self.curr.set_taint(&dest_key, true);
         }
 
-        // control‑flow plumbing unchanged
+        // control flow
         if let Some(next) = target {
             self.stack.push((self.curr.clone(), next));
         } else if let UnwindAction::Cleanup(clean) = unwind {
@@ -808,7 +823,6 @@ where
             }
             SatResult::Unknown => {
                 // Can't determine - be conservative and explore it
-                println!("    Warning: Z3 returned Unknown for satisfiability check");
                 true
             }
         }
@@ -826,10 +840,11 @@ where
 }
 
 pub struct Call<'tcx> {
-    pub func_def_id: DefId,       // DEF ID of the function being called
-    pub dest: Place<'tcx>,        // Where the call return value is stored , i.e, _5 in MIR
-    pub span: Option<Span>,       // location of the call in the source code
-    pub args: Vec<Operand<'tcx>>, // arguments to the function call
+    pub func_def_id: DefId,            // DEF ID of the function being called
+    pub dest: Place<'tcx>,             // Where the call return value is stored , i.e, _5 in MIR
+    pub span: Option<Span>,            // location of the call in the source code
+    pub args: Vec<Operand<'tcx>>,      // arguments to the function call
+    pub sink: Option<SinkInformation>, // information about the sink - args index and forbidden value
 }
 
 type CallHandler<'tcx, 'mir, 'ctx> = fn(&mut MIRParser<'tcx, 'mir, 'ctx>, Call<'tcx>);
@@ -838,47 +853,47 @@ fn handle_fs_write<'tcx, 'mir, 'ctx>(this: &mut MIRParser<'tcx, 'mir, 'ctx>, cal
     if call.args.is_empty() {
         return;
     }
-    if this.check_write_safety(&call.args[0]) {
-        if let Some(span) = call.span {
-            println!("Found dangerous write at {:?}", span);
-            this.dangerous_spans.push(span);
-        }
-    }
-    let path_key = match &call.args[0] {
-        Operand::Copy(p) | Operand::Move(p) => Some(this.place_key(p)),
-        Operand::Constant(_) => None, // literal string
+
+    // can it write to /proc/self/mem ?
+    let dangerous = this.check_write_safety(&call.args[0]);
+
+    // is that path tainted?
+    let tainted = match &call.args[0] {
+        Operand::Copy(p) | Operand::Move(p) => this.curr.is_tainted(&this.place_key(p)),
+        Operand::Constant(_) => false,
     };
-    if let Some(ref key) = path_key {
-        dbg!(key, this.curr.is_tainted(key));
-        if this.curr.is_tainted(key) {
-            println!(
-                "TAINT WARNING: user data reaches fs::write at {:?}",
-                call.span
-            );
+
+    // Only report if both hold
+    if dangerous && tainted {
+        if let Some(span) = call.span {
+            this.record_sink_hit("std::fs::write", "/proc/self/mem", span);
         }
     }
-    this.curr.dump_taint();
 }
 
 fn handle_env_set_var<'tcx, 'mir, 'ctx>(this: &mut MIRParser<'tcx, 'mir, 'ctx>, call: Call<'tcx>) {
+    // std::env::set_var(name, value)
     if call.args.len() < 2 {
         return;
     }
-    if this.operand_matches_literal(&call.args[0], ENV_TO_TRACK) {
-        if let Some(span) = call.span {
-            println!("CRITICAL: env::set_var({}) at {:?}", ENV_TO_TRACK, span);
-            //this.dangerous_spans.push(span); // currnelty the span is exptected to contain lcoations for std::fs::write , so adding these will confuse the user, we need to update the span vector handling logic
-        }
+
+    let name_op = &call.args[0];
+    let val_op = &call.args[1];
+
+    // Any public/tainted input flowing into either name or value?
+    let tainted = this.operand_tainted(name_op) || this.operand_tainted(val_op);
+    if !tainted {
+        return;
     }
-    // also print if you see some other env variable being set
-    else if let Some(env_var) = this.get_string_from_operand(&call.args[0]) {
-        if let Some(span) = call.span {
-            println!(
-                "WARNING: Setting environment variable: {} at {:?}",
-                env_var, span
-            );
-            // this.dangerous_spans.push(span);
-        }
+
+    // Best-effort get the env var name; fall back to a placeholder
+    let name_str = this
+        .get_string_from_operand(name_op)
+        .map(|s| s.to_string())
+        .unwrap_or_else(|| "<unknown_env_var>".to_string());
+
+    if let Some(span) = call.span {
+        this.record_sink_hit("std::env::set_var", &name_str, span);
     }
 }
 
@@ -969,21 +984,39 @@ fn generic_string_handler<'tcx, 'mir, 'ctx>(
     this: &mut MIRParser<'tcx, 'mir, 'ctx>,
     call: Call<'tcx>,
 ) {
-    dbg!();
-    if call.args.is_empty() {
+    // Which arg to look at (defaults to 0 if no SinkInformation)
+    let idx = call.sink.map(|s| s.arg_idx).unwrap_or(0);
+    let Some(arg) = call.args.get(idx) else {
         return;
-    }
-    if let Some(s) = this.get_string_from_operand(&call.args[0]) {
-        let key = this.place_key(&call.dest);
-        this.curr.assign_string(&key, s);
-        let x = this
-            .curr
-            .check_string_matches(this.curr.get_string(&key).unwrap(), FUNCTION_ARG);
-        if x == z3::SatResult::Sat {
-            println!(
-                "Found matching string for {} at {:?}",
-                FUNCTION_ARG, call.span
-            );
+    };
+
+    // extract the string from the argument
+    if let Some(sym_str) = this.get_string_from_operand(arg) {
+        let dest_key = this.place_key(&call.dest);
+        this.curr.assign_string(&dest_key, sym_str.clone());
+
+        // propagate taint from the arg to the dest
+        if this.operand_tainted(arg) {
+            this.curr.set_taint(&dest_key, true);
+        }
+
+        if let Some(info) = call.sink {
+            // Can the value match the forbidden value?
+            let sat = this
+                .curr
+                .check_string_matches(this.curr.get_string(&dest_key).unwrap(), info.forbidden_val)
+                == z3::SatResult::Sat;
+            // println!("generic_string_handler: sat = {}", sat);
+
+            // 2) Is the argument source tainted?
+            let tainted = this.operand_tainted(arg);
+
+            // Only report if both are true
+            if sat && tainted {
+                if let Some(span) = call.span {
+                    this.record_sink_hit(FUNCTION_NAME, info.forbidden_val, span);
+                }
+            }
         }
     }
 }
