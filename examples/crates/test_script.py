@@ -4,11 +4,15 @@ import shutil
 import subprocess
 from pathlib import Path
 
+# TODO: remove hardcoded path so that it works when run from root directory
+# ROOT_DIR     = Path("../..")
 ROOT_DIR     = Path("/Users/hassnain/Desktop/LHS/lhs")
+# ROOT_DIR     = Path("/Users/caleb/git/research/RustSec/lhs")
+
 EXAMPLES_DIR = ROOT_DIR / "examples" / "crates"
 RESULTS_CSV  = EXAMPLES_DIR / "results.csv"
 LHS_BIN      = ROOT_DIR / "target" / "debug" / "lhs"
-CSV_NAME     = "dangerous_spans.csv"   
+CSV_NAME     = "dangerous_spans.csv"
 
 def run(cmd, cwd=None):
     return subprocess.run(
@@ -66,7 +70,7 @@ def eval_group(group: str, writer: csv.writer, summary: dict):
         hit = crate_hit(crate_dir)
         result = ("FAIL", "PASS")[hit] if group == "unsafe" else ("PASS", "FAIL")[hit]
 
-        print(f"[INFO] {group}: {crate_name} → {result}") 
+        print(f"[INFO] {group}: {crate_name} → {result}")
 
         writer.writerow([group, crate_name, hit, result])
 
