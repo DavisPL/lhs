@@ -117,7 +117,7 @@ where
         //some traits that are used implicitly
          self.register_handler("core::convert::From::from", handle_from_trait, None);
          self.register_handler("std::convert::From::from", handle_from_trait, None);
-       
+
 
         self.register_handler(
             FUNCTION_NAME,
@@ -135,6 +135,7 @@ where
         // Sources
         self.register_handler("std::env::args", handle_env_args, None);
         self.register_handler("std::env::args_os", handle_env_args, None);
+        // TODO: env::var, env::var_os should be trusted
         self.register_handler("std::env::var", handle_env_var, None);
         self.register_handler("std::env::var_os", handle_env_var, None);
     }
