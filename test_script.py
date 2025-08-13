@@ -1,15 +1,11 @@
 #!/usr/bin/env python3
 import csv
-import shutil
 import subprocess
 from pathlib import Path
+import sys
+import os
 
-# TODO: remove hardcoded path so that it works when run from root directory
-# ROOT_DIR     = Path("../..")
-# ROOT_DIR     = Path("/Users/hassnain/Desktop/LHS/lhs")
-ROOT_DIR     = Path("/home/hassnain/Desktop/LHS/lhs")
-# ROOT_DIR     = Path("/Users/caleb/git/research/RustSec/lhs")
-
+ROOT_DIR = Path(os.getcwd())
 EXAMPLES_DIR = ROOT_DIR / "examples" / "crates"
 RESULTS_CSV  = EXAMPLES_DIR / "results.csv"
 LHS_BIN      = ROOT_DIR / "target" / "debug" / "lhs"
@@ -24,7 +20,10 @@ def run(cmd, cwd=None):
 
 def build_lhs():
     print("[INFO] Building lhs…")
-    run(["cargo", "build", "--manifest-path", str(ROOT_DIR / "Cargo.toml")])
+    result = run(["cargo", "build", "--manifest-path", str(ROOT_DIR / "Cargo.toml")])
+    if result.returncode != 0:
+        print(f"[ERROR] Failed to build lhs: {result.stdout}")
+        sys.exit(1)
 
 def crate_hit(crate_dir: Path) -> bool:
     csv_path = crate_dir / CSV_NAME
@@ -84,7 +83,18 @@ def eval_group(group: str, writer: csv.writer, summary: dict):
         cleanup(crate_dir)
 
 def main():
+    # Verify that the LHS binary will exist after build
+    if not ROOT_DIR.exists():
+        print(f"[ERROR] LHS root directory does not exist: {ROOT_DIR}")
+        sys.exit(1)
+    
     build_lhs()
+    
+    # Verify LHS binary was built successfully
+    if not LHS_BIN.exists():
+        print(f"[ERROR] LHS binary not found at: {LHS_BIN}")
+        sys.exit(1)
+    
     EXAMPLES_DIR.mkdir(parents=True, exist_ok=True)
 
     summary = {

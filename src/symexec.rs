@@ -395,6 +395,29 @@ impl<'ctx> SymExecBool<'ctx> {
         s.check()
     }
 
+    /// UNSAT if it's impossible for expr to NOT match the pattern
+    pub fn check_string_always_matches(
+        &self,
+        expr: &z3::ast::String<'ctx>,
+        pattern: &str,
+    ) -> z3::SatResult {
+        let re = self.regex_from_pattern(pattern);
+        let matches = expr.regex_matches(&re);
+        self.check_constraint_sat(&self.not(&matches))
+    }
+
+    /// SAT if there exists a model with s == lit
+    pub fn could_equal_literal(&self, s: &z3::ast::String<'ctx>, lit: &str) -> z3::SatResult {
+        let eq = s._eq(&self.static_string(lit));
+        self.check_constraint_sat(&eq)
+    }
+
+    /// UNSAT if it's impossible for s != lit
+    pub fn must_equal_literal(&self, s: &z3::ast::String<'ctx>, lit: &str) -> z3::SatResult {
+        let ne = self.not(&s._eq(&self.static_string(lit)));
+        self.check_constraint_sat(&ne)
+    }
+
     pub fn is_tainted(&self, name: &str) -> bool {
         self.string_flag(name).unwrap_or(false)
             || self.int_flag(name).unwrap_or(false)
@@ -403,7 +426,6 @@ impl<'ctx> SymExecBool<'ctx> {
 
     /// Force a taint value (true = tainted, false = clean) on all slots that might carry this variable’s name.
     pub fn set_taint(&mut self, name: &str, flag: bool) {
-
         let mut touched = false;
         if self.set_string_flag(name, flag).is_ok() {
             touched = true;

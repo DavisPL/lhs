@@ -110,14 +110,14 @@ where
 
         self.register_handler("std::path::PathBuf::from", handle_pathbuf_from, None);
         self.register_handler("std::path::PathBuf::deref", handle_pathbuf_deref, None);
+        self.register_handler("std::ops::Deref::deref", handle_pathbuf_deref, None);
+        self.register_handler("core::ops::deref::Deref::deref", handle_pathbuf_deref, None);
         self.register_handler("std::path::Path::join", handle_path_join, None);
         self.register_handler("std::path::PathBuf::push", handle_pathbuf_push, None);
 
-
         //some traits that are used implicitly
-         self.register_handler("core::convert::From::from", handle_from_trait, None);
-         self.register_handler("std::convert::From::from", handle_from_trait, None);
-
+        self.register_handler("core::convert::From::from", handle_from_trait, None);
+        self.register_handler("std::convert::From::from", handle_from_trait, None);
 
         self.register_handler(
             FUNCTION_NAME,
@@ -135,9 +135,9 @@ where
         // Sources
         self.register_handler("std::env::args", handle_env_args, None);
         self.register_handler("std::env::args_os", handle_env_args, None);
-        // TODO: env::var, env::var_os should be trusted
-        self.register_handler("std::env::var", handle_env_var, None);
-        self.register_handler("std::env::var_os", handle_env_var, None);
+        // we are not treating env as source now
+        // self.register_handler("std::env::var", handle_env_var, None);
+        // self.register_handler("std::env::var_os", handle_env_var, None);
     }
 
     fn operand_tainted(&self, op: &Operand<'tcx>) -> bool {
@@ -707,8 +707,8 @@ where
         }
         self.handlers
             .iter()
-            .filter(|(k, _)| path.starts_with(k.as_str()))
-            .max_by_key(|(k, _)| k.len())  // Find the longest matching prefix
+            .filter(|(k, _)| path.starts_with(k.as_str()) || path.ends_with(k.as_str()))
+            .max_by_key(|(k, _)| k.len())
             .map(|(_, (h, sink))| (*h, *sink))
     }
 
@@ -723,6 +723,7 @@ where
     ) {
         if let Some(def_id) = get_operand_def_id(&func) {
             let path = self.def_path_str(def_id);
+            println!("CALL {}", path);
 
             if let Some((handler, sink)) = self.find_handler(&path) {
                 // call handler
@@ -860,25 +861,8 @@ pub struct Call<'tcx> {
 type CallHandler<'tcx, 'mir, 'ctx> = fn(&mut MIRParser<'tcx, 'mir, 'ctx>, Call<'tcx>);
 
 fn handle_fs_write<'tcx, 'mir, 'ctx>(this: &mut MIRParser<'tcx, 'mir, 'ctx>, call: Call<'tcx>) {
-    if call.args.is_empty() {
-        return;
-    }
-
-    // can it write to /proc/self/mem ?
-    let dangerous = this.check_write_safety(&call.args[0]);
-
-    // is that path tainted?
-    let tainted = match &call.args[0] {
-        Operand::Copy(p) | Operand::Move(p) => this.curr.is_tainted(&this.place_key(p)),
-        Operand::Constant(_) => false,
-    };
-
-    // Only report if both hold
-    if dangerous && tainted {
-        if let Some(span) = call.span {
-            this.record_sink_hit("std::fs::write", "/proc/self/mem", span);
-        }
-    }
+    // offload to generic string handler, this should work
+    generic_string_handler(this, call);
 }
 
 fn handle_env_set_var<'tcx, 'mir, 'ctx>(this: &mut MIRParser<'tcx, 'mir, 'ctx>, call: Call<'tcx>) {
@@ -927,14 +911,20 @@ fn handle_pathbuf_deref<'tcx, 'mir, 'ctx>(
 }
 
 fn handle_path_join<'tcx, 'mir, 'ctx>(this: &mut MIRParser<'tcx, 'mir, 'ctx>, call: Call<'tcx>) {
-    if call.args.len() < 2 {
+    dbg!();
+    if call.args.is_empty() {
         return;
     }
+    dbg!();
+    println!("PathBuf::join called with args: {:?}", call.args);
     if let (Some(base), Some(comp)) = (
         this.get_string_from_operand(&call.args[0]),
         this.get_string_from_operand(&call.args[1]),
     ) {
+        dbg!();
+        println!("PathBuf::join: base = {:?}, comp = {:?}", base, comp);
         let joined = this.curr.path_join(&base, &comp);
+        println!("PathBuf::join: joined = {:?}", joined);
         let key = this.place_key(&call.dest);
         this.curr.assign_string(&key, joined);
     }
@@ -959,11 +949,7 @@ fn handle_string_from<'tcx, 'mir, 'ctx>(this: &mut MIRParser<'tcx, 'mir, 'ctx>, 
 }
 
 // Handle the `From` trait for String and PathBuf
-fn handle_from_trait<'tcx, 'mir, 'ctx>(
-    this: &mut MIRParser<'tcx, 'mir, 'ctx>,
-    call: Call<'tcx>,
-) {
-
+fn handle_from_trait<'tcx, 'mir, 'ctx>(this: &mut MIRParser<'tcx, 'mir, 'ctx>, call: Call<'tcx>) {
     if call.args.is_empty() {
         return;
     }
@@ -991,10 +977,12 @@ fn handle_from_trait<'tcx, 'mir, 'ctx>(
     if !is_string && !is_pathbuf {
         return;
     }
-
+    dbg!();
     // pull the string from arg 0
     if let Some(val) = this.get_string_from_operand(&call.args[0]) {
+        println!("I pulled a string: {}", val);
         let key = this.place_key(&call.dest);
+        println!("I will assign it to key: {}", key);
         this.curr.assign_string(&key, val);
 
         // propagate taint from the arg to the dest
@@ -1025,18 +1013,49 @@ fn generic_string_handler<'tcx, 'mir, 'ctx>(
         }
 
         if let Some(info) = call.sink {
-            // Can the value match the forbidden value?
-            let sat = this
-                .curr
-                .check_string_matches(this.curr.get_string(&dest_key).unwrap(), info.forbidden_val)
-                == z3::SatResult::Sat;
-            // println!("generic_string_handler: sat = {}", sat);
+            let dest_expr = this.curr.get_string(&dest_key).unwrap();
+            let use_regex = info.forbidden_val.contains('*');
 
-            // 2) Is the argument source tainted?
+            let (could_match, always_match) = if use_regex {
+                (
+                    // IF there is regex, check for pattern match
+                    this.curr
+                        .check_string_matches(dest_expr, info.forbidden_val)
+                        == z3::SatResult::Sat,
+                    this.curr
+                        .check_string_always_matches(dest_expr, info.forbidden_val)
+                        == z3::SatResult::Unsat,
+                )
+            } else {
+                (
+                    this.curr.could_equal_literal(dest_expr, info.forbidden_val)
+                        == z3::SatResult::Sat,
+                    this.curr.must_equal_literal(dest_expr, info.forbidden_val)
+                        == z3::SatResult::Unsat,
+                )
+            };
+
+            // Is the argument source tainted?
             let tainted = this.operand_tainted(arg);
 
-            // Only report if both are true
-            if sat && tainted {
+            /*
+            Report in two cases
+            // Case 1
+            i) Value is tainted
+            ii) Value may have forbidden value in some executions.
+            // Case 2
+            i) Value will be forbidden in ALL execution (handle consts)
+            */
+            if (could_match && tainted) || always_match {
+                println!(
+                    "Sink hit: {} with value '{}' at {:?}",
+                    info.forbidden_val, sym_str, call.span
+                );
+
+                println!("I had {:?} {:?} {:?}", could_match, tainted, always_match);
+
+                this.curr.dump_taint();
+
                 if let Some(span) = call.span {
                     this.record_sink_hit(FUNCTION_NAME, info.forbidden_val, span);
                 }

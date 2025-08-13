@@ -108,7 +108,7 @@ pub fn trace_mir_body<'tcx>(tcx: TyCtxt<'tcx>, mir_body: &'tcx Body<'tcx>) {
                     .map(|field| field.did)
                     .collect::<Vec<_>>();
 
-                // Now you have a Vec containing all DefIds
+                // Now we have a Vec containing all DefIds
                 for def_id in &def_ids {
                     if def_id.index.as_usize() == DEF_ID_PATH_BUF {
                         ev.create_uninterpreted_string(local.as_usize().to_string().as_str());
