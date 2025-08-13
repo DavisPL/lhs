@@ -723,7 +723,7 @@ where
     ) {
         if let Some(def_id) = get_operand_def_id(&func) {
             let path = self.def_path_str(def_id);
-            println!("CALL {}", path);
+            // println!("CALL {}", path);
 
             if let Some((handler, sink)) = self.find_handler(&path) {
                 // call handler
@@ -911,20 +911,14 @@ fn handle_pathbuf_deref<'tcx, 'mir, 'ctx>(
 }
 
 fn handle_path_join<'tcx, 'mir, 'ctx>(this: &mut MIRParser<'tcx, 'mir, 'ctx>, call: Call<'tcx>) {
-    dbg!();
     if call.args.is_empty() {
         return;
     }
-    dbg!();
-    println!("PathBuf::join called with args: {:?}", call.args);
     if let (Some(base), Some(comp)) = (
         this.get_string_from_operand(&call.args[0]),
         this.get_string_from_operand(&call.args[1]),
     ) {
-        dbg!();
-        println!("PathBuf::join: base = {:?}, comp = {:?}", base, comp);
         let joined = this.curr.path_join(&base, &comp);
-        println!("PathBuf::join: joined = {:?}", joined);
         let key = this.place_key(&call.dest);
         this.curr.assign_string(&key, joined);
     }
@@ -977,12 +971,10 @@ fn handle_from_trait<'tcx, 'mir, 'ctx>(this: &mut MIRParser<'tcx, 'mir, 'ctx>, c
     if !is_string && !is_pathbuf {
         return;
     }
-    dbg!();
+    
     // pull the string from arg 0
     if let Some(val) = this.get_string_from_operand(&call.args[0]) {
-        println!("I pulled a string: {}", val);
         let key = this.place_key(&call.dest);
-        println!("I will assign it to key: {}", key);
         this.curr.assign_string(&key, val);
 
         // propagate taint from the arg to the dest
