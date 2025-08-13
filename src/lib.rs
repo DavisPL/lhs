@@ -22,3 +22,4 @@ pub mod operand;
 pub mod parser;
 pub mod settings;
 pub mod symexec;
+pub mod handlers;
