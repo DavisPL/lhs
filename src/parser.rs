@@ -15,7 +15,7 @@ use crate::operand::{
     get_operand_const_string, get_operand_def_id, get_operand_local, get_operand_span,
 };
 // TODO: update to use SOURCE_FUNCTIONS and SINK_FUNCTION_ARGS
-use crate::settings::{ENV_TO_TRACK, FUNCTION_ARG, FUNCTION_NAME, MAX_LOOP_ITER};
+use crate::settings::{ENV_VARS_TO_TRACK, MAX_LOOP_ITER , SOURCE_FUNCTIONS, SINK_FUNCTION_ARGS};
 use crate::symexec::SymExecBool as SymExec;
 
 use std::collections::{HashMap, HashSet};
@@ -46,7 +46,7 @@ where
     dangerous_spans: HashMap<(String, String), Vec<Span>>,
 
     // registry of “interesting” callees → handler
-    handlers: IndexMap<String, (CallHandler<'tcx, 'mir, 'ctx>, Option<SinkInformation>)>,
+    handlers: IndexMap<String, (CallHandler<'tcx, 'mir, 'ctx>, Vec<SinkInformation>)>,
     tcx: TyCtxt<'tcx>,
 }
 
@@ -82,9 +82,12 @@ where
         &mut self,
         path: S,
         handler: CallHandler<'tcx, 'mir, 'ctx>,
-        sink: Option<SinkInformation>,
     ) {
-        self.handlers.insert(path.into(), (handler, sink));
+       let path = path.into();
+        self.handlers
+            .entry(path)
+            .and_modify(|e| e.0 = handler)
+            .or_insert((handler, Vec::new()));
     }
 
     pub fn register_forbid<S: Into<String>>(
@@ -94,50 +97,46 @@ where
         arg_idx: usize,
         forbidden_val: &'static str,
     ) {
-        self.register_handler(
-            path,
-            handler,
-            Some(SinkInformation {
-                arg_idx,
-                forbidden_val,
-            }),
-        );
+        let path = path.into();
+    let entry = self.handlers.entry(path).or_insert((handler, Vec::new()));
+    entry.0 = handler; // ensure correct handler is set
+    entry.1.push(SinkInformation { arg_idx, forbidden_val });
     }
 
     fn add_builtin_handlers(&mut self) {
-        self.register_forbid("std::fs::write", handle_fs_write, 0, "/proc/self/mem");
-        self.register_forbid("std::env::set_var", handle_env_set_var, 0, ENV_TO_TRACK);
 
-        self.register_handler("std::path::PathBuf::from", handle_pathbuf_from, None);
-        self.register_handler("std::path::PathBuf::deref", handle_pathbuf_deref, None);
-        self.register_handler("std::ops::Deref::deref", handle_pathbuf_deref, None);
-        self.register_handler("core::ops::deref::Deref::deref", handle_pathbuf_deref, None);
-        self.register_handler("std::path::Path::join", handle_path_join, None);
-        self.register_handler("std::path::PathBuf::push", handle_pathbuf_push, None);
+        // register sinks from the settings
+        for (path, arg_idx, forbidden) in SINK_FUNCTION_ARGS {
+            self.register_forbid(*path, generic_string_handler, *arg_idx, forbidden);
+        }
+
+        // register env's we want to check for update
+        for &name in ENV_VARS_TO_TRACK {
+            self.register_forbid("std::env::set_var", generic_string_handler, 0, name);
+        }
+
+        //register sources 
+        for &name in SOURCE_FUNCTIONS {
+            self.register_handler(name, handle_generic_source);
+        }
+
+        // all other handlers we added for processing
+        self.register_handler("std::path::PathBuf::from", handle_pathbuf_from);
+        self.register_handler("std::path::PathBuf::deref", handle_pathbuf_deref);
+        self.register_handler("std::ops::Deref::deref", handle_pathbuf_deref);
+        self.register_handler("core::ops::deref::Deref::deref", handle_pathbuf_deref);
+        self.register_handler("std::path::Path::join", handle_path_join);
+        self.register_handler("std::path::PathBuf::push", handle_pathbuf_push);
 
         //some traits that are used implicitly
-        self.register_handler("core::convert::From::from", handle_from_trait, None);
-        self.register_handler("std::convert::From::from", handle_from_trait, None);
+        self.register_handler("core::convert::From::from", handle_from_trait);
+        self.register_handler("std::convert::From::from", handle_from_trait);
 
-        self.register_handler(
-            FUNCTION_NAME,
-            generic_string_handler,
-            Some(SinkInformation {
-                arg_idx: 0,
-                forbidden_val: FUNCTION_ARG,
-            }),
-        );
 
-        self.register_handler("alloc::string::String::from", handle_string_from, None);
-        self.register_handler("std::string::String::from", handle_string_from, None);
-        self.register_handler("std::ffi::OsString::from", handle_string_from, None);
+        self.register_handler("alloc::string::String::from", handle_string_from);
+        self.register_handler("std::string::String::from", handle_string_from);
+        self.register_handler("std::ffi::OsString::from", handle_string_from);
 
-        // Sources
-        self.register_handler("std::env::args", handle_env_args, None);
-        self.register_handler("std::env::args_os", handle_env_args, None);
-        // we are not treating env as source now
-        // self.register_handler("std::env::var", handle_env_var, None);
-        // self.register_handler("std::env::var_os", handle_env_var, None);
     }
 
     fn operand_tainted(&self, op: &Operand<'tcx>) -> bool {
@@ -699,18 +698,18 @@ where
     }
 
     fn find_handler(
-        &self,
-        path: &str,
-    ) -> Option<(CallHandler<'tcx, 'mir, 'ctx>, Option<SinkInformation>)> {
-        if let Some((h, sink)) = self.handlers.get(path) {
-            return Some((*h, *sink)); // Exact match found
-        }
-        self.handlers
-            .iter()
-            .filter(|(k, _)| path.starts_with(k.as_str()) || path.ends_with(k.as_str()))
-            .max_by_key(|(k, _)| k.len())
-            .map(|(_, (h, sink))| (*h, *sink))
+    &self,
+    path: &str,
+) -> Option<(CallHandler<'tcx, 'mir, 'ctx>, Vec<SinkInformation>)> {
+    if let Some((h, sinks)) = self.handlers.get(path) {
+        return Some((*h, sinks.clone()));
     }
+    self.handlers
+        .iter()
+        .filter(|(k, _)| path.starts_with(k.as_str()) || path.ends_with(k.as_str()))
+        .max_by_key(|(k, _)| k.len())
+        .map(|(_, (h, sinks))| (*h, sinks.clone()))
+}
 
     // Handle function calls - this is completely rewritten to detect path operations
     fn handle_function_call(
@@ -721,25 +720,30 @@ where
         target: Option<BasicBlock>,
         unwind: UnwindAction,
     ) {
-        if let Some(def_id) = get_operand_def_id(&func) {
-            let path = self.def_path_str(def_id);
-            // println!("CALL {}", path);
+       if let Some(def_id) = get_operand_def_id(&func) {
+        let path = self.def_path_str(def_id);
 
-            if let Some((handler, sink)) = self.find_handler(&path) {
-                // call handler
-                let arg_vec: Vec<Operand<'tcx>> = args.iter().map(|s| s.node.clone()).collect();
-                handler(
-                    self,
-                    Call {
-                        func_def_id: def_id,
-                        args: arg_vec,
-                        dest,
-                        span: get_operand_span(&func),
-                        sink, // pass the copied SinkInformation along
-                    },
-                );
+        if let Some((handler, sinks)) = self.find_handler(&path) {
+            let arg_vec: Vec<Operand<'tcx>> = args.iter().map(|s| s.node.clone()).collect();
+            let base_call = Call {
+                func_def_id: def_id,
+                args: arg_vec,
+                dest,
+                span: get_operand_span(&func),
+                sink: None,
+            };
+
+            if sinks.is_empty() {
+                handler(self, base_call);
+            } else {
+                for s in sinks {
+                    let mut c = base_call.clone();
+                    c.sink = Some(s);
+                    handler(self, c);
+                }
             }
         }
+    }
 
         // taint propagation
         let dest_key = self.place_key(&dest);
@@ -755,32 +759,9 @@ where
         }
     }
 
-    // Extracted function to check if a write operation is dangerous
-    // This separates the safety checking logic from the main function call handler
-    fn check_write_safety(&self, path_operand: &Operand<'tcx>) -> bool {
-        match get_operand_local(path_operand) {
-            // Case 1: Direct constant string (local index 0 means it's a constant)
-            Some(0) => {
-                if let Some(s) = get_operand_const_string(path_operand) {
-                    s == "/proc/self/mem"
-                } else {
-                    false
-                }
-            }
-            // Case 2: Variable containing a symbolic string
-            Some(idx) => {
-                if let Some(sym_str) = self.curr.get_string(&idx.to_string()) {
-                    // Use Z3 to check if this symbolic string could equal "/proc/self/mem"
-                    matches!(self.curr.is_write_safe(sym_str), Ok(SatResult::Sat))
-                } else {
-                    false
-                }
-            }
-            // Case 3: Cannot determine operand type
-            None => false,
-        }
-    }
-
+    // Hassnain : Removed this function, as we are using a generic string matching fucniton now
+    // fn check_write_safety(&self, path_operand: &Operand<'tcx>) -> bool {
+    
     // Extract string value from an operand (constant or symbolic)
     fn get_string_from_operand(&self, operand: &Operand<'tcx>) -> Option<z3::ast::String<'ctx>> {
         match operand {
@@ -850,6 +831,7 @@ where
     }
 }
 
+#[derive(Clone)]
 pub struct Call<'tcx> {
     pub func_def_id: DefId,            // DEF ID of the function being called
     pub dest: Place<'tcx>,             // Where the call return value is stored , i.e, _5 in MIR
@@ -860,36 +842,10 @@ pub struct Call<'tcx> {
 
 type CallHandler<'tcx, 'mir, 'ctx> = fn(&mut MIRParser<'tcx, 'mir, 'ctx>, Call<'tcx>);
 
-fn handle_fs_write<'tcx, 'mir, 'ctx>(this: &mut MIRParser<'tcx, 'mir, 'ctx>, call: Call<'tcx>) {
-    // offload to generic string handler, this should work
-    generic_string_handler(this, call);
-}
-
-fn handle_env_set_var<'tcx, 'mir, 'ctx>(this: &mut MIRParser<'tcx, 'mir, 'ctx>, call: Call<'tcx>) {
-    // std::env::set_var(name, value)
-    if call.args.len() < 2 {
-        return;
-    }
-
-    let name_op = &call.args[0];
-    let val_op = &call.args[1];
-
-    // Any public/tainted input flowing into either name or value?
-    let tainted = this.operand_tainted(name_op) || this.operand_tainted(val_op);
-    if !tainted {
-        return;
-    }
-
-    // Best-effort get the env var name; fall back to a placeholder
-    let name_str = this
-        .get_string_from_operand(name_op)
-        .map(|s| s.to_string())
-        .unwrap_or_else(|| "<unknown_env_var>".to_string());
-
-    if let Some(span) = call.span {
-        this.record_sink_hit("std::env::set_var", &name_str, span);
-    }
-}
+// Hassnain : Removed these function, as we are using a generic string matching fucniton now
+// fn handle_fs_write<'tcx, 'mir, 'ctx>(this: &mut MIRParser<'tcx, 'mir, 'ctx>, call: Call<'tcx>) {
+// fn handle_env_set_var<'tcx, 'mir, 'ctx>(this: &mut MIRParser<'tcx, 'mir, 'ctx>, call: Call<'tcx>) {
+    
 
 fn handle_pathbuf_from<'tcx, 'mir, 'ctx>(this: &mut MIRParser<'tcx, 'mir, 'ctx>, call: Call<'tcx>) {
     debug_assert_eq!(call.args.len(), 1);
@@ -1039,31 +995,25 @@ fn generic_string_handler<'tcx, 'mir, 'ctx>(
             i) Value will be forbidden in ALL execution (handle consts)
             */
             if (could_match && tainted) || always_match {
-                println!(
-                    "Sink hit: {} with value '{}' at {:?}",
-                    info.forbidden_val, sym_str, call.span
-                );
-
-                println!("I had {:?} {:?} {:?}", could_match, tainted, always_match);
-
-                this.curr.dump_taint();
-
                 if let Some(span) = call.span {
-                    this.record_sink_hit(FUNCTION_NAME, info.forbidden_val, span);
+                    let func_path = this.def_path_str(call.func_def_id);
+                    this.record_sink_hit(&func_path, info.forbidden_val, span);
                 }
             }
         }
     }
 }
 
-fn handle_env_args<'tcx, 'mir, 'ctx>(this: &mut MIRParser<'tcx, 'mir, 'ctx>, call: Call<'tcx>) {
-    let key = this.place_key(&call.dest);
-    this.curr.set_taint(&key, true); // tainted source
-}
+// Hassnain : Removed these two becuase we are using handle_generic_source now
+// fn handle_env_args<'tcx, 'mir, 'ctx>(this: &mut MIRParser<'tcx, 'mir, 'ctx>, call: Call<'tcx>) {
+// fn handle_env_var<'tcx, 'mir, 'ctx>(this: &mut MIRParser<'tcx, 'mir, 'ctx>, call: Call<'tcx>) {
 
-fn handle_env_var<'tcx, 'mir, 'ctx>(this: &mut MIRParser<'tcx, 'mir, 'ctx>, call: Call<'tcx>) {
+fn handle_generic_source<'tcx, 'mir, 'ctx>(
+    this: &mut MIRParser<'tcx, 'mir, 'ctx>,
+    call: Call<'tcx>,
+) {
     let key = this.place_key(&call.dest);
-    this.curr.set_taint(&key, true); // tainted source
+    this.curr.set_taint(&key, true);
 }
 
 fn handle_pathbuf_push<'tcx, 'mir, 'ctx>(this: &mut MIRParser<'tcx, 'mir, 'ctx>, call: Call<'tcx>) {
@@ -1101,3 +1051,4 @@ fn handle_pathbuf_push<'tcx, 'mir, 'ctx>(this: &mut MIRParser<'tcx, 'mir, 'ctx>,
         }
     }
 }
+
