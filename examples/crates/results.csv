@@ -9,6 +9,7 @@ unsafe,command2,True,PASS
 unsafe,command3,True,PASS
 unsafe,command4,True,PASS
 unsafe,command5,True,PASS
+unsafe,command6,True,PASS
 unsafe,env1,True,PASS
 unsafe,example1,True,PASS
 unsafe,pathbuff1,True,PASS
