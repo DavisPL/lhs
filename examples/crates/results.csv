@@ -4,6 +4,7 @@ safe,command2,False,PASS
 safe,command3,False,PASS
 safe,example1,False,PASS
 safe,example2,False,PASS
+safe,path_push,False,PASS
 unsafe,command1,True,PASS
 unsafe,command2,True,PASS
 unsafe,command3,True,PASS

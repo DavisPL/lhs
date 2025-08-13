@@ -15,7 +15,7 @@ use crate::operand::{
     get_operand_const_string, get_operand_def_id, get_operand_local, get_operand_span,
 };
 // TODO: update to use SOURCE_FUNCTIONS and SINK_FUNCTION_ARGS
-use crate::settings::{ENV_VARS_TO_TRACK, MAX_LOOP_ITER , SOURCE_FUNCTIONS, SINK_FUNCTION_ARGS};
+use crate::settings::{ENV_VARS_TO_TRACK, MAX_LOOP_ITER, SINK_FUNCTION_ARGS, SOURCE_FUNCTIONS};
 use crate::symexec::SymExecBool as SymExec;
 
 use std::collections::{HashMap, HashSet};
@@ -44,6 +44,7 @@ where
     // TODO: Vec<AnalysisResult>
     // Or: HashMap<(String, Operand), AnalysisResult>
     dangerous_spans: HashMap<(String, String), Vec<Span>>,
+    aliases: HashMap<String, String>, // Hashmap for aliases check
 
     // registry of “interesting” callees → handler
     handlers: IndexMap<String, (CallHandler<'tcx, 'mir, 'ctx>, Vec<SinkInformation>)>,
@@ -63,6 +64,7 @@ where
             stack: Vec::new(),
             path_count: 0,
             visit_counts: HashMap::new(),
+            aliases: HashMap::new(),
             dangerous_spans: HashMap::default(),
         };
 
@@ -83,7 +85,7 @@ where
         path: S,
         handler: CallHandler<'tcx, 'mir, 'ctx>,
     ) {
-       let path = path.into();
+        let path = path.into();
         self.handlers
             .entry(path)
             .and_modify(|e| e.0 = handler)
@@ -98,13 +100,15 @@ where
         forbidden_val: &'static str,
     ) {
         let path = path.into();
-    let entry = self.handlers.entry(path).or_insert((handler, Vec::new()));
-    entry.0 = handler; // ensure correct handler is set
-    entry.1.push(SinkInformation { arg_idx, forbidden_val });
+        let entry = self.handlers.entry(path).or_insert((handler, Vec::new()));
+        entry.0 = handler; // ensure correct handler is set
+        entry.1.push(SinkInformation {
+            arg_idx,
+            forbidden_val,
+        });
     }
 
     fn add_builtin_handlers(&mut self) {
-
         // register sinks from the settings
         for (path, arg_idx, forbidden) in SINK_FUNCTION_ARGS {
             self.register_forbid(*path, generic_string_handler, *arg_idx, forbidden);
@@ -115,7 +119,7 @@ where
             self.register_forbid("std::env::set_var", generic_string_handler, 0, name);
         }
 
-        //register sources 
+        //register sources
         for &name in SOURCE_FUNCTIONS {
             self.register_handler(name, handle_generic_source);
         }
@@ -123,6 +127,8 @@ where
         // all other handlers we added for processing
         self.register_handler("std::path::PathBuf::from", handle_pathbuf_from);
         self.register_handler("std::path::PathBuf::deref", handle_pathbuf_deref);
+        self.register_handler("std::path::Path::new", handle_path_new);
+        self.register_handler("std::path::Path::to_path_buf", handle_path_to_path_buf);
         self.register_handler("std::ops::Deref::deref", handle_pathbuf_deref);
         self.register_handler("core::ops::deref::Deref::deref", handle_pathbuf_deref);
         self.register_handler("std::path::Path::join", handle_path_join);
@@ -132,11 +138,9 @@ where
         self.register_handler("core::convert::From::from", handle_from_trait);
         self.register_handler("std::convert::From::from", handle_from_trait);
 
-
         self.register_handler("alloc::string::String::from", handle_string_from);
         self.register_handler("std::string::String::from", handle_string_from);
         self.register_handler("std::ffi::OsString::from", handle_string_from);
-
     }
 
     fn operand_tainted(&self, op: &Operand<'tcx>) -> bool {
@@ -518,6 +522,16 @@ where
         let src_key = self.place_key(place);
         self.copy_variable_value(&src_key, dest_key);
         self.curr.propagate_taint(&src_key, dest_key);
+        // need to keep track of the aliases as well, so updates can be properly applied
+        self.aliases.insert(dest_key.to_string(), src_key);
+    }
+
+    // Resolve an alias to its original variable , if no alias exists return the variable back
+    fn resolve_alias(&self, key: &str) -> String {
+        self.aliases
+            .get(key)
+            .cloned()
+            .unwrap_or_else(|| key.to_string())
     }
 
     // Handle cast operations: `x = y as T`
@@ -698,18 +712,18 @@ where
     }
 
     fn find_handler(
-    &self,
-    path: &str,
-) -> Option<(CallHandler<'tcx, 'mir, 'ctx>, Vec<SinkInformation>)> {
-    if let Some((h, sinks)) = self.handlers.get(path) {
-        return Some((*h, sinks.clone()));
+        &self,
+        path: &str,
+    ) -> Option<(CallHandler<'tcx, 'mir, 'ctx>, Vec<SinkInformation>)> {
+        if let Some((h, sinks)) = self.handlers.get(path) {
+            return Some((*h, sinks.clone()));
+        }
+        self.handlers
+            .iter()
+            .filter(|(k, _)| path.starts_with(k.as_str()) || path.ends_with(k.as_str()))
+            .max_by_key(|(k, _)| k.len())
+            .map(|(_, (h, sinks))| (*h, sinks.clone()))
     }
-    self.handlers
-        .iter()
-        .filter(|(k, _)| path.starts_with(k.as_str()) || path.ends_with(k.as_str()))
-        .max_by_key(|(k, _)| k.len())
-        .map(|(_, (h, sinks))| (*h, sinks.clone()))
-}
 
     // Handle function calls - this is completely rewritten to detect path operations
     fn handle_function_call(
@@ -720,30 +734,30 @@ where
         target: Option<BasicBlock>,
         unwind: UnwindAction,
     ) {
-       if let Some(def_id) = get_operand_def_id(&func) {
-        let path = self.def_path_str(def_id);
+        if let Some(def_id) = get_operand_def_id(&func) {
+            let path = self.def_path_str(def_id);
 
-        if let Some((handler, sinks)) = self.find_handler(&path) {
-            let arg_vec: Vec<Operand<'tcx>> = args.iter().map(|s| s.node.clone()).collect();
-            let base_call = Call {
-                func_def_id: def_id,
-                args: arg_vec,
-                dest,
-                span: get_operand_span(&func),
-                sink: None,
-            };
+            if let Some((handler, sinks)) = self.find_handler(&path) {
+                let arg_vec: Vec<Operand<'tcx>> = args.iter().map(|s| s.node.clone()).collect();
+                let base_call = Call {
+                    func_def_id: def_id,
+                    args: arg_vec,
+                    dest,
+                    span: get_operand_span(&func),
+                    sink: None,
+                };
 
-            if sinks.is_empty() {
-                handler(self, base_call);
-            } else {
-                for s in sinks {
-                    let mut c = base_call.clone();
-                    c.sink = Some(s);
-                    handler(self, c);
+                if sinks.is_empty() {
+                    handler(self, base_call);
+                } else {
+                    for s in sinks {
+                        let mut c = base_call.clone();
+                        c.sink = Some(s);
+                        handler(self, c);
+                    }
                 }
             }
         }
-    }
 
         // taint propagation
         let dest_key = self.place_key(&dest);
@@ -761,15 +775,12 @@ where
 
     // Hassnain : Removed this function, as we are using a generic string matching fucniton now
     // fn check_write_safety(&self, path_operand: &Operand<'tcx>) -> bool {
-    
+
     // Extract string value from an operand (constant or symbolic)
     fn get_string_from_operand(&self, operand: &Operand<'tcx>) -> Option<z3::ast::String<'ctx>> {
         match operand {
             Operand::Copy(place) | Operand::Move(place) => {
-                println!("I am here with operand: {:?}", operand);
                 let key = self.place_key(place);
-                println!("Key: {}", key);
-                println!("I shall return: {:?}", self.curr.get_string(&key));
                 self.curr.get_string(&key).cloned()
             }
             Operand::Constant(_) => {
@@ -845,7 +856,6 @@ type CallHandler<'tcx, 'mir, 'ctx> = fn(&mut MIRParser<'tcx, 'mir, 'ctx>, Call<'
 // Hassnain : Removed these function, as we are using a generic string matching fucniton now
 // fn handle_fs_write<'tcx, 'mir, 'ctx>(this: &mut MIRParser<'tcx, 'mir, 'ctx>, call: Call<'tcx>) {
 // fn handle_env_set_var<'tcx, 'mir, 'ctx>(this: &mut MIRParser<'tcx, 'mir, 'ctx>, call: Call<'tcx>) {
-    
 
 fn handle_pathbuf_from<'tcx, 'mir, 'ctx>(this: &mut MIRParser<'tcx, 'mir, 'ctx>, call: Call<'tcx>) {
     debug_assert_eq!(call.args.len(), 1);
@@ -927,7 +937,7 @@ fn handle_from_trait<'tcx, 'mir, 'ctx>(this: &mut MIRParser<'tcx, 'mir, 'ctx>, c
     if !is_string && !is_pathbuf {
         return;
     }
-    
+
     // pull the string from arg 0
     if let Some(val) = this.get_string_from_operand(&call.args[0]) {
         let key = this.place_key(&call.dest);
@@ -961,25 +971,21 @@ fn generic_string_handler<'tcx, 'mir, 'ctx>(
         }
 
         if let Some(info) = call.sink {
-            let dest_expr = this.curr.get_string(&dest_key).unwrap();
+            let s: &z3::ast::String<'ctx> = &sym_str;
+            // let dest_expr = this.curr.get_string(&dest_key).unwrap();
             let use_regex = info.forbidden_val.contains('*');
 
             let (could_match, always_match) = if use_regex {
                 (
                     // IF there is regex, check for pattern match
-                    this.curr
-                        .check_string_matches(dest_expr, info.forbidden_val)
-                        == z3::SatResult::Sat,
-                    this.curr
-                        .check_string_always_matches(dest_expr, info.forbidden_val)
+                    this.curr.check_string_matches(s, info.forbidden_val) == z3::SatResult::Sat,
+                    this.curr.check_string_always_matches(s, info.forbidden_val)
                         == z3::SatResult::Unsat,
                 )
             } else {
                 (
-                    this.curr.could_equal_literal(dest_expr, info.forbidden_val)
-                        == z3::SatResult::Sat,
-                    this.curr.must_equal_literal(dest_expr, info.forbidden_val)
-                        == z3::SatResult::Unsat,
+                    this.curr.could_equal_literal(s, info.forbidden_val) == z3::SatResult::Sat,
+                    this.curr.must_equal_literal(s, info.forbidden_val) == z3::SatResult::Unsat,
                 )
             };
 
@@ -1017,38 +1023,59 @@ fn handle_generic_source<'tcx, 'mir, 'ctx>(
 }
 
 fn handle_pathbuf_push<'tcx, 'mir, 'ctx>(this: &mut MIRParser<'tcx, 'mir, 'ctx>, call: Call<'tcx>) {
-    // push(&mut self, p)
     if call.args.len() < 2 {
         return;
     }
 
-    // arg0 = &mut PathBuf (self)
     let self_key = match &call.args[0] {
         Operand::Copy(p) | Operand::Move(p) => this.place_key(p),
         Operand::Constant(_) => return,
     };
 
-    // Get current base path out of self
-    let base_opt = this.curr.get_string(&self_key).cloned();
+    // resolve the alias to the original variable , if no alias, return self_key
+    let pointee_key = this.resolve_alias(&self_key);
 
-    // arg1 = component to push
+    let base_opt = this.curr.get_string(&pointee_key).cloned();
     let comp_opt = this.get_string_from_operand(&call.args[1]);
 
     if let (Some(base), Some(comp)) = (base_opt, comp_opt) {
         let joined = this.curr.path_join(&base, &comp);
-
-        // Mutate self in place
-        this.curr.assign_string(&self_key, joined);
-
-        // taint propagation
+        this.curr.assign_string(&pointee_key, joined);
         if this.operand_tainted(&call.args[1]) || this.operand_tainted(&call.args[0]) {
-            this.curr.set_taint(&self_key, true);
+            this.curr.set_taint(&pointee_key, true);
         }
-    } else {
-        // if something is wrong with the arguments, we still want to taint the result
-        if this.operand_tainted(&call.args[1]) || this.operand_tainted(&call.args[0]) {
-            this.curr.set_taint(&self_key, true);
+    } else if this.operand_tainted(&call.args[1]) || this.operand_tainted(&call.args[0]) {
+        this.curr.set_taint(&pointee_key, true);
+    }
+}
+
+fn handle_path_new<'tcx, 'mir, 'ctx>(this: &mut MIRParser<'tcx, 'mir, 'ctx>, call: Call<'tcx>) {
+    // new<T: AsRef<OsStr>>(s: T) -> &Path
+    if call.args.is_empty() {
+        return;
+    }
+    if let Some(s) = this.get_string_from_operand(&call.args[0]) {
+        let key = this.place_key(&call.dest);
+        this.curr.assign_string(&key, s);
+        if this.operand_tainted(&call.args[0]) {
+            this.curr.set_taint(&key, true);
         }
     }
 }
 
+fn handle_path_to_path_buf<'tcx, 'mir, 'ctx>(
+    this: &mut MIRParser<'tcx, 'mir, 'ctx>,
+    call: Call<'tcx>,
+) {
+    // &Path -> PathBuf (dest)
+    if call.args.is_empty() {
+        return;
+    }
+    if let Some(s) = this.get_string_from_operand(&call.args[0]) {
+        let key = this.place_key(&call.dest);
+        this.curr.assign_string(&key, s);
+        if this.operand_tainted(&call.args[0]) {
+            this.curr.set_taint(&key, true);
+        }
+    }
+}

@@ -1,0 +1,838 @@
+   Compiling path_push v0.1.0 (/home/hassnain/Desktop/LHS/lhs/examples/crates/safe/path_push)
+[src/callback.rs:88:5] "{}" = "{}"
+[src/callback.rs:88:5] &mir_body = Body {
+    basic_blocks: BasicBlocks {
+        basic_blocks: [
+            BasicBlockData {
+                statements: [
+                    _15 = const false,
+                ],
+                terminator: Some(
+                    Terminator {
+                        source_info: SourceInfo {
+                            span: src/main.rs:7:10: 7:21 (#0),
+                            scope: scope[0],
+                        },
+                        kind: _7 = std::env::args() -> [return: bb1, unwind continue],
+                    },
+                ),
+                is_cleanup: false,
+            },
+            BasicBlockData {
+                statements: [
+                    _6 = &mut _7,
+                ],
+                terminator: Some(
+                    Terminator {
+                        source_info: SourceInfo {
+                            span: src/main.rs:7:10: 8:20 (#0),
+                            scope: scope[0],
+                        },
+                        kind: _5 = <std::env::Args as std::iter::Iterator>::nth(move _6, const 1_usize) -> [return: bb2, unwind: bb13],
+                    },
+                ),
+                is_cleanup: false,
+            },
+            BasicBlockData {
+                statements: [
+                    _8 = const "No argument provided",
+                ],
+                terminator: Some(
+                    Terminator {
+                        source_info: SourceInfo {
+                            span: src/main.rs:7:10: 9:44 (#0),
+                            scope: scope[0],
+                        },
+                        kind: _4 = std::option::Option::<std::string::String>::expect(move _5, move _8) -> [return: bb3, unwind: bb13],
+                    },
+                ),
+                is_cleanup: false,
+            },
+            BasicBlockData {
+                statements: [
+                    _3 = &_4,
+                ],
+                terminator: Some(
+                    Terminator {
+                        source_info: SourceInfo {
+                            span: src/main.rs:6:24: 10:6 (#0),
+                            scope: scope[0],
+                        },
+                        kind: _2 = std::path::Path::new::<std::string::String>(_3) -> [return: bb4, unwind: bb12],
+                    },
+                ),
+                is_cleanup: false,
+            },
+            BasicBlockData {
+                statements: [],
+                terminator: Some(
+                    Terminator {
+                        source_info: SourceInfo {
+                            span: src/main.rs:6:24: 11:19 (#0),
+                            scope: scope[0],
+                        },
+                        kind: _1 = std::path::Path::to_path_buf(_2) -> [return: bb5, unwind: bb12],
+                    },
+                ),
+                is_cleanup: false,
+            },
+            BasicBlockData {
+                statements: [
+                    _15 = const true,
+                ],
+                terminator: Some(
+                    Terminator {
+                        source_info: SourceInfo {
+                            span: src/main.rs:11:19: 11:20 (#0),
+                            scope: scope[0],
+                        },
+                        kind: drop(_4) -> [return: bb6, unwind: bb11],
+                    },
+                ),
+                is_cleanup: false,
+            },
+            BasicBlockData {
+                statements: [],
+                terminator: Some(
+                    Terminator {
+                        source_info: SourceInfo {
+                            span: src/main.rs:11:19: 11:20 (#0),
+                            scope: scope[0],
+                        },
+                        kind: drop(_7) -> [return: bb7, unwind: bb16],
+                    },
+                ),
+                is_cleanup: false,
+            },
+            BasicBlockData {
+                statements: [
+                    _10 = &mut _1,
+                ],
+                terminator: Some(
+                    Terminator {
+                        source_info: SourceInfo {
+                            span: src/main.rs:13:5: 13:32 (#0),
+                            scope: scope[1],
+                        },
+                        kind: _9 = std::path::PathBuf::push::<&str>(move _10, const "codegen.rs") -> [return: bb8, unwind: bb16],
+                    },
+                ),
+                is_cleanup: false,
+            },
+            BasicBlockData {
+                statements: [
+                    _15 = const false,
+                    _13 = move _1,
+                    _14 = const "// your generated code here\n",
+                ],
+                terminator: Some(
+                    Terminator {
+                        source_info: SourceInfo {
+                            span: src/main.rs:16:5: 16:34 (#0),
+                            scope: scope[2],
+                        },
+                        kind: _12 = std::fs::write::<std::path::PathBuf, &str>(move _13, move _14) -> [return: bb9, unwind: bb16],
+                    },
+                ),
+                is_cleanup: false,
+            },
+            BasicBlockData {
+                statements: [],
+                terminator: Some(
+                    Terminator {
+                        source_info: SourceInfo {
+                            span: src/main.rs:16:5: 16:43 (#0),
+                            scope: scope[2],
+                        },
+                        kind: _11 = std::result::Result::<(), std::io::Error>::unwrap(move _12) -> [return: bb10, unwind: bb16],
+                    },
+                ),
+                is_cleanup: false,
+            },
+            BasicBlockData {
+                statements: [
+                    _15 = const false,
+                ],
+                terminator: Some(
+                    Terminator {
+                        source_info: SourceInfo {
+                            span: src/main.rs:17:2: 17:2 (#0),
+                            scope: scope[0],
+                        },
+                        kind: return,
+                    },
+                ),
+                is_cleanup: false,
+            },
+            BasicBlockData {
+                statements: [],
+                terminator: Some(
+                    Terminator {
+                        source_info: SourceInfo {
+                            span: src/main.rs:11:19: 11:20 (#0),
+                            scope: scope[0],
+                        },
+                        kind: drop(_7) -> [return: bb16, unwind terminate(cleanup)],
+                    },
+                ),
+                is_cleanup: true,
+            },
+            BasicBlockData {
+                statements: [],
+                terminator: Some(
+                    Terminator {
+                        source_info: SourceInfo {
+                            span: src/main.rs:11:19: 11:20 (#0),
+                            scope: scope[0],
+                        },
+                        kind: drop(_4) -> [return: bb13, unwind terminate(cleanup)],
+                    },
+                ),
+                is_cleanup: true,
+            },
+            BasicBlockData {
+                statements: [],
+                terminator: Some(
+                    Terminator {
+                        source_info: SourceInfo {
+                            span: src/main.rs:11:19: 11:20 (#0),
+                            scope: scope[0],
+                        },
+                        kind: drop(_7) -> [return: bb14, unwind terminate(cleanup)],
+                    },
+                ),
+                is_cleanup: true,
+            },
+            BasicBlockData {
+                statements: [],
+                terminator: Some(
+                    Terminator {
+                        source_info: SourceInfo {
+                            span: src/main.rs:5:1: 17:2 (#0),
+                            scope: scope[0],
+                        },
+                        kind: resume,
+                    },
+                ),
+                is_cleanup: true,
+            },
+            BasicBlockData {
+                statements: [],
+                terminator: Some(
+                    Terminator {
+                        source_info: SourceInfo {
+                            span: src/main.rs:17:1: 17:2 (#0),
+                            scope: scope[0],
+                        },
+                        kind: drop(_1) -> [return: bb14, unwind terminate(cleanup)],
+                    },
+                ),
+                is_cleanup: true,
+            },
+            BasicBlockData {
+                statements: [],
+                terminator: Some(
+                    Terminator {
+                        source_info: SourceInfo {
+                            span: src/main.rs:17:1: 17:2 (#0),
+                            scope: scope[0],
+                        },
+                        kind: switchInt(_15) -> [0: bb14, otherwise: bb15],
+                    },
+                ),
+                is_cleanup: true,
+            },
+        ],
+        cache: Cache {
+            predecessors: OnceLock(
+                [
+                    [],
+                    [
+                        bb0,
+                    ],
+                    [
+                        bb1,
+                    ],
+                    [
+                        bb2,
+                    ],
+                    [
+                        bb3,
+                    ],
+                    [
+                        bb4,
+                    ],
+                    [
+                        bb5,
+                    ],
+                    [
+                        bb6,
+                    ],
+                    [
+                        bb7,
+                    ],
+                    [
+                        bb8,
+                    ],
+                    [
+                        bb9,
+                    ],
+                    [
+                        bb5,
+                    ],
+                    [
+                        bb3,
+                        bb4,
+                    ],
+                    [
+                        bb1,
+                        bb2,
+                        bb12,
+                    ],
+                    [
+                        bb13,
+                        bb15,
+                        bb16,
+                    ],
+                    [
+                        bb16,
+                    ],
+                    [
+                        bb6,
+                        bb7,
+                        bb8,
+                        bb9,
+                        bb11,
+                    ],
+                ],
+            ),
+            switch_sources: OnceLock(
+                <uninit>,
+            ),
+            is_cyclic: OnceLock(
+                <uninit>,
+            ),
+            reverse_postorder: OnceLock(
+                <uninit>,
+            ),
+            dominators: OnceLock(
+                Dominators {
+                    kind: General(
+                        Inner {
+                            post_order_rank: [
+                                16,
+                                15,
+                                14,
+                                13,
+                                12,
+                                9,
+                                7,
+                                6,
+                                5,
+                                4,
+                                0,
+                                8,
+                                11,
+                                10,
+                                1,
+                                2,
+                                3,
+                            ],
+                            immediate_dominators: [
+                                None,
+                                Some(
+                                    bb0,
+                                ),
+                                Some(
+                                    bb1,
+                                ),
+                                Some(
+                                    bb2,
+                                ),
+                                Some(
+                                    bb3,
+                                ),
+                                Some(
+                                    bb4,
+                                ),
+                                Some(
+                                    bb5,
+                                ),
+                                Some(
+                                    bb6,
+                                ),
+                                Some(
+                                    bb7,
+                                ),
+                                Some(
+                                    bb8,
+                                ),
+                                Some(
+                                    bb9,
+                                ),
+                                Some(
+                                    bb5,
+                                ),
+                                Some(
+                                    bb3,
+                                ),
+                                Some(
+                                    bb1,
+                                ),
+                                Some(
+                                    bb1,
+                                ),
+                                Some(
+                                    bb16,
+                                ),
+                                Some(
+                                    bb5,
+                                ),
+                            ],
+                            time: [
+                                Time {
+                                    start: 1,
+                                    finish: 17,
+                                },
+                                Time {
+                                    start: 2,
+                                    finish: 17,
+                                },
+                                Time {
+                                    start: 5,
+                                    finish: 17,
+                                },
+                                Time {
+                                    start: 6,
+                                    finish: 17,
+                                },
+                                Time {
+                                    start: 8,
+                                    finish: 17,
+                                },
+                                Time {
+                                    start: 9,
+                                    finish: 17,
+                                },
+                                Time {
+                                    start: 13,
+                                    finish: 17,
+                                },
+                                Time {
+                                    start: 14,
+                                    finish: 17,
+                                },
+                                Time {
+                                    start: 15,
+                                    finish: 17,
+                                },
+                                Time {
+                                    start: 16,
+                                    finish: 17,
+                                },
+                                Time {
+                                    start: 17,
+                                    finish: 17,
+                                },
+                                Time {
+                                    start: 12,
+                                    finish: 12,
+                                },
+                                Time {
+                                    start: 7,
+                                    finish: 7,
+                                },
+                                Time {
+                                    start: 4,
+                                    finish: 4,
+                                },
+                                Time {
+                                    start: 3,
+                                    finish: 3,
+                                },
+                                Time {
+                                    start: 11,
+                                    finish: 11,
+                                },
+                                Time {
+                                    start: 10,
+                                    finish: 11,
+                                },
+                            ],
+                        },
+                    ),
+                },
+            ),
+        },
+    },
+    phase: Runtime(
+        Optimized,
+    ),
+    pass_count: 1,
+    source: MirSource {
+        instance: Item(
+            DefId(0:6 ~ path_push[abf4]::main),
+        ),
+        promoted: None,
+    },
+    source_scopes: [
+        SourceScopeData {
+            span: src/main.rs:5:1: 17:2 (#0),
+            parent_scope: None,
+            inlined: None,
+            inlined_parent_scope: None,
+            local_data: Set(
+                SourceScopeLocalData {
+                    lint_root: HirId(DefId(0:6 ~ path_push[abf4]::main).0),
+                },
+            ),
+        },
+        SourceScopeData {
+            span: src/main.rs:6:5: 17:2 (#0),
+            parent_scope: Some(
+                scope[0],
+            ),
+            inlined: None,
+            inlined_parent_scope: None,
+            local_data: Set(
+                SourceScopeLocalData {
+                    lint_root: HirId(DefId(0:6 ~ path_push[abf4]::main).0),
+                },
+            ),
+        },
+        SourceScopeData {
+            span: src/main.rs:15:5: 17:2 (#0),
+            parent_scope: Some(
+                scope[1],
+            ),
+            inlined: None,
+            inlined_parent_scope: None,
+            local_data: Set(
+                SourceScopeLocalData {
+                    lint_root: HirId(DefId(0:6 ~ path_push[abf4]::main).0),
+                },
+            ),
+        },
+    ],
+    coroutine: None,
+    local_decls: [
+        LocalDecl {
+            mutability: Mut,
+            local_info: Clear,
+            ty: (),
+            user_ty: None,
+            source_info: SourceInfo {
+                span: src/main.rs:5:10: 5:10 (#0),
+                scope: scope[0],
+            },
+        },
+        LocalDecl {
+            mutability: Mut,
+            local_info: Clear,
+            ty: std::path::PathBuf,
+            user_ty: None,
+            source_info: SourceInfo {
+                span: src/main.rs:6:9: 6:21 (#0),
+                scope: scope[0],
+            },
+        },
+        LocalDecl {
+            mutability: Not,
+            local_info: Clear,
+            ty: &'{erased} std::path::Path,
+            user_ty: None,
+            source_info: SourceInfo {
+                span: src/main.rs:6:24: 10:6 (#0),
+                scope: scope[0],
+            },
+        },
+        LocalDecl {
+            mutability: Not,
+            local_info: Clear,
+            ty: &'{erased} std::string::String,
+            user_ty: None,
+            source_info: SourceInfo {
+                span: src/main.rs:7:9: 9:44 (#0),
+                scope: scope[0],
+            },
+        },
+        LocalDecl {
+            mutability: Not,
+            local_info: Clear,
+            ty: std::string::String,
+            user_ty: None,
+            source_info: SourceInfo {
+                span: src/main.rs:7:10: 9:44 (#0),
+                scope: scope[0],
+            },
+        },
+        LocalDecl {
+            mutability: Mut,
+            local_info: Clear,
+            ty: std::option::Option<std::string::String>,
+            user_ty: None,
+            source_info: SourceInfo {
+                span: src/main.rs:7:10: 8:20 (#0),
+                scope: scope[0],
+            },
+        },
+        LocalDecl {
+            mutability: Mut,
+            local_info: Clear,
+            ty: &'{erased} mut std::env::Args,
+            user_ty: None,
+            source_info: SourceInfo {
+                span: src/main.rs:7:10: 7:21 (#0),
+                scope: scope[0],
+            },
+        },
+        LocalDecl {
+            mutability: Mut,
+            local_info: Clear,
+            ty: std::env::Args,
+            user_ty: None,
+            source_info: SourceInfo {
+                span: src/main.rs:7:10: 7:21 (#0),
+                scope: scope[0],
+            },
+        },
+        LocalDecl {
+            mutability: Mut,
+            local_info: Clear,
+            ty: &'{erased} str,
+            user_ty: None,
+            source_info: SourceInfo {
+                span: src/main.rs:9:21: 9:43 (#0),
+                scope: scope[0],
+            },
+        },
+        LocalDecl {
+            mutability: Not,
+            local_info: Clear,
+            ty: (),
+            user_ty: None,
+            source_info: SourceInfo {
+                span: src/main.rs:13:5: 13:32 (#0),
+                scope: scope[0],
+            },
+        },
+        LocalDecl {
+            mutability: Mut,
+            local_info: Clear,
+            ty: &'{erased} mut std::path::PathBuf,
+            user_ty: None,
+            source_info: SourceInfo {
+                span: src/main.rs:13:5: 13:13 (#0),
+                scope: scope[0],
+            },
+        },
+        LocalDecl {
+            mutability: Not,
+            local_info: Clear,
+            ty: (),
+            user_ty: None,
+            source_info: SourceInfo {
+                span: src/main.rs:16:5: 16:43 (#0),
+                scope: scope[0],
+            },
+        },
+        LocalDecl {
+            mutability: Mut,
+            local_info: Clear,
+            ty: std::result::Result<(), std::io::Error>,
+            user_ty: None,
+            source_info: SourceInfo {
+                span: src/main.rs:16:5: 16:34 (#0),
+                scope: scope[0],
+            },
+        },
+        LocalDecl {
+            mutability: Mut,
+            local_info: Clear,
+            ty: std::path::PathBuf,
+            user_ty: None,
+            source_info: SourceInfo {
+                span: src/main.rs:16:15: 16:23 (#0),
+                scope: scope[0],
+            },
+        },
+        LocalDecl {
+            mutability: Mut,
+            local_info: Clear,
+            ty: &'{erased} str,
+            user_ty: None,
+            source_info: SourceInfo {
+                span: src/main.rs:16:25: 16:33 (#0),
+                scope: scope[0],
+            },
+        },
+        LocalDecl {
+            mutability: Mut,
+            local_info: Clear,
+            ty: bool,
+            user_ty: None,
+            source_info: SourceInfo {
+                span: src/main.rs:17:1: 17:2 (#0),
+                scope: scope[0],
+            },
+        },
+    ],
+    user_type_annotations: [],
+    arg_count: 0,
+    spread_arg: None,
+    var_debug_info: [
+        out_file => _1,
+        contents => const "// your generated code here\n",
+    ],
+    span: src/main.rs:5:1: 17:2 (#0),
+    required_consts: [],
+    mentioned_items: [
+        Spanned {
+            node: Fn(
+                FnDef(
+                    DefId(1:1940 ~ std[33df]::env::args),
+                    [],
+                ),
+            ),
+            span: src/main.rs:7:10: 7:21 (#0),
+        },
+        Spanned {
+            node: Fn(
+                FnDef(
+                    DefId(2:8517 ~ core[0f52]::iter::traits::iterator::Iterator::nth),
+                    [
+                        std::env::Args,
+                    ],
+                ),
+            ),
+            span: src/main.rs:7:10: 8:20 (#0),
+        },
+        Spanned {
+            node: Fn(
+                FnDef(
+                    DefId(2:9230 ~ core[0f52]::option::{impl#0}::expect),
+                    [
+                        std::string::String,
+                    ],
+                ),
+            ),
+            span: src/main.rs:7:10: 9:44 (#0),
+        },
+        Spanned {
+            node: Fn(
+                FnDef(
+                    DefId(1:5488 ~ std[33df]::path::{impl#63}::new),
+                    [
+                        std::string::String,
+                    ],
+                ),
+            ),
+            span: src/main.rs:6:24: 10:6 (#0),
+        },
+        Spanned {
+            node: Fn(
+                FnDef(
+                    DefId(1:5495 ~ std[33df]::path::{impl#63}::to_path_buf),
+                    [],
+                ),
+            ),
+            span: src/main.rs:6:24: 11:19 (#0),
+        },
+        Spanned {
+            node: Drop(
+                std::string::String,
+            ),
+            span: src/main.rs:11:19: 11:20 (#0),
+        },
+        Spanned {
+            node: Drop(
+                std::env::Args,
+            ),
+            span: src/main.rs:11:19: 11:20 (#0),
+        },
+        Spanned {
+            node: Fn(
+                FnDef(
+                    DefId(1:5375 ~ std[33df]::path::{impl#29}::push),
+                    [
+                        &'{erased} str,
+                    ],
+                ),
+            ),
+            span: src/main.rs:13:5: 13:32 (#0),
+        },
+        Spanned {
+            node: Fn(
+                FnDef(
+                    DefId(1:2345 ~ std[33df]::fs::write),
+                    [
+                        std::path::PathBuf,
+                        &'{erased} str,
+                    ],
+                ),
+            ),
+            span: src/main.rs:16:5: 16:34 (#0),
+        },
+        Spanned {
+            node: Fn(
+                FnDef(
+                    DefId(2:9966 ~ core[0f52]::result::{impl#0}::unwrap),
+                    [
+                        (),
+                        std::io::Error,
+                    ],
+                ),
+            ),
+            span: src/main.rs:16:5: 16:43 (#0),
+        },
+        Spanned {
+            node: Drop(
+                std::env::Args,
+            ),
+            span: src/main.rs:11:19: 11:20 (#0),
+        },
+        Spanned {
+            node: Drop(
+                std::string::String,
+            ),
+            span: src/main.rs:11:19: 11:20 (#0),
+        },
+        Spanned {
+            node: Drop(
+                std::env::Args,
+            ),
+            span: src/main.rs:11:19: 11:20 (#0),
+        },
+        Spanned {
+            node: Drop(
+                std::path::PathBuf,
+            ),
+            span: src/main.rs:17:1: 17:2 (#0),
+        },
+    ],
+    is_polymorphic: false,
+    injection_phase: None,
+    tainted_by_errors: None,
+    coverage_info_hi: None,
+    function_coverage_info: None,
+}
+I am here with operand: _3
+Key: 3
+I shall return: Some(|4|)
+I am here with operand: _2
+Key: 2
+I shall return: Some(|4|)
+I am here with operand: move _13
+Key: 13
+I shall return: Some((ite (= |4| "")
+     "codegen.rs"
+     (ite (= "codegen.rs" "")
+          |4|
+          (ite (str.prefixof "/" "codegen.rs")
+               "codegen.rs"
+               (ite (str.suffixof "/" |4|)
+                    (str.++ |4| "codegen.rs")
+                    (str.++ |4| "/" "codegen.rs"))))))
+=== Dangerous Spans ===
+No dangerous spans found.
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.26s
