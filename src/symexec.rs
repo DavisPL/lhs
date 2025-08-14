@@ -462,6 +462,49 @@ impl<'ctx> SymExecBool<'ctx> {
         }
         println!("────────────────────");
     }
+
+    /// Returns the existing symbolic/concrete string bound to `key`, or creates a new,
+    /// Z3 String and registers it under `key`.
+    ///
+    /// # Why this exists
+    /// When a value is unknown
+    /// we still want to be able to reason about it.
+    /// Creating a fresh Z3 string gives us an unconstrained placeholder that can later
+    /// be restricted by constraints. And using a stable key is nice because it ensures
+    /// that we always refer to the same symbolic value when updating constraints.
+
+    /// # When to call this
+    /// - When you need a string value for a destination place but cannot extract one from
+    ///   the operand (no constant, no tracked string in the source).
+    /// - Currenlty we use this for String::from_utf8_lossy but I suppose could be usefull in cases like
+    /// FFI boundaries and deselerizers?
+    pub fn get_or_fresh_string(&mut self, key: &str) -> z3::ast::String<'ctx> {
+        if let Some(s) = self.get_string(key).cloned() {
+            return s;
+        }
+        let s = z3::ast::String::fresh_const(&self.context, key);
+        self.assign_string(key, s.clone());
+        s
+    }
+    /// Helper for get_or_fresh_string - you DO NOT need it, MOST PROBABLY (still making it pub in case needed)
+    pub(crate) fn fresh_string(&self, hint: &str) -> z3::ast::String<'ctx> {
+        z3::ast::String::fresh_const(self.context, hint)
+    }
+
+    pub fn dump_symexec(&self) {
+        println!("─── SYMBOLIC EXECUTION ───");
+        // print all k,v pairs form hashmap
+        for (k, v) in &self.string_variables {
+            println!("str  {}  value={}", k, v.value);
+        }
+        for (k, v) in &self.int_variables {
+            println!("int  {}  value={}", k, v.value);
+        }
+        for (k, v) in &self.bool_variables {
+            println!("bool {}  value={}", k, v.value);
+        }
+        println!("────────────────────");
+    }
 }
 
 #[test]

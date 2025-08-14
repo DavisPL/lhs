@@ -23,9 +23,8 @@ use std::collections::{HashMap, HashSet};
 use crate::handlers::{
     generic_string_handler, handle_from_trait, handle_generic_source, handle_path_join,
     handle_path_new, handle_path_to_path_buf, handle_pathbuf_deref, handle_pathbuf_from,
-    handle_pathbuf_push, handle_string_from,
+    handle_pathbuf_push, handle_read_into_buf, handle_string_from, handle_string_from_utf8_lossy,
 };
-
 
 #[derive(Clone, Copy, Debug)]
 pub struct SinkInformation {
@@ -37,7 +36,7 @@ pub struct MIRParser<'tcx, 'mir, 'ctx>
 where
     'mir: 'tcx,
 {
-    pub(crate)mir_body: &'mir Body<'tcx>,
+    pub(crate) mir_body: &'mir Body<'tcx>,
     pub curr: SymExec<'ctx>,
 
     // Stack for iterative basic block processing
@@ -148,6 +147,19 @@ where
         self.register_handler("alloc::string::String::from", handle_string_from);
         self.register_handler("std::string::String::from", handle_string_from);
         self.register_handler("std::ffi::OsString::from", handle_string_from);
+
+        // Sync IO reads
+        self.register_handler("std::io::Read::read", handle_read_into_buf);
+
+        // --- UTF-8 lossy, also need to add to_string modeling
+        self.register_handler(
+            "std::string::String::from_utf8_lossy",
+            handle_string_from_utf8_lossy,
+        );
+        self.register_handler(
+            "alloc::string::String::from_utf8_lossy",
+            handle_string_from_utf8_lossy,
+        );
     }
 
     pub(crate) fn operand_tainted(&self, op: &Operand<'tcx>) -> bool {
@@ -535,10 +547,16 @@ where
 
     // Resolve an alias to its original variable , if no alias exists return the variable back
     pub(crate) fn resolve_alias(&self, key: &str) -> String {
-        self.aliases
-            .get(key)
-            .cloned()
-            .unwrap_or_else(|| key.to_string())
+        let mut cur = key;
+        // prevent cycles
+        let mut seen = std::collections::HashSet::new();
+        while let Some(next) = self.aliases.get(cur) {
+            if !seen.insert(cur.to_string()) {
+                break;
+            }
+            cur = next;
+        }
+        cur.to_string()
     }
 
     // Handle cast operations: `x = y as T`
@@ -546,11 +564,15 @@ where
     fn handle_cast_operation(&mut self, dest_key: &str, operand: &Operand<'tcx>) {
         if let Operand::Copy(place) | Operand::Move(place) = operand {
             let src_key = self.place_key(place);
+            // copy value + taint
             self.copy_variable_value(&src_key, dest_key);
             self.curr.propagate_taint(&src_key, dest_key);
+
+            // preserve aliasing across the cast (to the base, not just the immediate key)
+            let base = self.resolve_alias(&src_key);
+            self.aliases.insert(dest_key.to_string(), base);
         }
     }
-
     // Handle copy for dereference operations
     // Used in some compiler optimizations
     fn handle_copy_for_deref(&mut self, dest_key: &str, place: &Place<'tcx>) {
@@ -780,12 +802,14 @@ where
         }
     }
 
-
     // Hassnain : Removed this function, as we are using a generic string matching fucniton now
     // fn check_write_safety(&self, path_operand: &Operand<'tcx>) -> bool {
 
     // Extract string value from an operand (constant or symbolic)
-    pub(crate)fn get_string_from_operand(&self, operand: &Operand<'tcx>) -> Option<z3::ast::String<'ctx>> {
+    pub(crate) fn get_string_from_operand(
+        &self,
+        operand: &Operand<'tcx>,
+    ) -> Option<z3::ast::String<'ctx>> {
         match operand {
             Operand::Copy(place) | Operand::Move(place) => {
                 let key = self.place_key(place);
@@ -860,4 +884,3 @@ pub struct Call<'tcx> {
 }
 
 type CallHandler<'tcx, 'mir, 'ctx> = fn(&mut MIRParser<'tcx, 'mir, 'ctx>, Call<'tcx>);
-

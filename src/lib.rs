@@ -18,8 +18,8 @@ extern crate rustc_data_structures;
 extern crate rustc_middle;
 
 pub mod callback;
+pub mod handlers;
 pub mod operand;
 pub mod parser;
 pub mod settings;
 pub mod symexec;
-pub mod handlers;

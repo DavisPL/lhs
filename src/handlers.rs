@@ -7,7 +7,10 @@ use crate::parser::{Call, MIRParser};
 // pub(crate) fn handle_fs_write<'tcx, 'mir, 'ctx>(this: &mut MIRParser<'tcx, 'mir, 'ctx>, call: Call<'tcx>) {
 // pub(crate) fn handle_env_set_var<'tcx, 'mir, 'ctx>(this: &mut MIRParser<'tcx, 'mir, 'ctx>, call: Call<'tcx>) {
 
-pub(crate) fn handle_pathbuf_from<'tcx, 'mir, 'ctx>(this: &mut MIRParser<'tcx, 'mir, 'ctx>, call: Call<'tcx>) {
+pub(crate) fn handle_pathbuf_from<'tcx, 'mir, 'ctx>(
+    this: &mut MIRParser<'tcx, 'mir, 'ctx>,
+    call: Call<'tcx>,
+) {
     debug_assert_eq!(call.args.len(), 1);
     if let Some(s) = this.get_string_from_operand(&call.args[0]) {
         let key = this.place_key(&call.dest);
@@ -26,7 +29,10 @@ pub(crate) fn handle_pathbuf_deref<'tcx, 'mir, 'ctx>(
     }
 }
 
-pub(crate) fn handle_path_join<'tcx, 'mir, 'ctx>(this: &mut MIRParser<'tcx, 'mir, 'ctx>, call: Call<'tcx>) {
+pub(crate) fn handle_path_join<'tcx, 'mir, 'ctx>(
+    this: &mut MIRParser<'tcx, 'mir, 'ctx>,
+    call: Call<'tcx>,
+) {
     if call.args.is_empty() {
         return;
     }
@@ -40,7 +46,10 @@ pub(crate) fn handle_path_join<'tcx, 'mir, 'ctx>(this: &mut MIRParser<'tcx, 'mir
     }
 }
 
-pub(crate) fn handle_string_from<'tcx, 'mir, 'ctx>(this: &mut MIRParser<'tcx, 'mir, 'ctx>, call: Call<'tcx>) {
+pub(crate) fn handle_string_from<'tcx, 'mir, 'ctx>(
+    this: &mut MIRParser<'tcx, 'mir, 'ctx>,
+    call: Call<'tcx>,
+) {
     // should have one argument
     if call.args.is_empty() {
         return;
@@ -59,7 +68,10 @@ pub(crate) fn handle_string_from<'tcx, 'mir, 'ctx>(this: &mut MIRParser<'tcx, 'm
 }
 
 // Handle the `From` trait for String and PathBuf
-pub(crate) fn handle_from_trait<'tcx, 'mir, 'ctx>(this: &mut MIRParser<'tcx, 'mir, 'ctx>, call: Call<'tcx>) {
+pub(crate) fn handle_from_trait<'tcx, 'mir, 'ctx>(
+    this: &mut MIRParser<'tcx, 'mir, 'ctx>,
+    call: Call<'tcx>,
+) {
     if call.args.is_empty() {
         return;
     }
@@ -104,6 +116,7 @@ pub(crate) fn generic_string_handler<'tcx, 'mir, 'ctx>(
     this: &mut MIRParser<'tcx, 'mir, 'ctx>,
     call: Call<'tcx>,
 ) {
+    dbg!();
     // Which arg to look at (defaults to 0 if no SinkInformation)
     let idx = call.sink.map(|s| s.arg_idx).unwrap_or(0);
     let Some(arg) = call.args.get(idx) else {
@@ -150,6 +163,7 @@ pub(crate) fn generic_string_handler<'tcx, 'mir, 'ctx>(
             // Case 2
             i) Value will be forbidden in ALL execution (handle consts)
             */
+            // dbg!(could_match, always_match, tainted);
             if (could_match && tainted) || always_match {
                 if let Some(span) = call.span {
                     let func_path = this.def_path_str(call.func_def_id);
@@ -172,7 +186,10 @@ pub(crate) fn handle_generic_source<'tcx, 'mir, 'ctx>(
     this.curr.set_taint(&key, true);
 }
 
-pub(crate) fn handle_pathbuf_push<'tcx, 'mir, 'ctx>(this: &mut MIRParser<'tcx, 'mir, 'ctx>, call: Call<'tcx>) {
+pub(crate) fn handle_pathbuf_push<'tcx, 'mir, 'ctx>(
+    this: &mut MIRParser<'tcx, 'mir, 'ctx>,
+    call: Call<'tcx>,
+) {
     if call.args.len() < 2 {
         return;
     }
@@ -199,7 +216,10 @@ pub(crate) fn handle_pathbuf_push<'tcx, 'mir, 'ctx>(this: &mut MIRParser<'tcx, '
     }
 }
 
-pub(crate) fn handle_path_new<'tcx, 'mir, 'ctx>(this: &mut MIRParser<'tcx, 'mir, 'ctx>, call: Call<'tcx>) {
+pub(crate) fn handle_path_new<'tcx, 'mir, 'ctx>(
+    this: &mut MIRParser<'tcx, 'mir, 'ctx>,
+    call: Call<'tcx>,
+) {
     // new<T: AsRef<OsStr>>(s: T) -> &Path
     if call.args.is_empty() {
         return;
@@ -227,5 +247,52 @@ pub(crate) fn handle_path_to_path_buf<'tcx, 'mir, 'ctx>(
         if this.operand_tainted(&call.args[0]) {
             this.curr.set_taint(&key, true);
         }
+    }
+}
+
+pub(crate) fn handle_string_from_utf8_lossy<'tcx, 'mir, 'ctx>(
+    this: &mut MIRParser<'tcx, 'mir, 'ctx>,
+    call: Call<'tcx>,
+) {
+    // String::from_utf8_lossy(&[u8]) -> Cow<'_, str>
+    if call.args.is_empty() {
+        return;
+    }
+
+    let dest_key = this.place_key(&call.dest);
+
+    // If we can see the string from the arg, reuse it - otherwise make new
+    if let Some(s) = this.get_string_from_operand(&call.args[0]) {
+        this.curr.assign_string(&dest_key, s);
+    } else {
+        // dbg!("think Hassnain!!"); - leaving this comment here, since I find it funny
+        // the solution below is what I thought of
+        // IF we cannot see a string from the arg, we create a z3 string that can be anything
+        let sym = this.curr.get_or_fresh_string(&dest_key);
+        this.curr.assign_string(&dest_key, sym);
+    }
+
+    // Propagate taint: &[u8] input taints the Cow<str> result.
+    if this.operand_tainted(&call.args[0]) {
+        this.curr.set_taint(&dest_key, true);
+    }
+}
+
+pub(crate) fn handle_read_into_buf<'tcx, 'mir, 'ctx>(
+    this: &mut MIRParser<'tcx, 'mir, 'ctx>,
+    call: Call<'tcx>,
+) {
+    // std::io::Read::{read, read_exact}(&mut self, buf: &mut [u8])
+    // buffer is at index = 1
+    if call.args.len() < 2 {
+        return;
+    }
+    if let Operand::Copy(p) | Operand::Move(p) = &call.args[1] {
+        let key = this.place_key(p); // e.g., "11"
+        let base = this.resolve_alias(&key); // e.g., "7" after fix #2 + transitive #1
+
+        // mark both the handle and the underlying buffer as tainted
+        this.curr.set_taint(&key, true); // &mut [u8]
+        this.curr.set_taint(&base, true); // [u8; N] backing array
     }
 }

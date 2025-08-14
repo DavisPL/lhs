@@ -1,0 +1,1828 @@
+   Compiling io_read1 v0.1.0 (/home/hassnain/Desktop/LHS/lhs/examples/crates/safe/io_read1)
+[src/callback.rs:88:5] "{}" = "{}"
+[src/callback.rs:88:5] &mir_body = Body {
+    basic_blocks: BasicBlocks {
+        basic_blocks: [
+            BasicBlockData {
+                statements: [],
+                terminator: Some(
+                    Terminator {
+                        source_info: SourceInfo {
+                            span: src/main.rs:6:22: 6:58 (#0),
+                            scope: scope[0],
+                        },
+                        kind: _3 = std::net::TcpStream::connect::<&str>(const "127.0.0.1:9500") -> [return: bb1, unwind continue],
+                    },
+                ),
+                is_cleanup: false,
+            },
+            BasicBlockData {
+                statements: [],
+                terminator: Some(
+                    Terminator {
+                        source_info: SourceInfo {
+                            span: src/main.rs:6:22: 6:59 (#9),
+                            scope: scope[0],
+                        },
+                        kind: _2 = <std::result::Result<std::net::TcpStream, std::io::Error> as std::ops::Try>::branch(move _3) -> [return: bb2, unwind continue],
+                    },
+                ),
+                is_cleanup: false,
+            },
+            BasicBlockData {
+                statements: [
+                    _4 = discriminant(_2),
+                ],
+                terminator: Some(
+                    Terminator {
+                        source_info: SourceInfo {
+                            span: src/main.rs:6:22: 6:59 (#9),
+                            scope: scope[0],
+                        },
+                        kind: switchInt(move _4) -> [0: bb4, 1: bb5, otherwise: bb3],
+                    },
+                ),
+                is_cleanup: false,
+            },
+            BasicBlockData {
+                statements: [],
+                terminator: Some(
+                    Terminator {
+                        source_info: SourceInfo {
+                            span: src/main.rs:6:22: 6:59 (#9),
+                            scope: scope[0],
+                        },
+                        kind: unreachable,
+                    },
+                ),
+                is_cleanup: false,
+            },
+            BasicBlockData {
+                statements: [
+                    _6 = move ((_2 as Continue).0: std::net::TcpStream),
+                    _1 = move _6,
+                    _7 = [const 0_u8; 64],
+                    _10 = &mut _1,
+                    _12 = &mut _7,
+                    _11 = _12 as &mut [u8] (PointerCoercion(Unsize)),
+                ],
+                terminator: Some(
+                    Terminator {
+                        source_info: SourceInfo {
+                            span: src/main.rs:8:24: 8:54 (#0),
+                            scope: scope[6],
+                        },
+                        kind: _9 = <std::net::TcpStream as std::io::Read>::read(move _10, move _11) -> [return: bb6, unwind: bb31],
+                    },
+                ),
+                is_cleanup: false,
+            },
+            BasicBlockData {
+                statements: [
+                    _5 = move ((_2 as Break).0: std::result::Result<std::convert::Infallible, std::io::Error>),
+                ],
+                terminator: Some(
+                    Terminator {
+                        source_info: SourceInfo {
+                            span: src/main.rs:6:22: 6:59 (#9),
+                            scope: scope[3],
+                        },
+                        kind: _0 = <std::result::Result<(), std::io::Error> as std::ops::FromResidual<std::result::Result<std::convert::Infallible, std::io::Error>>>::from_residual(move _5) -> [return: bb27, unwind continue],
+                    },
+                ),
+                is_cleanup: false,
+            },
+            BasicBlockData {
+                statements: [],
+                terminator: Some(
+                    Terminator {
+                        source_info: SourceInfo {
+                            span: src/main.rs:8:24: 8:55 (#11),
+                            scope: scope[6],
+                        },
+                        kind: _8 = <std::result::Result<usize, std::io::Error> as std::ops::Try>::branch(move _9) -> [return: bb7, unwind: bb31],
+                    },
+                ),
+                is_cleanup: false,
+            },
+            BasicBlockData {
+                statements: [
+                    _13 = discriminant(_8),
+                ],
+                terminator: Some(
+                    Terminator {
+                        source_info: SourceInfo {
+                            span: src/main.rs:8:24: 8:55 (#11),
+                            scope: scope[6],
+                        },
+                        kind: switchInt(move _13) -> [0: bb8, 1: bb9, otherwise: bb3],
+                    },
+                ),
+                is_cleanup: false,
+            },
+            BasicBlockData {
+                statements: [
+                    _15 = ((_8 as Continue).0: usize),
+                    _20 = &_7,
+                    _21 = std::ops::RangeTo::<usize> { end: _15 },
+                ],
+                terminator: Some(
+                    Terminator {
+                        source_info: SourceInfo {
+                            span: src/main.rs:9:57: 9:73 (#0),
+                            scope: scope[7],
+                        },
+                        kind: _19 = <[u8; 64] as std::ops::Index<std::ops::RangeTo<usize>>>::index(move _20, move _21) -> [return: bb10, unwind: bb31],
+                    },
+                ),
+                is_cleanup: false,
+            },
+            BasicBlockData {
+                statements: [
+                    _14 = move ((_8 as Break).0: std::result::Result<std::convert::Infallible, std::io::Error>),
+                ],
+                terminator: Some(
+                    Terminator {
+                        source_info: SourceInfo {
+                            span: src/main.rs:8:24: 8:55 (#11),
+                            scope: scope[9],
+                        },
+                        kind: _0 = <std::result::Result<(), std::io::Error> as std::ops::FromResidual<std::result::Result<std::convert::Infallible, std::io::Error>>>::from_residual(move _14) -> [return: bb33, unwind: bb31],
+                    },
+                ),
+                is_cleanup: false,
+            },
+            BasicBlockData {
+                statements: [],
+                terminator: Some(
+                    Terminator {
+                        source_info: SourceInfo {
+                            span: src/main.rs:9:20: 9:74 (#0),
+                            scope: scope[7],
+                        },
+                        kind: _18 = std::string::String::from_utf8_lossy(_19) -> [return: bb11, unwind: bb31],
+                    },
+                ),
+                is_cleanup: false,
+            },
+            BasicBlockData {
+                statements: [
+                    _17 = &_18,
+                ],
+                terminator: Some(
+                    Terminator {
+                        source_info: SourceInfo {
+                            span: src/main.rs:9:20: 9:86 (#0),
+                            scope: scope[7],
+                        },
+                        kind: _16 = <std::borrow::Cow<'_, str> as std::string::ToString>::to_string(move _17) -> [return: bb12, unwind: bb30],
+                    },
+                ),
+                is_cleanup: false,
+            },
+            BasicBlockData {
+                statements: [],
+                terminator: Some(
+                    Terminator {
+                        source_info: SourceInfo {
+                            span: src/main.rs:9:86: 9:87 (#0),
+                            scope: scope[7],
+                        },
+                        kind: drop(_18) -> [return: bb13, unwind: bb29],
+                    },
+                ),
+                is_cleanup: false,
+            },
+            BasicBlockData {
+                statements: [
+                    _25 = const main::promoted[0],
+                    _29 = &_16,
+                ],
+                terminator: Some(
+                    Terminator {
+                        source_info: SourceInfo {
+                            span: src/main.rs:12:37: 12:39 (#6),
+                            scope: scope[12],
+                        },
+                        kind: _28 = core::fmt::rt::Argument::<'_>::new_display::<std::string::String>(_29) -> [return: bb14, unwind: bb29],
+                    },
+                ),
+                is_cleanup: false,
+            },
+            BasicBlockData {
+                statements: [
+                    _27 = [move _28],
+                    _26 = &_27,
+                ],
+                terminator: Some(
+                    Terminator {
+                        source_info: SourceInfo {
+                            span: /home/hassnain/.rustup/toolchains/nightly-2024-07-22-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:128:43: 128:83 (#6),
+                            scope: scope[12],
+                        },
+                        kind: _24 = std::fmt::Arguments::<'_>::new_v1::<2, 1>(_25, _26) -> [return: bb15, unwind: bb29],
+                    },
+                ),
+                is_cleanup: false,
+            },
+            BasicBlockData {
+                statements: [],
+                terminator: Some(
+                    Terminator {
+                        source_info: SourceInfo {
+                            span: /home/hassnain/.rustup/toolchains/nightly-2024-07-22-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:128:23: 128:84 (#4),
+                            scope: scope[12],
+                        },
+                        kind: _23 = std::fmt::format(move _24) -> [return: bb16, unwind: bb29],
+                    },
+                ),
+                is_cleanup: false,
+            },
+            BasicBlockData {
+                statements: [],
+                terminator: Some(
+                    Terminator {
+                        source_info: SourceInfo {
+                            span: /home/hassnain/.rustup/toolchains/nightly-2024-07-22-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:127:9: 130:11 (#4),
+                            scope: scope[12],
+                        },
+                        kind: _22 = std::hint::must_use::<std::string::String>(move _23) -> [return: bb17, unwind: bb29],
+                    },
+                ),
+                is_cleanup: false,
+            },
+            BasicBlockData {
+                statements: [
+                    _32 = &_22,
+                    _33 = const "Dark Lord has been defeated",
+                ],
+                terminator: Some(
+                    Terminator {
+                        source_info: SourceInfo {
+                            span: src/main.rs:15:5: 15:42 (#0),
+                            scope: scope[15],
+                        },
+                        kind: _31 = std::fs::write::<&std::string::String, &str>(move _32, move _33) -> [return: bb18, unwind: bb28],
+                    },
+                ),
+                is_cleanup: false,
+            },
+            BasicBlockData {
+                statements: [],
+                terminator: Some(
+                    Terminator {
+                        source_info: SourceInfo {
+                            span: src/main.rs:15:5: 15:43 (#13),
+                            scope: scope[15],
+                        },
+                        kind: _30 = <std::result::Result<(), std::io::Error> as std::ops::Try>::branch(move _31) -> [return: bb19, unwind: bb28],
+                    },
+                ),
+                is_cleanup: false,
+            },
+            BasicBlockData {
+                statements: [
+                    _34 = discriminant(_30),
+                ],
+                terminator: Some(
+                    Terminator {
+                        source_info: SourceInfo {
+                            span: src/main.rs:15:5: 15:43 (#13),
+                            scope: scope[15],
+                        },
+                        kind: switchInt(move _34) -> [0: bb20, 1: bb21, otherwise: bb3],
+                    },
+                ),
+                is_cleanup: false,
+            },
+            BasicBlockData {
+                statements: [
+                    _0 = std::result::Result::<(), std::io::Error>::Ok(const ()),
+                ],
+                terminator: Some(
+                    Terminator {
+                        source_info: SourceInfo {
+                            span: src/main.rs:17:1: 17:2 (#0),
+                            scope: scope[12],
+                        },
+                        kind: drop(_22) -> [return: bb23, unwind: bb29],
+                    },
+                ),
+                is_cleanup: false,
+            },
+            BasicBlockData {
+                statements: [
+                    _35 = move ((_30 as Break).0: std::result::Result<std::convert::Infallible, std::io::Error>),
+                ],
+                terminator: Some(
+                    Terminator {
+                        source_info: SourceInfo {
+                            span: src/main.rs:15:5: 15:43 (#13),
+                            scope: scope[17],
+                        },
+                        kind: _0 = <std::result::Result<(), std::io::Error> as std::ops::FromResidual<std::result::Result<std::convert::Infallible, std::io::Error>>>::from_residual(move _35) -> [return: bb22, unwind: bb28],
+                    },
+                ),
+                is_cleanup: false,
+            },
+            BasicBlockData {
+                statements: [],
+                terminator: Some(
+                    Terminator {
+                        source_info: SourceInfo {
+                            span: src/main.rs:17:1: 17:2 (#0),
+                            scope: scope[12],
+                        },
+                        kind: drop(_22) -> [return: bb25, unwind: bb29],
+                    },
+                ),
+                is_cleanup: false,
+            },
+            BasicBlockData {
+                statements: [],
+                terminator: Some(
+                    Terminator {
+                        source_info: SourceInfo {
+                            span: src/main.rs:17:1: 17:2 (#0),
+                            scope: scope[7],
+                        },
+                        kind: drop(_16) -> [return: bb24, unwind: bb31],
+                    },
+                ),
+                is_cleanup: false,
+            },
+            BasicBlockData {
+                statements: [],
+                terminator: Some(
+                    Terminator {
+                        source_info: SourceInfo {
+                            span: src/main.rs:17:1: 17:2 (#0),
+                            scope: scope[0],
+                        },
+                        kind: drop(_1) -> [return: bb27, unwind continue],
+                    },
+                ),
+                is_cleanup: false,
+            },
+            BasicBlockData {
+                statements: [],
+                terminator: Some(
+                    Terminator {
+                        source_info: SourceInfo {
+                            span: src/main.rs:17:1: 17:2 (#0),
+                            scope: scope[7],
+                        },
+                        kind: drop(_16) -> [return: bb26, unwind: bb31],
+                    },
+                ),
+                is_cleanup: false,
+            },
+            BasicBlockData {
+                statements: [],
+                terminator: Some(
+                    Terminator {
+                        source_info: SourceInfo {
+                            span: src/main.rs:17:1: 17:2 (#0),
+                            scope: scope[0],
+                        },
+                        kind: drop(_1) -> [return: bb27, unwind continue],
+                    },
+                ),
+                is_cleanup: false,
+            },
+            BasicBlockData {
+                statements: [],
+                terminator: Some(
+                    Terminator {
+                        source_info: SourceInfo {
+                            span: src/main.rs:17:2: 17:2 (#0),
+                            scope: scope[0],
+                        },
+                        kind: return,
+                    },
+                ),
+                is_cleanup: false,
+            },
+            BasicBlockData {
+                statements: [],
+                terminator: Some(
+                    Terminator {
+                        source_info: SourceInfo {
+                            span: src/main.rs:17:1: 17:2 (#0),
+                            scope: scope[12],
+                        },
+                        kind: drop(_22) -> [return: bb29, unwind terminate(cleanup)],
+                    },
+                ),
+                is_cleanup: true,
+            },
+            BasicBlockData {
+                statements: [],
+                terminator: Some(
+                    Terminator {
+                        source_info: SourceInfo {
+                            span: src/main.rs:17:1: 17:2 (#0),
+                            scope: scope[7],
+                        },
+                        kind: drop(_16) -> [return: bb31, unwind terminate(cleanup)],
+                    },
+                ),
+                is_cleanup: true,
+            },
+            BasicBlockData {
+                statements: [],
+                terminator: Some(
+                    Terminator {
+                        source_info: SourceInfo {
+                            span: src/main.rs:9:86: 9:87 (#0),
+                            scope: scope[7],
+                        },
+                        kind: drop(_18) -> [return: bb31, unwind terminate(cleanup)],
+                    },
+                ),
+                is_cleanup: true,
+            },
+            BasicBlockData {
+                statements: [],
+                terminator: Some(
+                    Terminator {
+                        source_info: SourceInfo {
+                            span: src/main.rs:17:1: 17:2 (#0),
+                            scope: scope[0],
+                        },
+                        kind: drop(_1) -> [return: bb32, unwind terminate(cleanup)],
+                    },
+                ),
+                is_cleanup: true,
+            },
+            BasicBlockData {
+                statements: [],
+                terminator: Some(
+                    Terminator {
+                        source_info: SourceInfo {
+                            span: src/main.rs:5:1: 17:2 (#0),
+                            scope: scope[0],
+                        },
+                        kind: resume,
+                    },
+                ),
+                is_cleanup: true,
+            },
+            BasicBlockData {
+                statements: [],
+                terminator: Some(
+                    Terminator {
+                        source_info: SourceInfo {
+                            span: src/main.rs:8:24: 8:55 (#11),
+                            scope: scope[9],
+                        },
+                        kind: goto -> bb26,
+                    },
+                ),
+                is_cleanup: false,
+            },
+        ],
+        cache: Cache {
+            predecessors: OnceLock(
+                [
+                    [],
+                    [
+                        bb0,
+                    ],
+                    [
+                        bb1,
+                    ],
+                    [
+                        bb2,
+                        bb7,
+                        bb19,
+                    ],
+                    [
+                        bb2,
+                    ],
+                    [
+                        bb2,
+                    ],
+                    [
+                        bb4,
+                    ],
+                    [
+                        bb6,
+                    ],
+                    [
+                        bb7,
+                    ],
+                    [
+                        bb7,
+                    ],
+                    [
+                        bb8,
+                    ],
+                    [
+                        bb10,
+                    ],
+                    [
+                        bb11,
+                    ],
+                    [
+                        bb12,
+                    ],
+                    [
+                        bb13,
+                    ],
+                    [
+                        bb14,
+                    ],
+                    [
+                        bb15,
+                    ],
+                    [
+                        bb16,
+                    ],
+                    [
+                        bb17,
+                    ],
+                    [
+                        bb18,
+                    ],
+                    [
+                        bb19,
+                    ],
+                    [
+                        bb19,
+                    ],
+                    [
+                        bb21,
+                    ],
+                    [
+                        bb20,
+                    ],
+                    [
+                        bb23,
+                    ],
+                    [
+                        bb22,
+                    ],
+                    [
+                        bb25,
+                        bb33,
+                    ],
+                    [
+                        bb5,
+                        bb24,
+                        bb26,
+                    ],
+                    [
+                        bb17,
+                        bb18,
+                        bb21,
+                    ],
+                    [
+                        bb12,
+                        bb13,
+                        bb14,
+                        bb15,
+                        bb16,
+                        bb20,
+                        bb22,
+                        bb28,
+                    ],
+                    [
+                        bb11,
+                    ],
+                    [
+                        bb4,
+                        bb6,
+                        bb8,
+                        bb9,
+                        bb10,
+                        bb23,
+                        bb25,
+                        bb29,
+                        bb30,
+                    ],
+                    [
+                        bb31,
+                    ],
+                    [
+                        bb9,
+                    ],
+                ],
+            ),
+            switch_sources: OnceLock(
+                <uninit>,
+            ),
+            is_cyclic: OnceLock(
+                <uninit>,
+            ),
+            reverse_postorder: OnceLock(
+                <uninit>,
+            ),
+            dominators: OnceLock(
+                Dominators {
+                    kind: General(
+                        Inner {
+                            post_order_rank: [
+                                33,
+                                32,
+                                31,
+                                12,
+                                29,
+                                30,
+                                28,
+                                27,
+                                24,
+                                26,
+                                23,
+                                22,
+                                20,
+                                19,
+                                18,
+                                17,
+                                16,
+                                15,
+                                14,
+                                13,
+                                6,
+                                11,
+                                9,
+                                4,
+                                1,
+                                8,
+                                7,
+                                0,
+                                10,
+                                5,
+                                21,
+                                3,
+                                2,
+                                25,
+                            ],
+                            immediate_dominators: [
+                                None,
+                                Some(
+                                    bb0,
+                                ),
+                                Some(
+                                    bb1,
+                                ),
+                                Some(
+                                    bb2,
+                                ),
+                                Some(
+                                    bb2,
+                                ),
+                                Some(
+                                    bb2,
+                                ),
+                                Some(
+                                    bb4,
+                                ),
+                                Some(
+                                    bb6,
+                                ),
+                                Some(
+                                    bb7,
+                                ),
+                                Some(
+                                    bb7,
+                                ),
+                                Some(
+                                    bb8,
+                                ),
+                                Some(
+                                    bb10,
+                                ),
+                                Some(
+                                    bb11,
+                                ),
+                                Some(
+                                    bb12,
+                                ),
+                                Some(
+                                    bb13,
+                                ),
+                                Some(
+                                    bb14,
+                                ),
+                                Some(
+                                    bb15,
+                                ),
+                                Some(
+                                    bb16,
+                                ),
+                                Some(
+                                    bb17,
+                                ),
+                                Some(
+                                    bb18,
+                                ),
+                                Some(
+                                    bb19,
+                                ),
+                                Some(
+                                    bb19,
+                                ),
+                                Some(
+                                    bb21,
+                                ),
+                                Some(
+                                    bb20,
+                                ),
+                                Some(
+                                    bb23,
+                                ),
+                                Some(
+                                    bb22,
+                                ),
+                                Some(
+                                    bb7,
+                                ),
+                                Some(
+                                    bb2,
+                                ),
+                                Some(
+                                    bb17,
+                                ),
+                                Some(
+                                    bb12,
+                                ),
+                                Some(
+                                    bb11,
+                                ),
+                                Some(
+                                    bb4,
+                                ),
+                                Some(
+                                    bb31,
+                                ),
+                                Some(
+                                    bb9,
+                                ),
+                            ],
+                            time: [
+                                Time {
+                                    start: 1,
+                                    finish: 34,
+                                },
+                                Time {
+                                    start: 2,
+                                    finish: 34,
+                                },
+                                Time {
+                                    start: 3,
+                                    finish: 34,
+                                },
+                                Time {
+                                    start: 34,
+                                    finish: 34,
+                                },
+                                Time {
+                                    start: 6,
+                                    finish: 33,
+                                },
+                                Time {
+                                    start: 5,
+                                    finish: 5,
+                                },
+                                Time {
+                                    start: 9,
+                                    finish: 33,
+                                },
+                                Time {
+                                    start: 10,
+                                    finish: 33,
+                                },
+                                Time {
+                                    start: 14,
+                                    finish: 33,
+                                },
+                                Time {
+                                    start: 12,
+                                    finish: 13,
+                                },
+                                Time {
+                                    start: 15,
+                                    finish: 33,
+                                },
+                                Time {
+                                    start: 16,
+                                    finish: 33,
+                                },
+                                Time {
+                                    start: 18,
+                                    finish: 33,
+                                },
+                                Time {
+                                    start: 20,
+                                    finish: 33,
+                                },
+                                Time {
+                                    start: 21,
+                                    finish: 33,
+                                },
+                                Time {
+                                    start: 22,
+                                    finish: 33,
+                                },
+                                Time {
+                                    start: 23,
+                                    finish: 33,
+                                },
+                                Time {
+                                    start: 24,
+                                    finish: 33,
+                                },
+                                Time {
+                                    start: 26,
+                                    finish: 33,
+                                },
+                                Time {
+                                    start: 27,
+                                    finish: 33,
+                                },
+                                Time {
+                                    start: 31,
+                                    finish: 33,
+                                },
+                                Time {
+                                    start: 28,
+                                    finish: 30,
+                                },
+                                Time {
+                                    start: 29,
+                                    finish: 30,
+                                },
+                                Time {
+                                    start: 32,
+                                    finish: 33,
+                                },
+                                Time {
+                                    start: 33,
+                                    finish: 33,
+                                },
+                                Time {
+                                    start: 30,
+                                    finish: 30,
+                                },
+                                Time {
+                                    start: 11,
+                                    finish: 11,
+                                },
+                                Time {
+                                    start: 4,
+                                    finish: 4,
+                                },
+                                Time {
+                                    start: 25,
+                                    finish: 25,
+                                },
+                                Time {
+                                    start: 19,
+                                    finish: 19,
+                                },
+                                Time {
+                                    start: 17,
+                                    finish: 17,
+                                },
+                                Time {
+                                    start: 7,
+                                    finish: 8,
+                                },
+                                Time {
+                                    start: 8,
+                                    finish: 8,
+                                },
+                                Time {
+                                    start: 13,
+                                    finish: 13,
+                                },
+                            ],
+                        },
+                    ),
+                },
+            ),
+        },
+    },
+    phase: Runtime(
+        Optimized,
+    ),
+    pass_count: 1,
+    source: MirSource {
+        instance: Item(
+            DefId(0:6 ~ io_read1[49cf]::main),
+        ),
+        promoted: None,
+    },
+    source_scopes: [
+        SourceScopeData {
+            span: src/main.rs:5:1: 17:2 (#0),
+            parent_scope: None,
+            inlined: None,
+            inlined_parent_scope: None,
+            local_data: Set(
+                SourceScopeLocalData {
+                    lint_root: HirId(DefId(0:6 ~ io_read1[49cf]::main).0),
+                },
+            ),
+        },
+        SourceScopeData {
+            span: src/main.rs:6:5: 17:2 (#0),
+            parent_scope: Some(
+                scope[0],
+            ),
+            inlined: None,
+            inlined_parent_scope: None,
+            local_data: Set(
+                SourceScopeLocalData {
+                    lint_root: HirId(DefId(0:6 ~ io_read1[49cf]::main).0),
+                },
+            ),
+        },
+        SourceScopeData {
+            span: src/main.rs:6:58: 6:59 (#10),
+            parent_scope: Some(
+                scope[0],
+            ),
+            inlined: None,
+            inlined_parent_scope: None,
+            local_data: Set(
+                SourceScopeLocalData {
+                    lint_root: HirId(DefId(0:6 ~ io_read1[49cf]::main).0),
+                },
+            ),
+        },
+        SourceScopeData {
+            span: src/main.rs:6:58: 6:59 (#10),
+            parent_scope: Some(
+                scope[2],
+            ),
+            inlined: None,
+            inlined_parent_scope: None,
+            local_data: Set(
+                SourceScopeLocalData {
+                    lint_root: HirId(DefId(0:6 ~ io_read1[49cf]::main).22),
+                },
+            ),
+        },
+        SourceScopeData {
+            span: src/main.rs:6:22: 6:59 (#0),
+            parent_scope: Some(
+                scope[0],
+            ),
+            inlined: None,
+            inlined_parent_scope: None,
+            local_data: Set(
+                SourceScopeLocalData {
+                    lint_root: HirId(DefId(0:6 ~ io_read1[49cf]::main).0),
+                },
+            ),
+        },
+        SourceScopeData {
+            span: src/main.rs:6:22: 6:59 (#0),
+            parent_scope: Some(
+                scope[4],
+            ),
+            inlined: None,
+            inlined_parent_scope: None,
+            local_data: Set(
+                SourceScopeLocalData {
+                    lint_root: HirId(DefId(0:6 ~ io_read1[49cf]::main).13),
+                },
+            ),
+        },
+        SourceScopeData {
+            span: src/main.rs:7:5: 17:2 (#0),
+            parent_scope: Some(
+                scope[1],
+            ),
+            inlined: None,
+            inlined_parent_scope: None,
+            local_data: Set(
+                SourceScopeLocalData {
+                    lint_root: HirId(DefId(0:6 ~ io_read1[49cf]::main).0),
+                },
+            ),
+        },
+        SourceScopeData {
+            span: src/main.rs:8:5: 17:2 (#0),
+            parent_scope: Some(
+                scope[6],
+            ),
+            inlined: None,
+            inlined_parent_scope: None,
+            local_data: Set(
+                SourceScopeLocalData {
+                    lint_root: HirId(DefId(0:6 ~ io_read1[49cf]::main).0),
+                },
+            ),
+        },
+        SourceScopeData {
+            span: src/main.rs:8:54: 8:55 (#12),
+            parent_scope: Some(
+                scope[6],
+            ),
+            inlined: None,
+            inlined_parent_scope: None,
+            local_data: Set(
+                SourceScopeLocalData {
+                    lint_root: HirId(DefId(0:6 ~ io_read1[49cf]::main).0),
+                },
+            ),
+        },
+        SourceScopeData {
+            span: src/main.rs:8:54: 8:55 (#12),
+            parent_scope: Some(
+                scope[8],
+            ),
+            inlined: None,
+            inlined_parent_scope: None,
+            local_data: Set(
+                SourceScopeLocalData {
+                    lint_root: HirId(DefId(0:6 ~ io_read1[49cf]::main).58),
+                },
+            ),
+        },
+        SourceScopeData {
+            span: src/main.rs:8:24: 8:55 (#0),
+            parent_scope: Some(
+                scope[6],
+            ),
+            inlined: None,
+            inlined_parent_scope: None,
+            local_data: Set(
+                SourceScopeLocalData {
+                    lint_root: HirId(DefId(0:6 ~ io_read1[49cf]::main).0),
+                },
+            ),
+        },
+        SourceScopeData {
+            span: src/main.rs:8:24: 8:55 (#0),
+            parent_scope: Some(
+                scope[10],
+            ),
+            inlined: None,
+            inlined_parent_scope: None,
+            local_data: Set(
+                SourceScopeLocalData {
+                    lint_root: HirId(DefId(0:6 ~ io_read1[49cf]::main).49),
+                },
+            ),
+        },
+        SourceScopeData {
+            span: src/main.rs:9:5: 17:2 (#0),
+            parent_scope: Some(
+                scope[7],
+            ),
+            inlined: None,
+            inlined_parent_scope: None,
+            local_data: Set(
+                SourceScopeLocalData {
+                    lint_root: HirId(DefId(0:6 ~ io_read1[49cf]::main).0),
+                },
+            ),
+        },
+        SourceScopeData {
+            span: src/main.rs:12:5: 17:2 (#0),
+            parent_scope: Some(
+                scope[12],
+            ),
+            inlined: None,
+            inlined_parent_scope: None,
+            local_data: Set(
+                SourceScopeLocalData {
+                    lint_root: HirId(DefId(0:6 ~ io_read1[49cf]::main).0),
+                },
+            ),
+        },
+        SourceScopeData {
+            span: /home/hassnain/.rustup/toolchains/nightly-2024-07-22-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:128:13: 130:10 (#4),
+            parent_scope: Some(
+                scope[12],
+            ),
+            inlined: None,
+            inlined_parent_scope: None,
+            local_data: Set(
+                SourceScopeLocalData {
+                    lint_root: HirId(DefId(0:6 ~ io_read1[49cf]::main).0),
+                },
+            ),
+        },
+        SourceScopeData {
+            span: src/main.rs:14:5: 17:2 (#0),
+            parent_scope: Some(
+                scope[13],
+            ),
+            inlined: None,
+            inlined_parent_scope: None,
+            local_data: Set(
+                SourceScopeLocalData {
+                    lint_root: HirId(DefId(0:6 ~ io_read1[49cf]::main).0),
+                },
+            ),
+        },
+        SourceScopeData {
+            span: src/main.rs:15:42: 15:43 (#14),
+            parent_scope: Some(
+                scope[15],
+            ),
+            inlined: None,
+            inlined_parent_scope: None,
+            local_data: Set(
+                SourceScopeLocalData {
+                    lint_root: HirId(DefId(0:6 ~ io_read1[49cf]::main).0),
+                },
+            ),
+        },
+        SourceScopeData {
+            span: src/main.rs:15:42: 15:43 (#14),
+            parent_scope: Some(
+                scope[16],
+            ),
+            inlined: None,
+            inlined_parent_scope: None,
+            local_data: Set(
+                SourceScopeLocalData {
+                    lint_root: HirId(DefId(0:6 ~ io_read1[49cf]::main).148),
+                },
+            ),
+        },
+        SourceScopeData {
+            span: src/main.rs:15:5: 15:43 (#0),
+            parent_scope: Some(
+                scope[15],
+            ),
+            inlined: None,
+            inlined_parent_scope: None,
+            local_data: Set(
+                SourceScopeLocalData {
+                    lint_root: HirId(DefId(0:6 ~ io_read1[49cf]::main).0),
+                },
+            ),
+        },
+        SourceScopeData {
+            span: src/main.rs:15:5: 15:43 (#0),
+            parent_scope: Some(
+                scope[18],
+            ),
+            inlined: None,
+            inlined_parent_scope: None,
+            local_data: Set(
+                SourceScopeLocalData {
+                    lint_root: HirId(DefId(0:6 ~ io_read1[49cf]::main).139),
+                },
+            ),
+        },
+    ],
+    coroutine: None,
+    local_decls: [
+        LocalDecl {
+            mutability: Mut,
+            local_info: Clear,
+            ty: std::result::Result<(), std::io::Error>,
+            user_ty: None,
+            source_info: SourceInfo {
+                span: src/main.rs:5:14: 5:33 (#0),
+                scope: scope[0],
+            },
+        },
+        LocalDecl {
+            mutability: Mut,
+            local_info: Clear,
+            ty: std::net::TcpStream,
+            user_ty: None,
+            source_info: SourceInfo {
+                span: src/main.rs:6:9: 6:19 (#0),
+                scope: scope[0],
+            },
+        },
+        LocalDecl {
+            mutability: Mut,
+            local_info: Clear,
+            ty: std::ops::ControlFlow<std::result::Result<std::convert::Infallible, std::io::Error>, std::net::TcpStream>,
+            user_ty: None,
+            source_info: SourceInfo {
+                span: src/main.rs:6:22: 6:59 (#9),
+                scope: scope[0],
+            },
+        },
+        LocalDecl {
+            mutability: Mut,
+            local_info: Clear,
+            ty: std::result::Result<std::net::TcpStream, std::io::Error>,
+            user_ty: None,
+            source_info: SourceInfo {
+                span: src/main.rs:6:22: 6:58 (#0),
+                scope: scope[0],
+            },
+        },
+        LocalDecl {
+            mutability: Mut,
+            local_info: Clear,
+            ty: isize,
+            user_ty: None,
+            source_info: SourceInfo {
+                span: src/main.rs:6:58: 6:59 (#10),
+                scope: scope[0],
+            },
+        },
+        LocalDecl {
+            mutability: Not,
+            local_info: Clear,
+            ty: std::result::Result<std::convert::Infallible, std::io::Error>,
+            user_ty: None,
+            source_info: SourceInfo {
+                span: src/main.rs:6:58: 6:59 (#10),
+                scope: scope[0],
+            },
+        },
+        LocalDecl {
+            mutability: Not,
+            local_info: Clear,
+            ty: std::net::TcpStream,
+            user_ty: None,
+            source_info: SourceInfo {
+                span: src/main.rs:6:22: 6:59 (#0),
+                scope: scope[0],
+            },
+        },
+        LocalDecl {
+            mutability: Mut,
+            local_info: Clear,
+            ty: [u8; 64_usize],
+            user_ty: None,
+            source_info: SourceInfo {
+                span: src/main.rs:7:9: 7:25 (#0),
+                scope: scope[1],
+            },
+        },
+        LocalDecl {
+            mutability: Mut,
+            local_info: Clear,
+            ty: std::ops::ControlFlow<std::result::Result<std::convert::Infallible, std::io::Error>, usize>,
+            user_ty: None,
+            source_info: SourceInfo {
+                span: src/main.rs:8:24: 8:55 (#11),
+                scope: scope[0],
+            },
+        },
+        LocalDecl {
+            mutability: Mut,
+            local_info: Clear,
+            ty: std::result::Result<usize, std::io::Error>,
+            user_ty: None,
+            source_info: SourceInfo {
+                span: src/main.rs:8:24: 8:54 (#0),
+                scope: scope[0],
+            },
+        },
+        LocalDecl {
+            mutability: Mut,
+            local_info: Clear,
+            ty: &'{erased} mut std::net::TcpStream,
+            user_ty: None,
+            source_info: SourceInfo {
+                span: src/main.rs:8:24: 8:30 (#0),
+                scope: scope[0],
+            },
+        },
+        LocalDecl {
+            mutability: Mut,
+            local_info: Clear,
+            ty: &'{erased} mut [u8],
+            user_ty: None,
+            source_info: SourceInfo {
+                span: src/main.rs:8:36: 8:53 (#0),
+                scope: scope[0],
+            },
+        },
+        LocalDecl {
+            mutability: Mut,
+            local_info: Clear,
+            ty: &'{erased} mut [u8; 64_usize],
+            user_ty: None,
+            source_info: SourceInfo {
+                span: src/main.rs:8:36: 8:53 (#0),
+                scope: scope[0],
+            },
+        },
+        LocalDecl {
+            mutability: Mut,
+            local_info: Clear,
+            ty: isize,
+            user_ty: None,
+            source_info: SourceInfo {
+                span: src/main.rs:8:54: 8:55 (#12),
+                scope: scope[0],
+            },
+        },
+        LocalDecl {
+            mutability: Not,
+            local_info: Clear,
+            ty: std::result::Result<std::convert::Infallible, std::io::Error>,
+            user_ty: None,
+            source_info: SourceInfo {
+                span: src/main.rs:8:54: 8:55 (#12),
+                scope: scope[6],
+            },
+        },
+        LocalDecl {
+            mutability: Not,
+            local_info: Clear,
+            ty: usize,
+            user_ty: None,
+            source_info: SourceInfo {
+                span: src/main.rs:8:24: 8:55 (#0),
+                scope: scope[6],
+            },
+        },
+        LocalDecl {
+            mutability: Not,
+            local_info: Clear,
+            ty: std::string::String,
+            user_ty: None,
+            source_info: SourceInfo {
+                span: src/main.rs:9:9: 9:17 (#0),
+                scope: scope[7],
+            },
+        },
+        LocalDecl {
+            mutability: Mut,
+            local_info: Clear,
+            ty: &'{erased} std::borrow::Cow<'{erased}, str>,
+            user_ty: None,
+            source_info: SourceInfo {
+                span: src/main.rs:9:20: 9:74 (#0),
+                scope: scope[0],
+            },
+        },
+        LocalDecl {
+            mutability: Not,
+            local_info: Clear,
+            ty: std::borrow::Cow<'{erased}, str>,
+            user_ty: None,
+            source_info: SourceInfo {
+                span: src/main.rs:9:20: 9:74 (#0),
+                scope: scope[0],
+            },
+        },
+        LocalDecl {
+            mutability: Not,
+            local_info: Clear,
+            ty: &'{erased} [u8],
+            user_ty: None,
+            source_info: SourceInfo {
+                span: src/main.rs:9:57: 9:73 (#0),
+                scope: scope[0],
+            },
+        },
+        LocalDecl {
+            mutability: Mut,
+            local_info: Clear,
+            ty: &'{erased} [u8; 64_usize],
+            user_ty: None,
+            source_info: SourceInfo {
+                span: src/main.rs:9:45: 9:57 (#0),
+                scope: scope[0],
+            },
+        },
+        LocalDecl {
+            mutability: Mut,
+            local_info: Clear,
+            ty: std::ops::RangeTo<usize>,
+            user_ty: None,
+            source_info: SourceInfo {
+                span: src/main.rs:9:58: 9:72 (#0),
+                scope: scope[0],
+            },
+        },
+        LocalDecl {
+            mutability: Not,
+            local_info: Clear,
+            ty: std::string::String,
+            user_ty: None,
+            source_info: SourceInfo {
+                span: src/main.rs:12:9: 12:25 (#0),
+                scope: scope[12],
+            },
+        },
+        LocalDecl {
+            mutability: Not,
+            local_info: Clear,
+            ty: std::string::String,
+            user_ty: None,
+            source_info: SourceInfo {
+                span: /home/hassnain/.rustup/toolchains/nightly-2024-07-22-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:128:17: 128:20 (#4),
+                scope: scope[12],
+            },
+        },
+        LocalDecl {
+            mutability: Mut,
+            local_info: Clear,
+            ty: std::fmt::Arguments<'{erased}>,
+            user_ty: None,
+            source_info: SourceInfo {
+                span: /home/hassnain/.rustup/toolchains/nightly-2024-07-22-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:128:43: 128:83 (#6),
+                scope: scope[0],
+            },
+        },
+        LocalDecl {
+            mutability: Not,
+            local_info: Clear,
+            ty: &'{erased} [&'{erased} str; 2_usize],
+            user_ty: None,
+            source_info: SourceInfo {
+                span: src/main.rs:12:36: 12:52 (#0),
+                scope: scope[0],
+            },
+        },
+        LocalDecl {
+            mutability: Not,
+            local_info: Clear,
+            ty: &'{erased} [core::fmt::rt::Argument<'{erased}>; 1_usize],
+            user_ty: None,
+            source_info: SourceInfo {
+                span: /home/hassnain/.rustup/toolchains/nightly-2024-07-22-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:128:43: 128:83 (#6),
+                scope: scope[0],
+            },
+        },
+        LocalDecl {
+            mutability: Not,
+            local_info: Clear,
+            ty: [core::fmt::rt::Argument<'{erased}>; 1_usize],
+            user_ty: None,
+            source_info: SourceInfo {
+                span: /home/hassnain/.rustup/toolchains/nightly-2024-07-22-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:128:43: 128:83 (#6),
+                scope: scope[0],
+            },
+        },
+        LocalDecl {
+            mutability: Mut,
+            local_info: Clear,
+            ty: core::fmt::rt::Argument<'{erased}>,
+            user_ty: None,
+            source_info: SourceInfo {
+                span: src/main.rs:12:37: 12:39 (#6),
+                scope: scope[0],
+            },
+        },
+        LocalDecl {
+            mutability: Not,
+            local_info: Clear,
+            ty: &'{erased} std::string::String,
+            user_ty: None,
+            source_info: SourceInfo {
+                span: src/main.rs:12:54: 12:62 (#6),
+                scope: scope[0],
+            },
+        },
+        LocalDecl {
+            mutability: Mut,
+            local_info: Clear,
+            ty: std::ops::ControlFlow<std::result::Result<std::convert::Infallible, std::io::Error>, ()>,
+            user_ty: None,
+            source_info: SourceInfo {
+                span: src/main.rs:15:5: 15:43 (#13),
+                scope: scope[0],
+            },
+        },
+        LocalDecl {
+            mutability: Mut,
+            local_info: Clear,
+            ty: std::result::Result<(), std::io::Error>,
+            user_ty: None,
+            source_info: SourceInfo {
+                span: src/main.rs:15:5: 15:42 (#0),
+                scope: scope[0],
+            },
+        },
+        LocalDecl {
+            mutability: Mut,
+            local_info: Clear,
+            ty: &'{erased} std::string::String,
+            user_ty: None,
+            source_info: SourceInfo {
+                span: src/main.rs:15:15: 15:32 (#0),
+                scope: scope[0],
+            },
+        },
+        LocalDecl {
+            mutability: Mut,
+            local_info: Clear,
+            ty: &'{erased} str,
+            user_ty: None,
+            source_info: SourceInfo {
+                span: src/main.rs:15:34: 15:41 (#0),
+                scope: scope[0],
+            },
+        },
+        LocalDecl {
+            mutability: Mut,
+            local_info: Clear,
+            ty: isize,
+            user_ty: None,
+            source_info: SourceInfo {
+                span: src/main.rs:15:42: 15:43 (#14),
+                scope: scope[0],
+            },
+        },
+        LocalDecl {
+            mutability: Not,
+            local_info: Clear,
+            ty: std::result::Result<std::convert::Infallible, std::io::Error>,
+            user_ty: None,
+            source_info: SourceInfo {
+                span: src/main.rs:15:42: 15:43 (#14),
+                scope: scope[15],
+            },
+        },
+    ],
+    user_type_annotations: [],
+    arg_count: 0,
+    spread_arg: None,
+    var_debug_info: [
+        stream => _1,
+        residual => _5,
+        val => _6,
+        filename_buf => _7,
+        filename_len => _15,
+        residual => _14,
+        val => _15,
+        filename => _16,
+        updated_filename => _22,
+        res => _23,
+        content => const "Dark Lord has been defeated",
+        residual => _35,
+        val => const (),
+    ],
+    span: src/main.rs:5:1: 17:2 (#0),
+    required_consts: [],
+    mentioned_items: [
+        Spanned {
+            node: Fn(
+                FnDef(
+                    DefId(1:3925 ~ std[33df]::net::tcp::{impl#0}::connect),
+                    [
+                        &'{erased} str,
+                    ],
+                ),
+            ),
+            span: src/main.rs:6:22: 6:58 (#0),
+        },
+        Spanned {
+            node: Fn(
+                FnDef(
+                    DefId(2:3793 ~ core[0f52]::ops::try_trait::Try::branch),
+                    [
+                        std::result::Result<std::net::TcpStream, std::io::Error>,
+                    ],
+                ),
+            ),
+            span: src/main.rs:6:22: 6:59 (#9),
+        },
+        Spanned {
+            node: Fn(
+                FnDef(
+                    DefId(1:3608 ~ std[33df]::io::Read::read),
+                    [
+                        std::net::TcpStream,
+                    ],
+                ),
+            ),
+            span: src/main.rs:8:24: 8:54 (#0),
+        },
+        Spanned {
+            node: Fn(
+                FnDef(
+                    DefId(2:3796 ~ core[0f52]::ops::try_trait::FromResidual::from_residual),
+                    [
+                        std::result::Result<(), std::io::Error>,
+                        std::result::Result<std::convert::Infallible, std::io::Error>,
+                    ],
+                ),
+            ),
+            span: src/main.rs:6:22: 6:59 (#9),
+        },
+        Spanned {
+            node: Fn(
+                FnDef(
+                    DefId(2:3793 ~ core[0f52]::ops::try_trait::Try::branch),
+                    [
+                        std::result::Result<usize, std::io::Error>,
+                    ],
+                ),
+            ),
+            span: src/main.rs:8:24: 8:55 (#11),
+        },
+        Spanned {
+            node: Fn(
+                FnDef(
+                    DefId(2:40158 ~ core[0f52]::ops::index::Index::index),
+                    [
+                        [u8; 64_usize],
+                        std::ops::RangeTo<usize>,
+                    ],
+                ),
+            ),
+            span: src/main.rs:9:57: 9:73 (#0),
+        },
+        Spanned {
+            node: Fn(
+                FnDef(
+                    DefId(2:3796 ~ core[0f52]::ops::try_trait::FromResidual::from_residual),
+                    [
+                        std::result::Result<(), std::io::Error>,
+                        std::result::Result<std::convert::Infallible, std::io::Error>,
+                    ],
+                ),
+            ),
+            span: src/main.rs:8:24: 8:55 (#11),
+        },
+        Spanned {
+            node: Fn(
+                FnDef(
+                    DefId(5:5767 ~ alloc[96f8]::string::{impl#0}::from_utf8_lossy),
+                    [],
+                ),
+            ),
+            span: src/main.rs:9:20: 9:74 (#0),
+        },
+        Spanned {
+            node: Fn(
+                FnDef(
+                    DefId(5:5952 ~ alloc[96f8]::string::ToString::to_string),
+                    [
+                        std::borrow::Cow<'{erased}, str>,
+                    ],
+                ),
+            ),
+            span: src/main.rs:9:20: 9:86 (#0),
+        },
+        Spanned {
+            node: Drop(
+                std::borrow::Cow<'{erased}, str>,
+            ),
+            span: src/main.rs:9:86: 9:87 (#0),
+        },
+        Spanned {
+            node: Fn(
+                FnDef(
+                    DefId(2:10569 ~ core[0f52]::fmt::rt::{impl#1}::new_display),
+                    [
+                        '{erased},
+                        std::string::String,
+                    ],
+                ),
+            ),
+            span: src/main.rs:12:37: 12:39 (#6),
+        },
+        Spanned {
+            node: Fn(
+                FnDef(
+                    DefId(2:10647 ~ core[0f52]::fmt::{impl#2}::new_v1),
+                    [
+                        '{erased},
+                        2_usize,
+                        1_usize,
+                    ],
+                ),
+            ),
+            span: /home/hassnain/.rustup/toolchains/nightly-2024-07-22-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:128:43: 128:83 (#6),
+        },
+        Spanned {
+            node: Fn(
+                FnDef(
+                    DefId(5:4923 ~ alloc[96f8]::fmt::format),
+                    [],
+                ),
+            ),
+            span: /home/hassnain/.rustup/toolchains/nightly-2024-07-22-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:128:23: 128:84 (#4),
+        },
+        Spanned {
+            node: Fn(
+                FnDef(
+                    DefId(2:1285 ~ core[0f52]::hint::must_use),
+                    [
+                        std::string::String,
+                    ],
+                ),
+            ),
+            span: /home/hassnain/.rustup/toolchains/nightly-2024-07-22-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:127:9: 130:11 (#4),
+        },
+        Spanned {
+            node: Fn(
+                FnDef(
+                    DefId(1:2345 ~ std[33df]::fs::write),
+                    [
+                        &'{erased} std::string::String,
+                        &'{erased} str,
+                    ],
+                ),
+            ),
+            span: src/main.rs:15:5: 15:42 (#0),
+        },
+        Spanned {
+            node: Fn(
+                FnDef(
+                    DefId(2:3793 ~ core[0f52]::ops::try_trait::Try::branch),
+                    [
+                        std::result::Result<(), std::io::Error>,
+                    ],
+                ),
+            ),
+            span: src/main.rs:15:5: 15:43 (#13),
+        },
+        Spanned {
+            node: Drop(
+                std::string::String,
+            ),
+            span: src/main.rs:17:1: 17:2 (#0),
+        },
+        Spanned {
+            node: Fn(
+                FnDef(
+                    DefId(2:3796 ~ core[0f52]::ops::try_trait::FromResidual::from_residual),
+                    [
+                        std::result::Result<(), std::io::Error>,
+                        std::result::Result<std::convert::Infallible, std::io::Error>,
+                    ],
+                ),
+            ),
+            span: src/main.rs:15:5: 15:43 (#13),
+        },
+        Spanned {
+            node: Drop(
+                std::string::String,
+            ),
+            span: src/main.rs:17:1: 17:2 (#0),
+        },
+        Spanned {
+            node: Drop(
+                std::string::String,
+            ),
+            span: src/main.rs:17:1: 17:2 (#0),
+        },
+        Spanned {
+            node: Drop(
+                std::net::TcpStream,
+            ),
+            span: src/main.rs:17:1: 17:2 (#0),
+        },
+        Spanned {
+            node: Drop(
+                std::string::String,
+            ),
+            span: src/main.rs:17:1: 17:2 (#0),
+        },
+        Spanned {
+            node: Drop(
+                std::net::TcpStream,
+            ),
+            span: src/main.rs:17:1: 17:2 (#0),
+        },
+        Spanned {
+            node: Drop(
+                std::string::String,
+            ),
+            span: src/main.rs:17:1: 17:2 (#0),
+        },
+        Spanned {
+            node: Drop(
+                std::string::String,
+            ),
+            span: src/main.rs:17:1: 17:2 (#0),
+        },
+        Spanned {
+            node: Drop(
+                std::borrow::Cow<'{erased}, str>,
+            ),
+            span: src/main.rs:9:86: 9:87 (#0),
+        },
+        Spanned {
+            node: Drop(
+                std::net::TcpStream,
+            ),
+            span: src/main.rs:17:1: 17:2 (#0),
+        },
+    ],
+    is_polymorphic: false,
+    injection_phase: None,
+    tainted_by_errors: None,
+    coverage_info_hi: None,
+    function_coverage_info: None,
+}
+[src/handlers.rs:249:5] "Handling String::from_utf8_lossy" = "Handling String::from_utf8_lossy"
+[src/handlers.rs:252:5] &dest_key = "18"
+[src/handlers.rs:256:9] &s = |19|
+[src/handlers.rs:107:5]
+Sink: DefId(1:2345 ~ std[33df]::fs::write) (arg_idx = 0, dest = _31, forbidden_val = /proc/self/mem)
+I have string |22|
+my taint status is true
+[src/handlers.rs:160:13] could_match = true
+[src/handlers.rs:160:13] always_match = false
+[src/handlers.rs:160:13] tainted = true
+SymExecBool { context: Context { z3_ctx: 0x71856c324fa8 }, string_variables: {"16": Slot { value: |16|, flag: true }, "29": Slot { value: |16|, flag: true }, "27": Slot { value: |28|, flag: true }, "26": Slot { value: |28|, flag: true }, "11": Slot { value: |12|, flag: true }, "23": Slot { value: |23|, flag: true }, "32": Slot { value: |22|, flag: true }, "24": Slot { value: |24|, flag: true }, "28": Slot { value: |28|, flag: true }, "8": Slot { value: |8|, flag: true }, "31": Slot { value: |22|, flag: true }, "6": Slot { value: |6|, flag: false }, "12": Slot { value: |12|, flag: false }, "9": Slot { value: |9|, flag: true }, "1": Slot { value: |6|, flag: false }, "33": Slot { value: "Dark Lord has been defeated", flag: false }, "7": Slot { value: |7|, flag: true }, "22": Slot { value: |22|, flag: true }, "10": Slot { value: |6|, flag: false }, "18": Slot { value: |19|, flag: true }, "19": Slot { value: |19|, flag: true }, "17": Slot { value: |19|, flag: true }, "20": Slot { value: |7|, flag: true }}, int_variables: {"34": Slot { value: |34|, flag: false }, "15": Slot { value: |15|, flag: false }, "21": Slot { value: |15|, flag: false }, "13": Slot { value: |13|, flag: false }, "4": Slot { value: |4|, flag: false }}, bool_variables: {}, constraints: [], interval_map: {"21": (None, None), "4": (None, None), "13": (None, None), "34": (None, None), "15": (None, None)}, path_taint: false }
+=== Dangerous Spans ===
+=== std::fs::write (arg = "/proc/self/mem") ===
+  [01] src/main.rs:15:5: 15:14
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.13s

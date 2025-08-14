@@ -4,6 +4,9 @@ safe,command2,False,PASS
 safe,command3,False,PASS
 safe,example1,False,PASS
 safe,example2,False,PASS
+safe,io_read1,True,FAIL
+safe,io_read2,False,PASS
+safe,io_read3,False,PASS
 safe,path_push,False,PASS
 unsafe,command1,True,PASS
 unsafe,command2,True,PASS
@@ -13,7 +16,9 @@ unsafe,command5,True,PASS
 unsafe,command6,True,PASS
 unsafe,env1,True,PASS
 unsafe,example1,True,PASS
-unsafe,io_read1,False,FAIL
+unsafe,io_read1,True,PASS
+unsafe,io_read2,True,PASS
+unsafe,io_read3,True,PASS
 unsafe,pathbuff1,True,PASS
 unsafe,pathbuff2,True,PASS
 unsafe,pathbuff3,True,PASS
