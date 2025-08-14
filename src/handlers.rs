@@ -296,3 +296,34 @@ pub(crate) fn handle_read_into_buf<'tcx, 'mir, 'ctx>(
         this.curr.set_taint(&base, true); // [u8; N] backing array
     }
 }
+
+
+
+// Calling format calles these three
+// core::fmt::rt::Argument::<'a>::new_display -> get's called one time for each arg with {} in format 
+// std::fmt::Arguments::<'a>::new_v1 -> once upper one is done with all, this gets called
+// std::fmt::format -> finally, this gets called to actually format the string
+
+pub(crate) fn  handle_fmt_arg_new_display<'tcx, 'mir, 'ctx>(
+    this: &mut MIRParser<'tcx, 'mir, 'ctx>,
+    call: Call<'tcx>,
+) {
+    // I think an idea here would be to keep track of all the constraint that comes with args in some hashmap
+}
+
+pub(crate) fn handle_fmt_arguments_new_v1<'tcx, 'mir, 'ctx>(
+    this: &mut MIRParser<'tcx, 'mir, 'ctx>,
+    call: Call<'tcx>,
+) {
+    // this one get's called once, so it has all the args, once we have all of them, we should be combining the constraints or something here?
+    // TODO fix later
+}
+
+pub(crate) fn handle_fmt_format<'tcx, 'mir, 'ctx>(
+    this: &mut MIRParser<'tcx, 'mir, 'ctx>,
+    call: Call<'tcx>,
+) {
+    println!("Format! encountered, false positive introduced");
+    // this should store the result of the formatting in actual hashmap
+}
+

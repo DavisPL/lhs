@@ -24,7 +24,9 @@ use crate::handlers::{
     generic_string_handler, handle_from_trait, handle_generic_source, handle_path_join,
     handle_path_new, handle_path_to_path_buf, handle_pathbuf_deref, handle_pathbuf_from,
     handle_pathbuf_push, handle_read_into_buf, handle_string_from, handle_string_from_utf8_lossy,
+    handle_fmt_arg_new_display, handle_fmt_arguments_new_v1, handle_fmt_format
 };
+
 
 #[derive(Clone, Copy, Debug)]
 pub struct SinkInformation {
@@ -160,6 +162,11 @@ where
             "alloc::string::String::from_utf8_lossy",
             handle_string_from_utf8_lossy,
         );
+
+        //format
+        self.register_handler("core::fmt::rt::Argument::new_display", handle_fmt_arg_new_display);
+        self.register_handler("std::fmt::Arguments::new_v1",        handle_fmt_arguments_new_v1);
+        self.register_handler("std::fmt::format",                    handle_fmt_format);
     }
 
     pub(crate) fn operand_tainted(&self, op: &Operand<'tcx>) -> bool {
@@ -765,6 +772,7 @@ where
     ) {
         if let Some(def_id) = get_operand_def_id(&func) {
             let path = self.def_path_str(def_id);
+            // println!("Function call: {}", path);
 
             if let Some((handler, sinks)) = self.find_handler(&path) {
                 let arg_vec: Vec<Operand<'tcx>> = args.iter().map(|s| s.node.clone()).collect();
