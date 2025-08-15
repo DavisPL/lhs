@@ -21,12 +21,12 @@ use crate::symexec::SymExecBool as SymExec;
 use std::collections::{HashMap, HashSet};
 
 use crate::handlers::{
-    generic_string_handler, handle_from_trait, handle_generic_source, handle_path_join,
-    handle_path_new, handle_path_to_path_buf, handle_pathbuf_deref, handle_pathbuf_from,
-    handle_pathbuf_push, handle_read_into_buf, handle_string_from, handle_string_from_utf8_lossy,
-    handle_fmt_arg_new_display, handle_fmt_arguments_new_v1, handle_fmt_format
+    generic_string_handler, handle_deref_generic, handle_deref_mut, handle_fmt_arg_new_display,
+    handle_fmt_arguments_new_v1, handle_fmt_format, handle_from_trait, handle_generic_source,
+    handle_path_join, handle_path_new, handle_path_to_path_buf, handle_pathbuf_from,
+    handle_pathbuf_push, handle_read_into_buf, handle_result_unwrap_or_default, handle_string_from,
+    handle_string_from_utf8, handle_string_from_utf8_lossy,
 };
-
 
 #[derive(Clone, Copy, Debug)]
 pub struct SinkInformation {
@@ -52,7 +52,7 @@ where
     // TODO: Vec<AnalysisResult>
     // Or: HashMap<(String, Operand), AnalysisResult>
     dangerous_spans: HashMap<(String, String), Vec<Span>>,
-    aliases: HashMap<String, String>, // Hashmap for aliases check
+    pub(crate) aliases: HashMap<String, String>, // Hashmap for aliases check
 
     // registry of “interesting” callees → handler
     handlers: IndexMap<String, (CallHandler<'tcx, 'mir, 'ctx>, Vec<SinkInformation>)>,
@@ -134,11 +134,9 @@ where
 
         // all other handlers we added for processing
         self.register_handler("std::path::PathBuf::from", handle_pathbuf_from);
-        self.register_handler("std::path::PathBuf::deref", handle_pathbuf_deref);
+        self.register_handler("std::path::PathBuf::deref", handle_deref_generic);
         self.register_handler("std::path::Path::new", handle_path_new);
         self.register_handler("std::path::Path::to_path_buf", handle_path_to_path_buf);
-        self.register_handler("std::ops::Deref::deref", handle_pathbuf_deref);
-        self.register_handler("core::ops::deref::Deref::deref", handle_pathbuf_deref);
         self.register_handler("std::path::Path::join", handle_path_join);
         self.register_handler("std::path::PathBuf::push", handle_pathbuf_push);
 
@@ -152,6 +150,7 @@ where
 
         // Sync IO reads
         self.register_handler("std::io::Read::read", handle_read_into_buf);
+        self.register_handler("std::io::Read::read_exact", handle_read_into_buf);
 
         // --- UTF-8 lossy, also need to add to_string modeling
         self.register_handler(
@@ -162,11 +161,33 @@ where
             "alloc::string::String::from_utf8_lossy",
             handle_string_from_utf8_lossy,
         );
+        self.register_handler("std::string::String::from_utf8", handle_string_from_utf8);
+        self.register_handler("alloc::string::String::from_utf8", handle_string_from_utf8);
+        self.register_handler(
+            "std::result::Result::unwrap_or_default",
+            handle_result_unwrap_or_default,
+        );
+        self.register_handler(
+            "std::result::Result::<T, E>::unwrap_or_default",
+            handle_result_unwrap_or_default,
+        );
+        self.register_handler(
+            "core::result::Result::unwrap_or_default",
+            handle_result_unwrap_or_default,
+        );
+
+        self.register_handler("std::ops::DerefMut::deref_mut", handle_deref_mut);
+        self.register_handler("core::ops::deref::DerefMut::deref_mut", handle_deref_mut);
+        self.register_handler("std::ops::Deref::deref", handle_deref_generic);
+        self.register_handler("core::ops::deref::Deref::deref", handle_deref_generic);
 
         //format
-        self.register_handler("core::fmt::rt::Argument::new_display", handle_fmt_arg_new_display);
-        self.register_handler("std::fmt::Arguments::new_v1",        handle_fmt_arguments_new_v1);
-        self.register_handler("std::fmt::format",                    handle_fmt_format);
+        self.register_handler(
+            "core::fmt::rt::Argument::new_display",
+            handle_fmt_arg_new_display,
+        );
+        self.register_handler("std::fmt::Arguments::new_v1", handle_fmt_arguments_new_v1);
+        self.register_handler("std::fmt::format", handle_fmt_format);
     }
 
     pub(crate) fn operand_tainted(&self, op: &Operand<'tcx>) -> bool {
@@ -772,7 +793,7 @@ where
     ) {
         if let Some(def_id) = get_operand_def_id(&func) {
             let path = self.def_path_str(def_id);
-            // println!("Function call: {}", path);
+            println!("Function call: {}", path);
 
             if let Some((handler, sinks)) = self.find_handler(&path) {
                 let arg_vec: Vec<Operand<'tcx>> = args.iter().map(|s| s.node.clone()).collect();
@@ -821,7 +842,8 @@ where
         match operand {
             Operand::Copy(place) | Operand::Move(place) => {
                 let key = self.place_key(place);
-                self.curr.get_string(&key).cloned()
+                let base = self.resolve_alias(&key);
+                self.curr.get_string(&base).cloned()
             }
             Operand::Constant(_) => {
                 get_operand_const_string(operand).map(|s| self.curr.static_string(&s))

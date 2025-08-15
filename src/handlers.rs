@@ -1,4 +1,7 @@
-use rustc_middle::mir::{Operand, Place};
+use rustc_middle::{
+    mir::{Operand, Place},
+    ty::TyKind,
+};
 use z3::SatResult;
 
 use crate::parser::{Call, MIRParser};
@@ -7,18 +10,10 @@ use crate::parser::{Call, MIRParser};
 // pub(crate) fn handle_fs_write<'tcx, 'mir, 'ctx>(this: &mut MIRParser<'tcx, 'mir, 'ctx>, call: Call<'tcx>) {
 // pub(crate) fn handle_env_set_var<'tcx, 'mir, 'ctx>(this: &mut MIRParser<'tcx, 'mir, 'ctx>, call: Call<'tcx>) {
 
-pub(crate) fn handle_pathbuf_from<'tcx, 'mir, 'ctx>(
-    this: &mut MIRParser<'tcx, 'mir, 'ctx>,
-    call: Call<'tcx>,
-) {
-    debug_assert_eq!(call.args.len(), 1);
-    if let Some(s) = this.get_string_from_operand(&call.args[0]) {
-        let key = this.place_key(&call.dest);
-        this.curr.assign_string(&key, s);
-    }
-}
+// Hassnain : These are the functions that have been replaced / upgraded
+// pub(crate) fn handle_pathbuf_deref<'tcx, 'mir, 'ctx>( --> handle_generic_deref()
 
-pub(crate) fn handle_pathbuf_deref<'tcx, 'mir, 'ctx>(
+pub(crate) fn handle_pathbuf_from<'tcx, 'mir, 'ctx>(
     this: &mut MIRParser<'tcx, 'mir, 'ctx>,
     call: Call<'tcx>,
 ) {
@@ -163,7 +158,7 @@ pub(crate) fn generic_string_handler<'tcx, 'mir, 'ctx>(
             // Case 2
             i) Value will be forbidden in ALL execution (handle consts)
             */
-            // dbg!(could_match, always_match, tainted);
+            dbg!(could_match, always_match, tainted);
             if (could_match && tainted) || always_match {
                 if let Some(span) = call.span {
                     let func_path = this.def_path_str(call.func_def_id);
@@ -288,23 +283,22 @@ pub(crate) fn handle_read_into_buf<'tcx, 'mir, 'ctx>(
         return;
     }
     if let Operand::Copy(p) | Operand::Move(p) = &call.args[1] {
-        let key = this.place_key(p); // e.g., "11"
-        let base = this.resolve_alias(&key); // e.g., "7" after fix #2 + transitive #1
+        let key = this.place_key(p);
+        let base = this.resolve_alias(&key);
 
         // mark both the handle and the underlying buffer as tainted
+        dbg!(&key, &base, "positive tainted now");
         this.curr.set_taint(&key, true); // &mut [u8]
         this.curr.set_taint(&base, true); // [u8; N] backing array
     }
 }
 
-
-
 // Calling format calles these three
-// core::fmt::rt::Argument::<'a>::new_display -> get's called one time for each arg with {} in format 
+// core::fmt::rt::Argument::<'a>::new_display -> get's called one time for each arg with {} in format
 // std::fmt::Arguments::<'a>::new_v1 -> once upper one is done with all, this gets called
 // std::fmt::format -> finally, this gets called to actually format the string
 
-pub(crate) fn  handle_fmt_arg_new_display<'tcx, 'mir, 'ctx>(
+pub(crate) fn handle_fmt_arg_new_display<'tcx, 'mir, 'ctx>(
     this: &mut MIRParser<'tcx, 'mir, 'ctx>,
     call: Call<'tcx>,
 ) {
@@ -327,3 +321,141 @@ pub(crate) fn handle_fmt_format<'tcx, 'mir, 'ctx>(
     // this should store the result of the formatting in actual hashmap
 }
 
+pub(crate) fn handle_string_from_utf8<'tcx, 'mir, 'ctx>(
+    this: &mut MIRParser<'tcx, 'mir, 'ctx>,
+    call: Call<'tcx>,
+) {
+    if call.args.is_empty() {
+        return;
+    }
+    let dest_key = this.place_key(&call.dest);
+    dbg!(&call.args[0], &call.dest, &call.span);
+    this.curr.dump_taint();
+    dbg!();
+    // see if you can get a string from the argument, if not make a new one
+    let s = this.curr.get_or_fresh_string(&dest_key);
+    this.curr.assign_string(&dest_key, s);
+
+    // If the Vec<u8> came from the network, taint the Result
+    if this.operand_tainted(&call.args[0]) {
+        this.curr.set_taint(&dest_key, true);
+    }
+}
+
+pub(crate) fn handle_result_unwrap_or_default<'tcx, 'mir, 'ctx>(
+    this: &mut MIRParser<'tcx, 'mir, 'ctx>,
+    call: Call<'tcx>,
+) {
+    dbg!();
+    if call.args.is_empty() {
+        return;
+    }
+
+    let src_key = match &call.args[0] {
+        Operand::Copy(p) | Operand::Move(p) => this.place_key(p),
+        Operand::Constant(_) => return,
+    };
+
+    let dest_key = this.place_key(&call.dest);
+
+    dbg!(src_key.clone(), dest_key.clone());
+    this.curr.dump_taint();
+
+    if let Some(s) = this.curr.get_string(&src_key).cloned() {
+        // Reuse the symbolic string
+        this.curr.assign_string(&dest_key, s);
+    } else {
+        // if no string, make a new one , so we can add constraints on it later
+        let s = this.curr.get_or_fresh_string(&dest_key);
+        this.curr.assign_string(&dest_key, s);
+    }
+    dbg!();
+    if this.operand_tainted(&call.args[0]) {
+        dbg!();
+        this.curr.set_taint(&dest_key, true);
+    }
+}
+
+pub(crate) fn handle_deref_mut<'tcx, 'mir, 'ctx>(
+    this: &mut MIRParser<'tcx, 'mir, 'ctx>,
+    call: Call<'tcx>,
+) {
+    if call.args.is_empty() {
+        return;
+    }
+
+    // self is the Vec<T>
+    let self_key = match &call.args[0] {
+        Operand::Copy(p) | Operand::Move(p) => this.place_key(p),
+        Operand::Constant(_) => return,
+    };
+
+    // dest is &mut [T]
+    let dest_key = this.place_key(&call.dest);
+
+    // Point the temp (&mut [T]) back to the underlying Vec<T>
+    let base = this.resolve_alias(&self_key);
+    this.aliases.insert(dest_key.clone(), base.clone());
+
+    // If Vec was tainted, the slice is tainted and keep vec tainted as well
+    if this.operand_tainted(&call.args[0]) {
+        this.curr.set_taint(&dest_key, true);
+        this.curr.set_taint(&base, true);
+    }
+}
+
+pub(crate) fn handle_deref_generic<'tcx, 'mir, 'ctx>(
+    this: &mut MIRParser<'tcx, 'mir, 'ctx>,
+    call: Call<'tcx>,
+) {
+    if call.args.is_empty() {
+        return;
+    }
+
+    let self_ty = match &call.args[0] {
+        Operand::Copy(p) | Operand::Move(p) => this.mir_body.local_decls[p.local].ty,
+        Operand::Constant(_) => return,
+    };
+    let dest_ty = this.mir_body.local_decls[call.dest.local].ty;
+
+    // is self a ref to PathBuf?
+    let is_self_pathbuf = match self_ty.kind() {
+        TyKind::Ref(_, inner, _) => matches!(inner.kind(), TyKind::Adt(adt, _)
+            if this.tcx.def_path_str(adt.did()).ends_with("path::PathBuf")),
+        TyKind::Adt(adt, _) => this.tcx.def_path_str(adt.did()).ends_with("path::PathBuf"),
+        _ => false,
+    };
+
+    // is dest a &Path?
+    let dest_is_ref_to_path = match dest_ty.kind() {
+        TyKind::Ref(_, inner, _) => matches!(inner.kind(), TyKind::Adt(adt, _)
+            if this.tcx.def_path_str(adt.did()).ends_with("path::Path")),
+        _ => false,
+    };
+
+    if !(is_self_pathbuf && dest_is_ref_to_path) {
+        // Not the case we care about (atleast for now)
+        return;
+    }
+
+    // Move alias + value + taint from PathBuf to &Path
+    let self_key = match &call.args[0] {
+        Operand::Copy(p) | Operand::Move(p) => this.place_key(p),
+        Operand::Constant(_) => return,
+    };
+    let dest_key = this.place_key(&call.dest);
+
+    // Copy any known string value
+    if let Some(s) = this.get_string_from_operand(&call.args[0]) {
+        this.curr.assign_string(&dest_key, s);
+    }
+
+    // Alias the &Path temp back to the PathBuf so later lookups work
+    let base = this.resolve_alias(&self_key);
+    this.aliases.insert(dest_key.clone(), base.clone());
+
+    // Propagate taint from PathBuf to &Path
+    if this.operand_tainted(&call.args[0]) {
+        this.curr.set_taint(&dest_key, true);
+    }
+}

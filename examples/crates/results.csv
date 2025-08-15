@@ -8,6 +8,7 @@ safe,io_read1,True,FAIL
 safe,io_read2,False,PASS
 safe,io_read3,False,PASS
 safe,path_push,False,PASS
+safe,read_exact,False,PASS
 unsafe,command1,True,PASS
 unsafe,command2,True,PASS
 unsafe,command3,True,PASS
@@ -23,3 +24,4 @@ unsafe,pathbuff1,True,PASS
 unsafe,pathbuff2,True,PASS
 unsafe,pathbuff3,True,PASS
 unsafe,pathbuff4,True,PASS
+unsafe,read_exact,True,PASS
