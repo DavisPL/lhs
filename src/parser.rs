@@ -237,6 +237,7 @@ where
                 Downcast(_, v) => key.push_str(&format!("::variant{}", v.as_usize())),
                 OpaqueCast(_) => key.push_str("::opaque"),
                 ProjectionElem::Subtype(_) => key.push_str("::sub"),
+                ProjectionElem::UnwrapUnsafeBinder(_) => todo!(),
             }
         }
         key

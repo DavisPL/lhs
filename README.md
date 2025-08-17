@@ -21,17 +21,17 @@ Visit the official Rust installation page: [Rust Installation](https://www.rust-
 
 Once Rust is installed, you should `cd` into the project directory and run `rustup --version`, which should download and set `rustc` to the correct version from the `toolchain.toml` file.
 
-The `rustc` version we are using is: `rustup default nightly-2024-07-21`
+The `rustc` version we are using is: `rustup default nightly-2025-03-01`
 
 This is what you should be seeing when running the `rustc` and `rustup` version commands:
 
 ```bash
 ❯ rustc --version
-rustc 1.82.0-nightly (92c6c0380 2024-07-21)
+rustc 1.87.0-nightly (287487624 2025-02-28)
 ❯ rustup --version
-rustup 1.27.1 (54dd3d00f 2024-04-24)
+rustup 1.28.2 (e4f3ad6f8 2025-04-28)
 info: This is the version for the rustup toolchain manager, not the rustc compiler.
-info: The currently active `rustc` version is `rustc 1.82.0-nightly (92c6c0380 2024-07-21)`
+info: The currently active `rustc` version is `rustc 1.87.0-nightly (287487624 2025-02-28)`
 ```
 
 ### Installing Z3
@@ -65,7 +65,7 @@ instructions will run LHS on ONLY the contents of the directory and NOT the depe
 2. Compile and build the target project (the one for analyzing) within that project's directory with
    `cargo build`.
 3. Run `cargo clean -p <package/crate name>` in that directory to remove all compiled objects except
-   for the dependencies.
+   for the dependencies. (you can skip this step, if you want to include dependencies in the analysis)
 4. Add the following lines to the target project's `.cargo/config.toml` (the `.cargo` directory
    should exist on the target project's root directory.
    Make sure you put in your absolute path to the LHS project's `target/debug/lhs` binary.
@@ -78,7 +78,7 @@ rustc-wrapper = "/absolute/path/to/this/repo/slash/target/debug/lhs"
 Note : If Step 5 gives a dynamic library not loaded error. Your RUSTC version that complied lhs at `target/debug/lhs` is 
 probably different than the RUSTC verison that is compiling the current crate.  You can fix this by running the following command: 
 ```bash
-	rustup override set nightly-2024-07-22
+	rustup override set nightly-2025-03-01
 ```
 
 Expected results from running LHS on this crate (LHS):

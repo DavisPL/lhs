@@ -45,10 +45,10 @@ use rustc_data_structures::sync::{MappedReadGuard, ReadGuard, RwLock};
 use rustc_hir::def::DefKind;
 use rustc_middle::mir::Body;
 
-use rustc_data_structures::sync::Lrc;
 use rustc_middle::query::LocalCrate;
 use rustc_middle::util::Providers;
 use rustc_session::search_paths::PathKind;
+use rustc_driver::{run_compiler, Callbacks};
 // -------------------- END RUSTC PORTION --------------------
 
 fn main() {
@@ -95,7 +95,5 @@ fn get_callback_mir(args: Vec<String>) {
     let mut callbacks = LCallback::new();
     // let args = std::env::args().collect::<Vec<String>>();
     // args is a Vec<String>?
-    rustc_driver::RunCompiler::new(&args, &mut callbacks)
-        .run()
-        .unwrap();
+    run_compiler(&args, &mut callbacks);
 }

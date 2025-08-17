@@ -11,12 +11,11 @@ use rustc_data_structures::steal::Steal;
 use rustc_data_structures::sync::{MappedReadGuard, ReadGuard, RwLock};
 use rustc_driver::{Callbacks, Compilation};
 use rustc_hir::def::DefKind;
-use rustc_interface::{interface::Compiler, Queries};
+use rustc_interface::interface::Compiler;
 use rustc_middle::mir::Body;
 use rustc_middle::ty::{TyCtxt, TyKind};
 use rustc_span::FileNameDisplayPreference;
 
-use rustc_data_structures::sync::Lrc;
 use rustc_middle::query::LocalCrate;
 use rustc_middle::util::Providers;
 use rustc_session::search_paths::PathKind;
@@ -59,27 +58,18 @@ impl Callbacks for LCallback {
     //         };
     //     });
     // }
-
     fn after_analysis<'tcx>(
         &mut self,
-        compiler: &Compiler,
-        queries: &'tcx Queries<'tcx>,
+        _compiler: &Compiler,
+        tcx: TyCtxt<'tcx>,
     ) -> Compilation {
-        queries.global_ctxt().unwrap().enter(|tcx| {
-            let hir_map = tcx.hir();
-            // let source_map = tcx.sess.source_map();
-            for local_def_id in tcx.hir().krate().owners.indices() {
-                let def_id = local_def_id.to_def_id();
-                if tcx.def_kind(local_def_id) == DefKind::Fn {
-                    // println!("MIR for function: {:?}", local_def_id);
-                    // let mir_body = tcx.optimized_mir(def_id);
-                    let mir_body = tcx.optimized_mir(local_def_id); // This is a Steal<RwLock<Option>>
-                                                                    // let mir_string = source_map.span_to_string(mir_body.span, FileNameDisplayPreference::Local);
-                                                                    // println!("{mir_string}");
-                    trace_mir_body(tcx, mir_body)
-                }
+        let hir_map = tcx.hir();
+        for local_def_id in tcx.hir_body_owners() {
+            if matches!(tcx.def_kind(local_def_id), DefKind::Fn | DefKind::AssocFn) {
+                let mir_body = tcx.optimized_mir(local_def_id);
+                trace_mir_body(tcx, mir_body);
             }
-        });
+        }
         Compilation::Continue
     }
 }

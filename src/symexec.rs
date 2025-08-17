@@ -206,23 +206,38 @@ impl<'ctx> SymExecBool<'ctx> {
         base: &z3::ast::String<'ctx>,
         comp: &z3::ast::String<'ctx>,
     ) -> z3::ast::String<'ctx> {
+
         let sep = self.static_string("/"); // Create a "/" separator
+        let empty = self.static_string("");
+
+        // conditions
+        let base_is_empty = base._eq(&empty);
+        let comp_is_empty = comp._eq(&empty);
+        let comp_has_slash_prefix = sep.prefix(comp);
+        let base_has_slash_suffix = sep.suffix(base);
+
+        // Precompute possible results so their lifetimes outlive the ite calls
+        let base_plus_comp      = self.concat_strings(base, comp);
+        let base_plus_sep       = self.concat_strings(base, &sep);
+        let base_sep_plus_comp  = self.concat_strings(&base_plus_sep, comp);
+
         z3::ast::Bool::ite(
-            &base._eq(&self.static_string("")), // If base is empty
-            comp,                               // Return comp as is
+        &base_is_empty, // if base is empty
+        comp, // return comp as is
+        &z3::ast::Bool::ite(
+            &comp_is_empty, // if comp is empty
+            base, // return base as is
             &z3::ast::Bool::ite(
-                &comp._eq(&self.static_string("")), // If comp is empty
-                base,                               // Return base as is
+                &comp_has_slash_prefix, 
+                comp, // comp already has leading "/"
                 &z3::ast::Bool::ite(
-                    &sep.prefix(comp), // if component prefix matches "/"
-                    comp,
-                    &z3::ast::Bool::ite(&sep.suffix(base), &self.concat_strings(base, comp), {
-                        let tmp = self.concat_strings(base, &sep);
-                        &self.concat_strings(&tmp, comp) // Concatenate base + component
-                    }),
+                    &base_has_slash_suffix,
+                    &base_plus_comp,     // "base" already ends with "/"
+                    &base_sep_plus_comp, // insert "/": base + "/" + comp
                 ),
             ),
-        )
+        ),
+    )
     }
 
     /// Creates a z3 bool expression representing whether or not two strings are equivalent.
