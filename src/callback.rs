@@ -63,8 +63,9 @@ impl Callbacks for LCallback {
         _compiler: &Compiler,
         tcx: TyCtxt<'tcx>,
     ) -> Compilation {
-        let hir_map = tcx.hir();
-        for local_def_id in tcx.hir_body_owners() {
+        for local_def_id in tcx.hir_body_owners() { 
+            // https://doc.rust-lang.org/beta/nightly-rustc/rustc_hir/def/enum.DefKind.html 
+            // I don't think other types of DefKinds are relevant to us. 
             if matches!(tcx.def_kind(local_def_id), DefKind::Fn | DefKind::AssocFn) {
                 let mir_body = tcx.optimized_mir(local_def_id);
                 trace_mir_body(tcx, mir_body);

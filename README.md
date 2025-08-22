@@ -78,7 +78,7 @@ rustc-wrapper = "/absolute/path/to/this/repo/slash/target/debug/lhs"
 Note : If Step 5 gives a dynamic library not loaded error. Your RUSTC version that complied lhs at `target/debug/lhs` is 
 probably different than the RUSTC verison that is compiling the current crate.  You can fix this by running the following command: 
 ```bash
-	rustup override set nightly-2025-03-01
+	rustup override set nightly-2025-06-20
 ```
 
 Expected results from running LHS on this crate (LHS):
