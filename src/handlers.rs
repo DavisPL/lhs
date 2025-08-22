@@ -148,8 +148,9 @@ pub(crate) fn generic_string_handler<'tcx, 'mir, 'ctx>(
             };
 
             // Is the argument source tainted?
-            let tainted = this.operand_tainted(arg);
-
+            // let tainted = this.operand_tainted(arg);
+            let tainted = true;
+        
             /*
             Report in two cases
             // Case 1
