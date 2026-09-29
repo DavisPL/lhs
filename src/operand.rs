@@ -20,24 +20,27 @@ pub fn get_operand_def_id<'tcx>(operand: &Operand<'tcx>) -> Option<DefId> {
             }
             None
         }
-        // `Copy` and `Move` operands can’t be `FnDef`s.
-        Operand::Copy(_) | Operand::Move(_) => None,
+        // `Copy`, `Move`, and runtime-check operands can’t be `FnDef`s.
+        Operand::Copy(_) | Operand::Move(_) | Operand::RuntimeChecks(_) => None,
     }
 }
 
 // Extract the bytes of a `&'static str` literal embedded in an `Operand`.
 // Returns None when the operand is not a constant or its type is not
 // `&str`, or when the bytes are not valid UTF‑8.
-pub fn get_operand_const_string<'tcx>(operand: &Operand<'tcx>) -> Option<String> {
+pub fn get_operand_const_string<'tcx>(
+    tcx: TyCtxt<'tcx>,
+    operand: &Operand<'tcx>,
+) -> Option<String> {
     // is it an `Operand::Constant`
-    let (val, ty): (ConstValue<'tcx>, Ty<'tcx>) = match operand {
+    let (val, ty): (ConstValue, Ty<'tcx>) = match operand {
         Operand::Constant(c) => match c.const_ {
             // Already‑evaluated constant
             Const::Val(val, ty) => (val, ty),
             // `Const::Unevaluated` and `Const::Ty` need tcx to resolve , skipping for now
             _ => return None,
         },
-        // Copy / Move refer to locals, not literals
+        // Copy / Move / runtime-check operands refer to locals, not literals
         _ => return None,
     };
 
@@ -49,19 +52,10 @@ pub fn get_operand_const_string<'tcx>(operand: &Operand<'tcx>) -> Option<String>
         _ => return None,
     }
 
-    // can we get the raw bytes?
-    let bytes = match val {
-        ConstValue::Slice { data, meta } => {
-            let range = AllocRange {
-                start: Size::from_bytes(0),
-                size: Size::from_bytes(meta),
-            };
-            data.0.get_bytes_unchecked(range).to_vec()
-        }
-        // other `ConstValue`s (Scalar, ByRef, ZeroSized …) cannot encode a
-        // string literal on nightly‑2024‑07‑22, so just give up!
-        _ => return None,
-    };
+    // Read the slice bytes. As of rustc 1.94 `ConstValue::Slice` stores an
+    // `AllocId` (not the allocation directly), so resolving it needs `tcx`; this
+    // helper does exactly that.
+    let bytes = val.try_get_slice_bytes_for_diagnostics(tcx)?.to_vec();
 
     match String::from_utf8(bytes) {
         Ok(s) => Some(s),
@@ -87,6 +81,8 @@ pub fn get_operand_local<'tcx>(operand: &Operand<'tcx>) -> Option<usize> {
             Some(0)
             // None
         }
+        // Runtime-check operands do not refer to a local.
+        Operand::RuntimeChecks(_) => None,
     }
 }
 
@@ -128,5 +124,6 @@ pub fn get_operand_span(operand: &Operand) -> Option<rustc_span::Span> {
             let const_span = place.span;
             return Some(const_span);
         }
+        Operand::RuntimeChecks(_) => None,
     }
 }

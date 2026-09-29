@@ -3,3 +3,7 @@ examples/sat/*.txt
 examples/unsat/*.txt
 examples/crates/*.txt
 .DS_Store
+paper/
+bugs/
+__pycache__/
+examples/eval/

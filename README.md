@@ -19,19 +19,19 @@ Visit the official Rust installation page: [Rust Installation](https://www.rust-
 
 **Installing the required nightly version:**
 
-Once Rust is installed, you should `cd` into the project directory and run `rustup --version`, which should download and set `rustc` to the correct version from the `toolchain.toml` file.
+Once Rust is installed, you should `cd` into the project directory; the pinned toolchain in `rust-toolchain.toml` is downloaded and selected automatically (along with the `rust-src`, `rustc-dev`, and `llvm-tools` components LHS needs).
 
-The `rustc` version we are using is: `rustup default nightly-2025-03-01`
+The `rustc` version we are using is `nightly-2026-01-10` (equivalently `rustup default nightly-2026-01-10`).
 
 This is what you should be seeing when running the `rustc` and `rustup` version commands:
 
 ```bash
 ❯ rustc --version
-rustc 1.87.0-nightly (287487624 2025-02-28)
+rustc 1.94.0-nightly (a3f2d5abe 2026-01-09)
 ❯ rustup --version
-rustup 1.28.2 (e4f3ad6f8 2025-04-28)
+rustup 1.29.1 (d95a37b6a 2026-08-13)
 info: This is the version for the rustup toolchain manager, not the rustc compiler.
-info: The currently active `rustc` version is `rustc 1.87.0-nightly (287487624 2025-02-28)`
+info: the currently active `rustc` version is `rustc 1.94.0-nightly (a3f2d5abe 2026-01-09)`
 ```
 
 ### Installing Z3
@@ -78,7 +78,7 @@ rustc-wrapper = "/absolute/path/to/this/repo/slash/target/debug/lhs"
 Note : If Step 5 gives a dynamic library not loaded error. Your RUSTC version that complied lhs at `target/debug/lhs` is 
 probably different than the RUSTC verison that is compiling the current crate.  You can fix this by running the following command: 
 ```bash
-	rustup override set nightly-2025-06-20
+	rustup override set nightly-2026-01-10
 ```
 
 Expected results from running LHS on this crate (LHS):

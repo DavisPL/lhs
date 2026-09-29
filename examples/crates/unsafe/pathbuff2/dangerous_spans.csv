@@ -1,0 +1,3 @@
+source,sink,value,example,attack,dup,span,chain
+std::env::args,std::fs::write,/proc/self/mem,,path-traversal,repeat(2),src/main.rs:9:5: 9:14,std::env::args -> Iterator::nth @ src/main.rs:6 -> Option::expect @ src/main.rs:6 -> From::from @ src/main.rs:7 -> Deref::deref @ src/main.rs:8 -> Path::join @ src/main.rs:8 -> fs::write @ src/main.rs:9
+std::env::args,std::fs::write,*..*,../self/mem,path-traversal,repeat(2),src/main.rs:9:5: 9:14,std::env::args -> Iterator::nth @ src/main.rs:6 -> Option::expect @ src/main.rs:6 -> From::from @ src/main.rs:7 -> Deref::deref @ src/main.rs:8 -> Path::join @ src/main.rs:8 -> fs::write @ src/main.rs:9

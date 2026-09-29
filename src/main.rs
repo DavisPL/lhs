@@ -12,8 +12,6 @@ use std::fs::{File, FileType};
 use std::io::ErrorKind;
 use std::path::{Path, PathBuf};
 
-const DEF_ID_PATH_BUF: usize = 5175;
-
 use lhs::callback::LCallback;
 use lhs::parser::MIRParser;
 use lhs::symexec;
@@ -22,7 +20,6 @@ use lhs::symexec;
 extern crate rustc_driver;
 extern crate rustc_error_codes;
 extern crate rustc_errors;
-extern crate rustc_hash;
 extern crate rustc_hir;
 extern crate rustc_interface;
 extern crate rustc_session;
@@ -35,10 +32,8 @@ extern crate rustc_middle;
 use std::{path, process, str, sync::Arc};
 
 use rustc_errors::registry;
-use rustc_hash::FxHashMap;
 use rustc_middle::ty::{TyCtxt, TyKind};
 use rustc_session::config;
-use rustc_span::FileNameDisplayPreference;
 
 use rustc_data_structures::steal::Steal;
 use rustc_data_structures::sync::{MappedReadGuard, ReadGuard, RwLock};

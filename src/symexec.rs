@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use z3;
 use z3::ast::{Ast, Regexp};
 
@@ -27,6 +27,25 @@ pub struct SymExecBool<'ctx> {
     pub interval_map: HashMap<String, (Option<i128>, Option<i128>)>,
 
     pub path_taint: bool, // useful for cases like examples/unsafe/command2
+
+    /// Taint provenance: place key -> human-readable origin of the taint (the
+    /// source function, public parameter, or CLI value it came from). Carried
+    /// alongside the taint flag so a finding can report where the value started.
+    pub taint_origin: HashMap<String, String>,
+
+    /// Origin of an ambient (`path_taint`) taint — set when a tainted branch
+    /// condition makes the whole path tainted, so findings that fire only under
+    /// that ambient taint can still name where it came from.
+    pub path_taint_origin: Option<String>,
+
+    /// Entry-vs-base provenance: place keys whose value is a COMPOSED path — a base
+    /// directory with a path COMPONENT joined/pushed onto it (`base.join(name)`,
+    /// `base.push(name)`). A composed path may carry an attacker-controlled entry
+    /// name, so it stays a live zip-slip target; a BARE base directory that never had
+    /// a component appended (a plain `to`/`output_dir` param) does not. Used to keep
+    /// `write(path)`/`create_dir(base.join(name))` flagged while cutting the
+    /// trusted-output-dir flood (`create_dir(base)`, `copy(from, base)`).
+    pub composed: HashSet<String>,
 }
 
 impl<'ctx> SymExecBool<'ctx> {
@@ -40,7 +59,40 @@ impl<'ctx> SymExecBool<'ctx> {
             constraints: Vec::new(),
             interval_map: HashMap::new(),
             path_taint: false,
+            taint_origin: HashMap::new(),
+            path_taint_origin: None,
+            composed: HashSet::new(),
         }
+    }
+
+    /// Mark a place's value as a COMPOSED path (a base with a component joined/pushed
+    /// onto it). See [`Self::composed`].
+    pub fn set_composed(&mut self, name: &str) {
+        self.composed.insert(name.into());
+    }
+
+    /// Is this place's value a composed path (had a path component appended)?
+    pub fn is_composed(&self, name: &str) -> bool {
+        self.composed.contains(name)
+    }
+
+    /// Mark the whole path tainted (a tainted branch condition), remembering the
+    /// first origin so ambient-taint findings can still name their source.
+    pub fn taint_path(&mut self, origin: Option<String>) {
+        self.path_taint = true;
+        if self.path_taint_origin.is_none() {
+            self.path_taint_origin = origin;
+        }
+    }
+
+    /// Record the origin (source description) of a tainted place.
+    pub fn set_taint_origin(&mut self, name: &str, origin: &str) {
+        self.taint_origin.insert(name.into(), origin.into());
+    }
+
+    /// Look up the recorded origin of a place, if any.
+    pub fn taint_origin_of(&self, name: &str) -> Option<String> {
+        self.taint_origin.get(name).cloned()
     }
 
     // Helper functions to set taint flag on variables.
@@ -155,8 +207,15 @@ impl<'ctx> SymExecBool<'ctx> {
         self.constraints.push(c)
     }
     /// Checks if the constraints in the executor and the new constraint are satisfiable.
+    /// A solver timeout bounds hard string queries (a negated substring/component
+    /// membership on a free symbolic string can otherwise make Z3 run for a very
+    /// long time); on timeout `check()` returns `Unknown`, which callers handle
+    /// conservatively (see the sink handler) so a timeout never hides a finding.
     pub fn check_constraint_sat(&self, new_c: &z3::ast::Bool<'ctx>) -> z3::SatResult {
         let s = z3::Solver::new(self.context);
+        let mut params = z3::Params::new(self.context);
+        params.set_u32("timeout", 2000); // milliseconds
+        s.set_params(&params);
         for c in &self.constraints {
             s.assert(c);
         }
@@ -358,6 +417,38 @@ impl<'ctx> SymExecBool<'ctx> {
         a.ge(b)
     }
 
+    // --- bitwise / shift operations -------------------------------------
+    // These round-trip through a fixed-`width` bitvector so the result respects
+    // machine semantics (wrap-around, two's complement), then convert back to an
+    // `Int` interpreted as `signed`. Only used on concrete operands by the
+    // parser (mixing Z3's Int and BitVector theories on symbolic values makes
+    // later solves blow up), so these fold to numerals in practice.
+    fn to_bv(&self, a: &z3::ast::Int<'ctx>, width: u32) -> z3::ast::BV<'ctx> {
+        z3::ast::BV::from_int(a, width)
+    }
+    /// Bitwise AND of two integers of the given bit width.
+    pub fn bit_and(&self, a: &z3::ast::Int<'ctx>, b: &z3::ast::Int<'ctx>, width: u32, signed: bool) -> z3::ast::Int<'ctx> {
+        self.to_bv(a, width).bvand(&self.to_bv(b, width)).to_int(signed)
+    }
+    /// Bitwise OR of two integers of the given bit width.
+    pub fn bit_or(&self, a: &z3::ast::Int<'ctx>, b: &z3::ast::Int<'ctx>, width: u32, signed: bool) -> z3::ast::Int<'ctx> {
+        self.to_bv(a, width).bvor(&self.to_bv(b, width)).to_int(signed)
+    }
+    /// Bitwise XOR of two integers of the given bit width.
+    pub fn bit_xor(&self, a: &z3::ast::Int<'ctx>, b: &z3::ast::Int<'ctx>, width: u32, signed: bool) -> z3::ast::Int<'ctx> {
+        self.to_bv(a, width).bvxor(&self.to_bv(b, width)).to_int(signed)
+    }
+    /// Left shift `a << b` at the given bit width.
+    pub fn shl(&self, a: &z3::ast::Int<'ctx>, b: &z3::ast::Int<'ctx>, width: u32, signed: bool) -> z3::ast::Int<'ctx> {
+        self.to_bv(a, width).bvshl(&self.to_bv(b, width)).to_int(signed)
+    }
+    /// Right shift `a >> b`: arithmetic (sign-extending) when `signed`, logical otherwise.
+    pub fn shr(&self, a: &z3::ast::Int<'ctx>, b: &z3::ast::Int<'ctx>, width: u32, signed: bool) -> z3::ast::Int<'ctx> {
+        let (ba, bb) = (self.to_bv(a, width), self.to_bv(b, width));
+        let r = if signed { ba.bvashr(&bb) } else { ba.bvlshr(&bb) };
+        r.to_int(signed)
+    }
+
     pub fn int_interval(&self, v: &str) -> (Option<i128>, Option<i128>) {
         self.interval_map.get(v).cloned().unwrap_or((None, None))
     }
@@ -372,6 +463,31 @@ impl<'ctx> SymExecBool<'ctx> {
             if l0 == l1 { l0 } else { None },
             if h0 == h1 { h0 } else { None },
         )
+    }
+
+    /// Z3 bool modeling `s.contains(needle)` (needle a literal): `s` matches `*needle*`.
+    /// Tying string predicates to the tracked string (instead of a fresh opaque bool)
+    /// is what lets a guard like `if !p.contains("..")` add a real string-content
+    /// constraint on the guarded branch, so the sink's could-contain-`..` query
+    /// becomes UNSAT and Z3 — not a syntactic whitelist — resolves the guard.
+    pub fn str_contains_lit(&self, s: &z3::ast::String<'ctx>, needle: &str) -> z3::ast::Bool<'ctx> {
+        s.regex_matches(&self.regex_from_pattern(&format!("*{needle}*")))
+    }
+    /// Z3 bool modeling `s.starts_with(prefix)` = "prefix is a prefix of s".
+    pub fn str_starts_with(
+        &self,
+        s: &z3::ast::String<'ctx>,
+        prefix: &z3::ast::String<'ctx>,
+    ) -> z3::ast::Bool<'ctx> {
+        prefix.prefix(s)
+    }
+    /// Z3 bool modeling `s.ends_with(suffix)` = "suffix is a suffix of s".
+    pub fn str_ends_with(
+        &self,
+        s: &z3::ast::String<'ctx>,
+        suffix: &z3::ast::String<'ctx>,
+    ) -> z3::ast::Bool<'ctx> {
+        suffix.suffix(s)
     }
 
     // Creates a z3 regular expression from a pattern string.
@@ -396,6 +512,13 @@ impl<'ctx> SymExecBool<'ctx> {
             _ => Regexp::concat(self.context, &refs),
         }
     }
+    /// Build a Z3 boolean for "does `expr` match `pattern`?" using NATIVE sequence
+    /// operations (`str.contains`/`prefixof`/`suffixof`/`=`) rather than regex
+    /// membership — negated regex membership on a symbolic string makes Z3 hang,
+    /// while native sequence ops stay tractable. A `*` is a wildcard: `X` = exact,
+    /// `X*` = starts-with, `*X` = ends-with, `*X*` = contains. The special `*..*`
+    /// traversal pattern is treated as a `..` PATH COMPONENT (bounded by `/`, `\`,
+    /// or a string end), so a filename like `foo..bar` is not a false positive.
     /// Checks if the given string matches the given pattern.
     pub fn check_string_matches(
         &self,
@@ -408,6 +531,36 @@ impl<'ctx> SymExecBool<'ctx> {
         }
         s.assert(&expr.regex_matches(&self.regex_from_pattern(pattern)));
         s.check()
+    }
+
+    /// Like [`check_string_matches`], but on SAT also return a CONCRETE example value
+    /// the string could take at the sink — a witness — by reading it out of Z3's model.
+    /// This is "what value can it actually be here": e.g. for a free string that must
+    /// contain `..`, Z3 hands back something like `..`; if a guard/prefix constrains
+    /// it, the witness reflects that. Returns (result, Some(example)) only when SAT and
+    /// the model yields a concrete string; otherwise (result, None).
+    pub fn witness_string_matches(
+        &self,
+        expr: &z3::ast::String<'ctx>,
+        pattern: &str,
+    ) -> (z3::SatResult, Option<String>) {
+        let s = z3::Solver::new(self.context);
+        let mut params = z3::Params::new(self.context);
+        params.set_u32("timeout", 2000);
+        s.set_params(&params);
+        for c in &self.constraints {
+            s.assert(c);
+        }
+        s.assert(&expr.regex_matches(&self.regex_from_pattern(pattern)));
+        let r = s.check();
+        let witness = if r == z3::SatResult::Sat {
+            s.get_model()
+                .and_then(|m| m.eval(expr, true))
+                .and_then(|v| v.as_string())
+        } else {
+            None
+        };
+        (r, witness)
     }
 
     /// UNSAT if it's impossible for expr to NOT match the pattern

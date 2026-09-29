@@ -1,2 +1,0 @@
-function,value,index,span
-std::process::Command::new,rm -rf *,1,src/main.rs:6:5: 6:31

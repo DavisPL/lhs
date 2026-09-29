@@ -4,6 +4,7 @@ use rustc_middle::{
 };
 use z3::SatResult;
 
+use crate::operand::get_operand_const_string;
 use crate::parser::{Call, MIRParser};
 
 // Hassnain : Removed these function, as we are using a generic string matching fucniton now
@@ -28,15 +29,20 @@ pub(crate) fn handle_path_join<'tcx, 'mir, 'ctx>(
     this: &mut MIRParser<'tcx, 'mir, 'ctx>,
     call: Call<'tcx>,
 ) {
-    if call.args.is_empty() {
+    if call.args.len() < 2 {
         return;
     }
+    // Entry-vs-base provenance: the result of a join is a COMPOSED path (a base with a
+    // component appended), regardless of whether we could model the concrete strings —
+    // so a later `create_dir_all`/`copy` on it (or its `.parent()`) is not treated as a
+    // bare output-dir. Marked unconditionally when a component is joined on.
+    let key = this.place_key(&call.dest);
+    this.curr.set_composed(&key);
     if let (Some(base), Some(comp)) = (
         this.get_string_from_operand(&call.args[0]),
         this.get_string_from_operand(&call.args[1]),
     ) {
         let joined = this.curr.path_join(&base, &comp);
-        let key = this.place_key(&call.dest);
         this.curr.assign_string(&key, joined);
     }
 }
@@ -111,15 +117,29 @@ pub(crate) fn generic_string_handler<'tcx, 'mir, 'ctx>(
     this: &mut MIRParser<'tcx, 'mir, 'ctx>,
     call: Call<'tcx>,
 ) {
-    dbg!();
     // Which arg to look at (defaults to 0 if no SinkInformation)
     let idx = call.sink.map(|s| s.arg_idx).unwrap_or(0);
     let Some(arg) = call.args.get(idx) else {
         return;
     };
 
-    // extract the string from the argument
-    if let Some(sym_str) = this.get_string_from_operand(arg) {
+    // Extract the string value of the argument. If the value is TAINTED but has no
+    // modeled string (e.g. it was built by an unmodeled combiner like `[..].join(..)`
+    // that only set the taint flag), fall back to a fresh UNCONSTRAINED symbolic
+    // string so the sink can still test "could this be `..`?". Safe for guards: a
+    // guarded value carries a stored symbolic (with its constraints), so this branch —
+    // which only fires when there is NO stored string — never discards a constraint.
+    let sym_str = this.get_string_from_operand(arg).or_else(|| {
+        if this.operand_tainted(arg) {
+            match arg {
+                Operand::Copy(p) | Operand::Move(p) => Some(this.curr.fresh_string(&this.place_key(p))),
+                _ => None,
+            }
+        } else {
+            None
+        }
+    });
+    if let Some(sym_str) = sym_str {
         let dest_key = this.place_key(&call.dest);
         this.curr.assign_string(&dest_key, sym_str.clone());
 
@@ -132,37 +152,53 @@ pub(crate) fn generic_string_handler<'tcx, 'mir, 'ctx>(
             let s: &z3::ast::String<'ctx> = &sym_str;
             // let dest_expr = this.curr.get_string(&dest_key).unwrap();
             let use_regex = info.forbidden_val.contains('*');
-
-            let (could_match, always_match) = if use_regex {
-                (
-                    // IF there is regex, check for pattern match
-                    this.curr.check_string_matches(s, info.forbidden_val) == z3::SatResult::Sat,
-                    this.curr.check_string_always_matches(s, info.forbidden_val)
-                        == z3::SatResult::Unsat,
-                )
-            } else {
-                (
-                    this.curr.could_equal_literal(s, info.forbidden_val) == z3::SatResult::Sat,
-                    this.curr.must_equal_literal(s, info.forbidden_val) == z3::SatResult::Unsat,
-                )
-            };
-
-            // Is the argument source tainted?
             let tainted = this.operand_tainted(arg);
 
-            /*
-            Report in two cases
-            // Case 1
-            i) Value is tainted
-            ii) Value may have forbidden value in some executions.
-            // Case 2
-            i) Value will be forbidden in ALL execution (handle consts)
-            */
-            dbg!(could_match, always_match, tainted);
-            if (could_match && tainted) || always_match {
+            // Report in two cases:
+            //  - TAINTED value that COULD take the forbidden shape in some
+            //    execution (the taint-flow finding). We only run the cheap
+            //    positive query here; `Unknown` (solver timeout) is treated as
+            //    "could" so a timeout can never hide a real finding.
+            //  - UNTAINTED value that is FORCED to the forbidden shape in ALL
+            //    executions (a hardcoded constant). The negated query is only run
+            //    in this branch — it is the expensive one on symbolic strings, but
+            //    an untainted sink argument is almost always a concrete constant,
+            //    so it stays cheap and we avoid the costly query on the hot path.
+            // A concrete example value the tainted arg could take at the sink, pulled
+            // from Z3's model when the finding fires — "what value can it be here."
+            let mut example: Option<String> = None;
+            let fire = if tainted {
+                let r = if use_regex {
+                    let (r, w) = this.curr.witness_string_matches(s, info.forbidden_val);
+                    example = w;
+                    r
+                } else {
+                    this.curr.could_equal_literal(s, info.forbidden_val)
+                };
+                matches!(r, z3::SatResult::Sat | z3::SatResult::Unknown)
+            } else {
+                let r = if use_regex {
+                    this.curr.check_string_always_matches(s, info.forbidden_val)
+                } else {
+                    this.curr.must_equal_literal(s, info.forbidden_val)
+                };
+                r == z3::SatResult::Unsat
+            };
+
+            if fire {
                 if let Some(span) = call.span {
                     let func_path = this.def_path_str(call.func_def_id);
-                    this.record_sink_hit(&func_path, info.forbidden_val, span);
+                    // Source = where the tainted argument came from; for an
+                    // always-match constant there is no taint source, so label it.
+                    let source = this
+                        .operand_origin(arg)
+                        .or_else(|| this.curr.path_taint_origin.clone())
+                        .unwrap_or_else(|| if tainted { "unknown".into() } else { "constant".into() });
+                    // Entry-vs-base routing (see `record_sink_hit_prov`): a base-position
+                    // sink fed a BARE value is deferred and only kept if the value proves
+                    // to be a real target path elsewhere in the function.
+                    let composed = this.operand_composed(arg);
+                    this.record_sink_hit_prov(&source, &func_path, info.forbidden_val, span, example, composed);
                 }
             }
         }
@@ -179,6 +215,24 @@ pub(crate) fn handle_generic_source<'tcx, 'mir, 'ctx>(
 ) {
     let key = this.place_key(&call.dest);
     this.curr.set_taint(&key, true);
+    // Record where this taint originates (the source function), generics stripped
+    // for readability, so a downstream finding can name it.
+    let source = crate::matching::strip_generics(&this.def_path_str(call.func_def_id));
+    this.curr.set_taint_origin(&key, &source);
+    // Bind a persistent fresh symbolic Z3 string so downstream guards
+    // (contains/starts_with/ends_with -> str_* constraints) and joins can reason
+    // about this value's CONTENT in the solver. Without it the value has only a
+    // taint flag and no string the solver can constrain, so a guard could never
+    // make the sink query UNSAT. Recall-safe: only ever adds a symbolic string.
+    if this.curr.get_string(&key).is_none() {
+        this.curr.create_uninterpreted_string(&key);
+    }
+    // Reading untrusted archive/stream data (an entry-name accessor, a file/socket
+    // read) marks the function as an extractor, so its public-param findings are
+    // kept; a CLI/env source does not (see `run_body`'s reader-provenance gate).
+    if crate::matching::is_reader_provenance_source(&source) {
+        this.touched_reader = true;
+    }
 }
 
 pub(crate) fn handle_pathbuf_push<'tcx, 'mir, 'ctx>(
@@ -191,11 +245,14 @@ pub(crate) fn handle_pathbuf_push<'tcx, 'mir, 'ctx>(
 
     let self_key = match &call.args[0] {
         Operand::Copy(p) | Operand::Move(p) => this.place_key(p),
-        Operand::Constant(_) => return,
+        Operand::Constant(_) | Operand::RuntimeChecks(_) => return,
     };
 
     // resolve the alias to the original variable , if no alias, return self_key
     let pointee_key = this.resolve_alias(&self_key);
+
+    // Entry-vs-base: pushing a component makes the receiver a COMPOSED path.
+    this.curr.set_composed(&pointee_key);
 
     let base_opt = this.curr.get_string(&pointee_key).cloned();
     let comp_opt = this.get_string_from_operand(&call.args[1]);
@@ -203,11 +260,16 @@ pub(crate) fn handle_pathbuf_push<'tcx, 'mir, 'ctx>(
     if let (Some(base), Some(comp)) = (base_opt, comp_opt) {
         let joined = this.curr.path_join(&base, &comp);
         this.curr.assign_string(&pointee_key, joined);
-        if this.operand_tainted(&call.args[1]) || this.operand_tainted(&call.args[0]) {
-            this.curr.set_taint(&pointee_key, true);
-        }
-    } else if this.operand_tainted(&call.args[1]) || this.operand_tainted(&call.args[0]) {
+    }
+    if this.operand_tainted(&call.args[1]) || this.operand_tainted(&call.args[0]) {
         this.curr.set_taint(&pointee_key, true);
+        // Provenance: prefer the pushed component, else the receiver.
+        let o = this
+            .operand_origin(&call.args[1])
+            .or_else(|| this.operand_origin(&call.args[0]));
+        if let Some(o) = o {
+            this.curr.set_taint_origin(&pointee_key, &o);
+        }
     }
 }
 
@@ -286,10 +348,13 @@ pub(crate) fn handle_read_into_buf<'tcx, 'mir, 'ctx>(
         let key = this.place_key(p);
         let base = this.resolve_alias(&key);
 
-        // mark both the handle and the underlying buffer as tainted
-        dbg!(&key, &base, "positive tainted now");
+        // mark both the handle and the underlying buffer as tainted, recording
+        // the read as the taint's origin
+        let source = crate::matching::strip_generics(&this.def_path_str(call.func_def_id));
         this.curr.set_taint(&key, true); // &mut [u8]
+        this.curr.set_taint_origin(&key, &source);
         this.curr.set_taint(&base, true); // [u8; N] backing array
+        this.curr.set_taint_origin(&base, &source);
     }
 }
 
@@ -317,7 +382,6 @@ pub(crate) fn handle_fmt_format<'tcx, 'mir, 'ctx>(
     this: &mut MIRParser<'tcx, 'mir, 'ctx>,
     call: Call<'tcx>,
 ) {
-    println!("Format! encountered, false positive introduced");
     // this should store the result of the formatting in actual hashmap
 }
 
@@ -329,9 +393,6 @@ pub(crate) fn handle_string_from_utf8<'tcx, 'mir, 'ctx>(
         return;
     }
     let dest_key = this.place_key(&call.dest);
-    dbg!(&call.args[0], &call.dest, &call.span);
-    this.curr.dump_taint();
-    dbg!();
     // see if you can get a string from the argument, if not make a new one
     let s = this.curr.get_or_fresh_string(&dest_key);
     this.curr.assign_string(&dest_key, s);
@@ -346,20 +407,16 @@ pub(crate) fn handle_result_unwrap_or_default<'tcx, 'mir, 'ctx>(
     this: &mut MIRParser<'tcx, 'mir, 'ctx>,
     call: Call<'tcx>,
 ) {
-    dbg!();
     if call.args.is_empty() {
         return;
     }
 
     let src_key = match &call.args[0] {
         Operand::Copy(p) | Operand::Move(p) => this.place_key(p),
-        Operand::Constant(_) => return,
+        Operand::Constant(_) | Operand::RuntimeChecks(_) => return,
     };
 
     let dest_key = this.place_key(&call.dest);
-
-    dbg!(src_key.clone(), dest_key.clone());
-    this.curr.dump_taint();
 
     if let Some(s) = this.curr.get_string(&src_key).cloned() {
         // Reuse the symbolic string
@@ -369,9 +426,7 @@ pub(crate) fn handle_result_unwrap_or_default<'tcx, 'mir, 'ctx>(
         let s = this.curr.get_or_fresh_string(&dest_key);
         this.curr.assign_string(&dest_key, s);
     }
-    dbg!();
     if this.operand_tainted(&call.args[0]) {
-        dbg!();
         this.curr.set_taint(&dest_key, true);
     }
 }
@@ -387,7 +442,7 @@ pub(crate) fn handle_deref_mut<'tcx, 'mir, 'ctx>(
     // self is the Vec<T>
     let self_key = match &call.args[0] {
         Operand::Copy(p) | Operand::Move(p) => this.place_key(p),
-        Operand::Constant(_) => return,
+        Operand::Constant(_) | Operand::RuntimeChecks(_) => return,
     };
 
     // dest is &mut [T]
@@ -412,50 +467,83 @@ pub(crate) fn handle_deref_generic<'tcx, 'mir, 'ctx>(
         return;
     }
 
-    let self_ty = match &call.args[0] {
-        Operand::Copy(p) | Operand::Move(p) => this.mir_body.local_decls[p.local].ty,
-        Operand::Constant(_) => return,
-    };
-    let dest_ty = this.mir_body.local_decls[call.dest.local].ty;
-
-    // is self a ref to PathBuf?
-    let is_self_pathbuf = match self_ty.kind() {
-        TyKind::Ref(_, inner, _) => matches!(inner.kind(), TyKind::Adt(adt, _)
-            if this.tcx.def_path_str(adt.did()).ends_with("path::PathBuf")),
-        TyKind::Adt(adt, _) => this.tcx.def_path_str(adt.did()).ends_with("path::PathBuf"),
-        _ => false,
-    };
-
-    // is dest a &Path?
-    let dest_is_ref_to_path = match dest_ty.kind() {
-        TyKind::Ref(_, inner, _) => matches!(inner.kind(), TyKind::Adt(adt, _)
-            if this.tcx.def_path_str(adt.did()).ends_with("path::Path")),
-        _ => false,
-    };
-
-    if !(is_self_pathbuf && dest_is_ref_to_path) {
-        // Not the case we care about (atleast for now)
-        return;
-    }
-
-    // Move alias + value + taint from PathBuf to &Path
+    // `deref` passes the pointee through unchanged, so propagate the tracked string,
+    // the alias, and taint for ANY deref (String->&str, PathBuf->&Path, Box<_>, ...).
+    // Previously this was gated to PathBuf->&Path only, which left `name.contains("..")`
+    // (via `<String as Deref>::deref`) with no tracked string, so string-predicate
+    // guards could never constrain the value. Recall-safe: only ever adds tracking.
     let self_key = match &call.args[0] {
         Operand::Copy(p) | Operand::Move(p) => this.place_key(p),
-        Operand::Constant(_) => return,
+        Operand::Constant(_) | Operand::RuntimeChecks(_) => return,
     };
     let dest_key = this.place_key(&call.dest);
 
-    // Copy any known string value
     if let Some(s) = this.get_string_from_operand(&call.args[0]) {
         this.curr.assign_string(&dest_key, s);
     }
-
-    // Alias the &Path temp back to the PathBuf so later lookups work
+    // Alias the deref temp back to the base so later lookups resolve to it.
     let base = this.resolve_alias(&self_key);
     this.aliases.insert(dest_key.clone(), base.clone());
-
-    // Propagate taint from PathBuf to &Path
     if this.operand_tainted(&call.args[0]) {
         this.curr.set_taint(&dest_key, true);
     }
+}
+
+// --- String-predicate modeling: tie contains/starts_with/ends_with to the tracked
+// Z3 string so guard branches add real content constraints (see SymExec::str_*).
+// Recall-safe: each only ADDS a modeled bool; if the string isn't tracked or the
+// needle isn't a literal it does nothing, leaving the prior opaque-bool behavior.
+
+pub(crate) fn handle_str_contains<'tcx, 'mir, 'ctx>(
+    this: &mut MIRParser<'tcx, 'mir, 'ctx>,
+    call: Call<'tcx>,
+) {
+    if call.args.len() < 2 {
+        return;
+    }
+    let Some(s) = this.get_string_from_operand(&call.args[0]) else {
+        return;
+    };
+    let Some(needle) = get_operand_const_string(this.tcx, &call.args[1]) else {
+        return;
+    };
+    let b = this.curr.str_contains_lit(&s, &needle);
+    let dest = this.place_key(&call.dest);
+    this.curr.assign_bool(&dest, b);
+}
+
+pub(crate) fn handle_str_starts_with<'tcx, 'mir, 'ctx>(
+    this: &mut MIRParser<'tcx, 'mir, 'ctx>,
+    call: Call<'tcx>,
+) {
+    if call.args.len() < 2 {
+        return;
+    }
+    let (Some(s), Some(prefix)) = (
+        this.get_string_from_operand(&call.args[0]),
+        this.get_string_from_operand(&call.args[1]),
+    ) else {
+        return;
+    };
+    let b = this.curr.str_starts_with(&s, &prefix);
+    let dest = this.place_key(&call.dest);
+    this.curr.assign_bool(&dest, b);
+}
+
+pub(crate) fn handle_str_ends_with<'tcx, 'mir, 'ctx>(
+    this: &mut MIRParser<'tcx, 'mir, 'ctx>,
+    call: Call<'tcx>,
+) {
+    if call.args.len() < 2 {
+        return;
+    }
+    let (Some(s), Some(suffix)) = (
+        this.get_string_from_operand(&call.args[0]),
+        this.get_string_from_operand(&call.args[1]),
+    ) else {
+        return;
+    };
+    let b = this.curr.str_ends_with(&s, &suffix);
+    let dest = this.place_key(&call.dest);
+    this.curr.assign_bool(&dest, b);
 }
